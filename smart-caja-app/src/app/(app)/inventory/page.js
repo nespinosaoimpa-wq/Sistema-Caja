@@ -82,6 +82,10 @@ export default function InventoryPage() {
       setCategoryError('Ingresá un nombre válido')
       return
     }
+    if (!tenant?.id) {
+      toast.error('Error: Sesión de comercio no encontrada. Volvé a iniciar sesión.')
+      return
+    }
     setCreatingCategory(true)
     try {
       const { data, error } = await supabase
