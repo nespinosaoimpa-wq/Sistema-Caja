@@ -1,30 +1,41 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { formatCurrency, formatDateTime, PAYMENT_METHOD_LABELS } from '@/lib/utils/formatters'
+
+const PAGE_SIZE = 20
 
 export default function SalesPage() {
   const { tenant } = useAuth()
   const supabase = createClient()
   const [sales, setSales] = useState([])
   const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [hasMore, setHasMore] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('all') // all, today, this_week, this_month
   const [paymentFilter, setPaymentFilter] = useState('all')
 
   useEffect(() => {
     if (tenant?.id) {
-      loadSales()
+      loadSales(true)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id])
 
-  async function loadSales() {
-    setLoading(true)
-    
-    // In a real app we'd paginate, but for now we fetch top 100
+  const loadSales = useCallback(async (reset = false) => {
+    if (reset) {
+      setLoading(true)
+      setSales([])
+    } else {
+      setLoadingMore(true)
+    }
+
+    const from = reset ? 0 : sales.length
+    const to = from + PAGE_SIZE - 1
+
     const { data, error } = await supabase
       .from('sales')
       .select(`
@@ -34,13 +45,16 @@ export default function SalesPage() {
       `)
       .eq('tenant_id', tenant.id)
       .order('created_at', { ascending: false })
-      .limit(100)
+      .range(from, to)
 
     if (!error && data) {
-      setSales(data)
+      setSales(prev => reset ? data : [...prev, ...data])
+      setHasMore(data.length === PAGE_SIZE)
     }
+
     setLoading(false)
-  }
+    setLoadingMore(false)
+  }, [sales.length, supabase, tenant?.id])
 
   // Filters
   const filteredSales = sales.filter(sale => {
@@ -50,7 +64,7 @@ export default function SalesPage() {
     // Payment filter
     const matchesPayment = paymentFilter === 'all' || sale.payment_method === paymentFilter
     
-    // Date filter
+    // Date filter — use fresh Date objects to avoid mutation
     let matchesDate = true
     if (dateFilter !== 'all') {
       const saleDate = new Date(sale.created_at)
@@ -58,7 +72,7 @@ export default function SalesPage() {
       if (dateFilter === 'today') {
         matchesDate = saleDate.toDateString() === now.toDateString()
       } else if (dateFilter === 'this_week') {
-        const weekAgo = new Date(now.setDate(now.getDate() - 7))
+        const weekAgo = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7)
         matchesDate = saleDate >= weekAgo
       } else if (dateFilter === 'this_month') {
         matchesDate = saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear()
@@ -74,6 +88,35 @@ export default function SalesPage() {
     setSelectedSale(sale)
   }
 
+  const exportCSV = () => {
+    if (filteredSales.length === 0) return
+
+    const headers = ['Fecha', 'Ticket', 'Método de Pago', 'Estado', 'Items', 'Total']
+    const rows = filteredSales.map(sale => [
+      formatDateTime(sale.created_at),
+      sale.ticket_number || '',
+      PAYMENT_METHOD_LABELS[sale.payment_method] || sale.payment_method || '',
+      sale.status === 'completed' ? 'Completado' : 'Anulado',
+      sale.sale_items?.length || 0,
+      sale.total || 0
+    ])
+
+    const csvContent = [
+      headers.join(','),
+      ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
+    ].join('\n')
+
+    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `ventas_${new Date().toISOString().split('T')[0]}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
   return (
     <div>
       <div className="app-header">
@@ -86,8 +129,8 @@ export default function SalesPage() {
           </p>
         </div>
         <div className="flex items-center gap-3" style={{ marginLeft: 'auto' }}>
-          <button className="btn btn-primary" onClick={() => window.print()}>
-            ⬇️ Exportar Reporte
+          <button className="btn btn-primary" onClick={exportCSV}>
+            ⬇️ Exportar CSV
           </button>
         </div>
       </div>
@@ -182,6 +225,19 @@ export default function SalesPage() {
                   </div>
                 </div>
               ))}
+
+              {/* Load More Button */}
+              {hasMore && (
+                <div style={{ padding: 'var(--space-6)', textAlign: 'center' }}>
+                  <button 
+                    className="btn btn-ghost" 
+                    onClick={() => loadSales(false)}
+                    disabled={loadingMore}
+                  >
+                    {loadingMore ? 'Cargando...' : 'Cargar más ventas'}
+                  </button>
+                </div>
+              )}
             </div>
           )}
         </div>

@@ -28,18 +28,8 @@ export default function AnalyticsPage() {
     stagnantProducts: []
   })
 
-  if (tenant?.subscription_plan === 'basic') {
-    return (
-      <UpgradePrompt 
-        title="Estadísticas Avanzadas" 
-        description="Obtén métricas detalladas, gráficos de rendimiento y análisis profundo de tu negocio."
-        requiredPlan="professional"
-      />
-    )
-  }
-
   useEffect(() => {
-    if (tenant?.id) {
+    if (tenant?.id && tenant?.subscription_plan !== 'basic') {
       loadData()
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -47,46 +37,125 @@ export default function AnalyticsPage() {
 
   async function loadData() {
     setLoading(true)
-    // Mocking exact data from the screenshot for perfect layout matching
-    setStats({
-      totalSales: 847500,
-      transactions: 234,
-      avgTicket: 3621,
-      netProfit: 312400,
-      profitMargin: 36.8,
-      hourlyData: [
-        { name: '09:00', value: 30000, isPeak: false },
-        { name: '10:00', value: 45000, isPeak: false },
-        { name: '12:00', value: 40000, isPeak: false },
-        { name: '14:00', value: 85000, isPeak: true },
-        { name: '15:00', value: 125000, isPeak: true },
-        { name: '17:00', value: 35000, isPeak: false },
-        { name: '18:00', value: 45000, isPeak: false },
-        { name: '20:00', value: 50000, isPeak: false },
-        { name: '21:00', value: 30000, isPeak: false },
-      ],
-      paymentMethods: [
-        { name: 'Débito', value: 45, color: '#A855F7' },
-        { name: 'Crédito', value: 30, color: '#10B981' },
-        { name: 'Efectivo', value: 20, color: '#FDBA74' },
-        { name: 'Otros', value: 5, color: '#3F3F46' }
-      ],
-      topProducts: [
-        { name: 'Café Especial Blend', qty: 142, max: 150 },
-        { name: 'Croissant Frances', qty: 98, max: 150 },
-        { name: 'Té Matcha Orgánico', qty: 75, max: 150 }
-      ],
-      stagnantProducts: [
-        { name: 'Bebida Energética V2', days: 12 },
-        { name: 'Galletas de Avena Miel', days: 8 }
-      ]
-    })
+    try {
+      const now = new Date()
+      let startDate
+      
+      if (timeRange === 'day') {
+        startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+      } else if (timeRange === 'week') {
+        startDate = new Date(now)
+        startDate.setDate(now.getDate() - 7)
+      } else {
+        startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+      }
+
+      // Fetch sales in period
+      const { data: sales } = await supabase
+        .from('sales')
+        .select('id, total, payment_method, created_at, status')
+        .eq('tenant_id', tenant.id)
+        .eq('status', 'completed')
+        .gte('created_at', startDate.toISOString())
+        .order('created_at', { ascending: true })
+
+      // Fetch sale items with cost for profit calculation
+      const saleIds = (sales || []).map(s => s.id)
+      const { data: items } = saleIds.length > 0 
+        ? await supabase
+          .from('sale_items')
+          .select('product_name, quantity, unit_price, cost_price, sale_id')
+          .eq('tenant_id', tenant.id)
+          .in('sale_id', saleIds)
+        : { data: [] }
+
+      // Fetch stagnant products
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+      const { data: stagnant } = await supabase
+        .from('products')
+        .select('name, last_sold_at')
+        .eq('tenant_id', tenant.id)
+        .eq('is_active', true)
+        .or(`last_sold_at.is.null,last_sold_at.lt.${thirtyDaysAgo.toISOString()}`)
+        .limit(5)
+
+      // Calculate stats
+      const salesList = sales || []
+      const itemsList = items || []
+      const totalSales = salesList.reduce((sum, s) => sum + (s.total || 0), 0)
+      const transactions = salesList.length
+      const avgTicket = transactions > 0 ? totalSales / transactions : 0
+      
+      const totalCost = itemsList.reduce((sum, i) => sum + ((i.cost_price || 0) * (i.quantity || 1)), 0)
+      const totalRevenue = itemsList.reduce((sum, i) => sum + ((i.unit_price || 0) * (i.quantity || 1)), 0)
+      const netProfit = totalRevenue - totalCost
+      const profitMargin = totalRevenue > 0 ? (netProfit / totalRevenue * 100) : 0
+
+      // Hourly data
+      const hourlyMap = {}
+      salesList.forEach(s => {
+        const hour = new Date(s.created_at).getHours()
+        const key = `${hour.toString().padStart(2, '0')}:00`
+        hourlyMap[key] = (hourlyMap[key] || 0) + (s.total || 0)
+      })
+      const maxHourly = Math.max(...Object.values(hourlyMap), 0)
+      const hourlyData = Object.entries(hourlyMap)
+        .sort(([a], [b]) => a.localeCompare(b))
+        .map(([name, value]) => ({ name, value, isPeak: value >= maxHourly * 0.7 }))
+
+      // Payment methods
+      const pmMap = {}
+      salesList.forEach(s => {
+        const method = s.payment_method || 'cash'
+        pmMap[method] = (pmMap[method] || 0) + 1
+      })
+      const pmColors = { cash: '#FDBA74', debit: '#A855F7', credit: '#10B981', combined: '#3B82F6', installment: '#F43F5E' }
+      const pmLabels = { cash: 'Efectivo', debit: 'Débito', credit: 'Crédito', combined: 'Combinado', installment: 'Fiado' }
+      const totalPm = Object.values(pmMap).reduce((a, b) => a + b, 0)
+      const paymentMethods = Object.entries(pmMap).map(([key, count]) => ({
+        name: pmLabels[key] || key,
+        value: totalPm > 0 ? Math.round(count / totalPm * 100) : 0,
+        color: pmColors[key] || '#3F3F46'
+      }))
+
+      // Top products
+      const productMap = {}
+      itemsList.forEach(i => {
+        const name = i.product_name
+        productMap[name] = (productMap[name] || 0) + (i.quantity || 1)
+      })
+      const topProducts = Object.entries(productMap)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 5)
+      const maxQty = topProducts.length > 0 ? topProducts[0][1] : 1
+      const topProductsFormatted = topProducts.map(([name, qty]) => ({ name, qty, max: maxQty }))
+
+      // Stagnant products
+      const stagnantProducts = (stagnant || []).map(p => ({
+        name: p.name,
+        days: p.last_sold_at ? Math.floor((Date.now() - new Date(p.last_sold_at).getTime()) / (1000 * 60 * 60 * 24)) : 30
+      }))
+
+      setStats({
+        totalSales, transactions, avgTicket: Math.round(avgTicket),
+        netProfit, profitMargin: Math.round(profitMargin * 10) / 10,
+        hourlyData: hourlyData.length > 0 ? hourlyData : [{ name: 'Sin datos', value: 0, isPeak: false }],
+        paymentMethods: paymentMethods.length > 0 ? paymentMethods : [{ name: 'Sin ventas', value: 100, color: '#3F3F46' }],
+        topProducts: topProductsFormatted,
+        stagnantProducts
+      })
+    } catch (error) {
+      console.error('Error loading analytics:', error)
+    }
     setLoading(false)
   }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
       
+      {tenant?.subscription_plan === 'basic' ? (
+        <UpgradePrompt 
       {/* Header */}
       <div className="flex items-center justify-between">
         <h1 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.03em' }}>
@@ -111,7 +180,7 @@ export default function AnalyticsPage() {
                 <div className="kpi-icon-box" style={{ color: 'var(--color-primary)' }}>🖨️</div>
               </div>
               <div className="kpi-value">${(stats.totalSales).toLocaleString('es-AR')}</div>
-              <div className="kpi-change up">↗ +12% vs sem pasada</div>
+              <div className="kpi-change up">Métricas reales en tiempo real</div>
             </div>
 
             <div className="kpi-card">
@@ -120,7 +189,6 @@ export default function AnalyticsPage() {
                 <div className="kpi-icon-box" style={{ color: 'var(--color-primary)' }}>📋</div>
               </div>
               <div className="kpi-value">{stats.transactions}</div>
-              <div className="kpi-change up">↗ +8% vs sem pasada</div>
             </div>
 
             <div className="kpi-card">
@@ -129,7 +197,6 @@ export default function AnalyticsPage() {
                 <div className="kpi-icon-box" style={{ color: 'var(--color-primary)' }}>🏷️</div>
               </div>
               <div className="kpi-value">${(stats.avgTicket).toLocaleString('es-AR')}</div>
-              <div className="kpi-change up">↗ +5% vs sem pasada</div>
             </div>
 
             <div className="kpi-card">
@@ -160,7 +227,6 @@ export default function AnalyticsPage() {
                       fontSize={11} 
                       tickLine={false} 
                       axisLine={{ stroke: '#2A2735' }}
-                      ticks={['09:00', '12:00', '15:00', '18:00', '21:00']} 
                       dy={10} 
                     />
                     <Tooltip cursor={{ fill: '#1A1822' }} contentStyle={{ background: '#13111A', border: '1px solid #2A2735' }} />
@@ -200,7 +266,7 @@ export default function AnalyticsPage() {
                     </PieChart>
                   </ResponsiveContainer>
                   <div style={{ position: 'absolute', textAlign: 'center' }}>
-                    <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#fff' }}>234</div>
+                    <div style={{ fontSize: '1.75rem', fontWeight: 700, color: '#fff' }}>{stats.transactions}</div>
                   </div>
                 </div>
                 {/* Custom Legend */}
@@ -236,6 +302,9 @@ export default function AnalyticsPage() {
                     </div>
                   </div>
                 ))}
+                {stats.topProducts.length === 0 && (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '16px 0' }}>No hay ventas en este período</div>
+                )}
               </div>
             </div>
 
@@ -265,6 +334,9 @@ export default function AnalyticsPage() {
                     </div>
                   </div>
                 ))}
+                {stats.stagnantProducts.length === 0 && (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '16px 0' }}>No hay productos estancados</div>
+                )}
               </div>
             </div>
 

@@ -16,18 +16,8 @@ export default function InstallmentsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
 
-  if (tenant?.subscription_plan === 'basic') {
-    return (
-      <UpgradePrompt 
-        title="Plan de Cuotas y Cuentas Corrientes" 
-        description="Permite a tus clientes pagar a plazo, gestiona deudas y mantén el control financiero."
-        requiredPlan="professional"
-      />
-    )
-  }
-
   useEffect(() => {
-    if (tenant?.id) {
+    if (tenant?.id && tenant?.subscription_plan !== 'basic') {
       loadPlans()
     }
   }, [tenant?.id])
@@ -82,6 +72,16 @@ export default function InstallmentsPage() {
   const totalPending = plans
     .filter(p => p.status === 'active')
     .reduce((sum, p) => sum + Number(p.remaining_amount), 0)
+
+  if (tenant?.subscription_plan === 'basic') {
+    return (
+      <UpgradePrompt 
+        title="Plan de Cuotas y Cuentas Corrientes" 
+        description="Permite a tus clientes pagar a plazo, gestiona deudas y mantén el control financiero."
+        requiredPlan="professional"
+      />
+    )
+  }
 
   return (
     <div>
