@@ -88,8 +88,10 @@ export default function InventoryPage() {
       setCategories(prev => [...prev, data])
       setNewCategory({ name: '', icon: '🏷️', color: '#7C3AED' })
       toast.success('Categoría creada')
+      setShowCategoryModal(false)
     } catch (err) {
-      toast.error('Error al crear categoría')
+      console.error(err)
+      toast.error('Error: ' + err.message)
     } finally {
       setCreatingCategory(false)
     }

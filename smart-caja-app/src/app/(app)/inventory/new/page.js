@@ -142,7 +142,8 @@ export default function NewProductPage() {
       setShowCategoryModal(false)
       setNewCategory({ name: '', icon: '📦', color: '#10B981' })
     } catch (err) {
-      toast.error('Error al crear categoría')
+      console.error(err)
+      toast.error('Error: ' + err.message)
     } finally {
       setCreatingCategory(false)
     }
