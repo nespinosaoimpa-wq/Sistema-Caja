@@ -32,9 +32,10 @@ export default function NewProductPage() {
     if (tenant?.id) {
       loadCategories()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id])
 
-  const loadCategories = async () => {
+  async function loadCategories() {
     const { data } = await supabase
       .from('categories')
       .select('*')

@@ -21,6 +21,7 @@ export default function ShiftsPage() {
     if (tenant?.id) {
       loadShifts()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id])
 
   async function loadShifts() {

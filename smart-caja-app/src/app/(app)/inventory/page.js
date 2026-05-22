@@ -23,6 +23,7 @@ export default function InventoryPage() {
     if (tenant?.id) {
       loadInventory()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id])
 
   async function loadInventory() {
@@ -210,7 +211,7 @@ export default function InventoryPage() {
                       <tr key={product.id} style={{ opacity: product.is_active ? 1 : 0.5 }}>
                         <td>
                           <div style={{ fontWeight: 600 }}>{product.name}</div>
-                          {product.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }} className="truncate" style={{ maxWidth: '200px' }}>{product.description}</div>}
+                          {product.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', maxWidth: '200px' }} className="truncate">{product.description}</div>}
                         </td>
                         <td>
                           <div style={{ fontSize: '0.8125rem', fontFamily: 'monospace' }}>{product.barcode || product.reference_code || '-'}</div>

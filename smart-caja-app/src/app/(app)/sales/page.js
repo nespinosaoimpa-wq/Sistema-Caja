@@ -18,6 +18,7 @@ export default function SalesPage() {
     if (tenant?.id) {
       loadSales()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id])
 
   async function loadSales() {

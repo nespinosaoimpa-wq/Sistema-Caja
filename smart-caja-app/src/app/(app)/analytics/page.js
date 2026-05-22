@@ -31,6 +31,7 @@ export default function AnalyticsPage() {
     if (tenant?.id) {
       loadData()
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id, timeRange])
 
   async function loadData() {
