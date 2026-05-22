@@ -156,8 +156,14 @@ export default function AnalyticsPage() {
       
       {tenant?.subscription_plan === 'basic' ? (
         <UpgradePrompt 
-      {/* Header */}
-      <div className="flex items-center justify-between">
+          title="Análisis Avanzado"
+          description="Desbloquea estadísticas detalladas de ventas y productos."
+          requiredPlan="professional"
+        />
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex items-center justify-between">
         <h1 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.03em' }}>
           Estadísticas de Ventas
         </h1>
@@ -341,6 +347,8 @@ export default function AnalyticsPage() {
             </div>
 
           </div>
+        </>
+      )}
         </>
       )}
     </div>
