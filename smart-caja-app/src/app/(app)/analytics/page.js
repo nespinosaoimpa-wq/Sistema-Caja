@@ -180,65 +180,65 @@ export default function AnalyticsPage() {
         <>
           {/* Row 1: KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 'var(--space-6)' }}>
-            <div className="kpi-card">
-              <div className="kpi-header">
-                <span className="kpi-label">Total Ventas</span>
-                <div className="kpi-icon-box" style={{ color: 'var(--color-primary)' }}>🖨️</div>
+            <div className="kpi-card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', position: 'relative', overflow: 'hidden' }}>
+              <div className="kpi-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <span className="kpi-label" style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', fontWeight: 600 }}>Total Ventas</span>
+                <div className="kpi-icon-box" style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(78, 222, 163, 0.1)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>🖨️</div>
               </div>
-              <div className="kpi-value">${(stats.totalSales).toLocaleString('es-AR')}</div>
-              <div className="kpi-change up">Métricas reales en tiempo real</div>
+              <div className="kpi-value" style={{ fontSize: '2rem', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>${(stats.totalSales).toLocaleString('es-AR')}</div>
+              <div className="kpi-change up" style={{ color: 'var(--color-secondary)', fontSize: '0.8125rem', fontWeight: 600 }}>Métricas en tiempo real</div>
             </div>
 
-            <div className="kpi-card">
-              <div className="kpi-header">
-                <span className="kpi-label">Transacciones</span>
-                <div className="kpi-icon-box" style={{ color: 'var(--color-primary)' }}>📋</div>
+            <div className="kpi-card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', position: 'relative', overflow: 'hidden' }}>
+              <div className="kpi-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <span className="kpi-label" style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', fontWeight: 600 }}>Transacciones</span>
+                <div className="kpi-icon-box" style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(78, 222, 163, 0.1)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>📋</div>
               </div>
-              <div className="kpi-value">{stats.transactions}</div>
+              <div className="kpi-value" style={{ fontSize: '2rem', fontWeight: 800, color: '#fff' }}>{stats.transactions}</div>
             </div>
 
-            <div className="kpi-card">
-              <div className="kpi-header">
-                <span className="kpi-label">Ticket Promedio</span>
-                <div className="kpi-icon-box" style={{ color: 'var(--color-primary)' }}>🏷️</div>
+            <div className="kpi-card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', position: 'relative', overflow: 'hidden' }}>
+              <div className="kpi-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <span className="kpi-label" style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', fontWeight: 600 }}>Ticket Promedio</span>
+                <div className="kpi-icon-box" style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(78, 222, 163, 0.1)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>🏷️</div>
               </div>
-              <div className="kpi-value">${(stats.avgTicket).toLocaleString('es-AR')}</div>
+              <div className="kpi-value" style={{ fontSize: '2rem', fontWeight: 800, color: '#fff' }}>${(stats.avgTicket).toLocaleString('es-AR')}</div>
             </div>
 
-            <div className="kpi-card">
-              <div className="kpi-header">
-                <span className="kpi-label">Ganancia Neta</span>
-                <div className="kpi-icon-box" style={{ color: 'var(--color-secondary)' }}>💵</div>
+            <div className="kpi-card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)', position: 'relative', overflow: 'hidden' }}>
+              <div className="kpi-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                <span className="kpi-label" style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', fontWeight: 600 }}>Ganancia Neta</span>
+                <div className="kpi-icon-box" style={{ width: '40px', height: '40px', borderRadius: '12px', background: 'rgba(128, 90, 213, 0.1)', color: 'var(--color-accent)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem' }}>💵</div>
               </div>
-              <div className="kpi-value success">${(stats.netProfit).toLocaleString('es-AR')}</div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '4px' }}>Margen: {stats.profitMargin}%</div>
+              <div className="kpi-value success" style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-secondary)' }}>${(stats.netProfit).toLocaleString('es-AR')}</div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '8px', fontWeight: 600 }}>Margen: {stats.profitMargin}%</div>
             </div>
           </div>
 
           {/* Row 2: Charts */}
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-6)' }}>
             {/* Bar Chart */}
-            <div className="card">
-              <div className="card-header">
-                <span className="card-title">Ventas por hora</span>
+            <div className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)' }}>
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <span className="card-title" style={{ fontSize: '1.125rem', fontWeight: 700, color: '#fff' }}>Ventas por hora</span>
                 <span style={{ color: 'var(--text-muted)' }}>...</span>
               </div>
-              <div className="card-body" style={{ height: '300px', paddingTop: 'var(--space-6)' }}>
+              <div className="card-body" style={{ height: '300px' }}>
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={stats.hourlyData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }} barSize={10}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="#2A2735" vertical={false} />
+                  <BarChart data={stats.hourlyData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }} barSize={12}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="var(--border-color)" vertical={false} />
                     <XAxis 
                       dataKey="name" 
                       stroke="var(--text-muted)" 
                       fontSize={11} 
                       tickLine={false} 
-                      axisLine={{ stroke: '#2A2735' }}
+                      axisLine={{ stroke: 'var(--border-color)' }}
                       dy={10} 
                     />
-                    <Tooltip cursor={{ fill: '#1A1822' }} contentStyle={{ background: '#13111A', border: '1px solid #2A2735' }} />
-                    <Bar dataKey="value" radius={[2, 2, 0, 0]}>
+                    <Tooltip cursor={{ fill: 'rgba(255,255,255,0.05)' }} contentStyle={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '8px', color: '#fff' }} />
+                    <Bar dataKey="value" radius={[4, 4, 0, 0]}>
                       {stats.hourlyData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.isPeak ? 'var(--color-primary)' : '#2A2735'} />
+                        <Cell key={`cell-${index}`} fill={entry.isPeak ? 'var(--color-primary)' : 'var(--bg-surface)'} />
                       ))}
                     </Bar>
                   </BarChart>
@@ -247,9 +247,9 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Donut Chart */}
-            <div className="card">
-              <div className="card-header">
-                <span className="card-title">Métodos de Pago</span>
+            <div className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)' }}>
+              <div className="card-header" style={{ marginBottom: '24px' }}>
+                <span className="card-title" style={{ fontSize: '1.125rem', fontWeight: 700, color: '#fff' }}>Métodos de Pago</span>
               </div>
               <div className="card-body" style={{ height: '300px', display: 'flex', flexDirection: 'column' }}>
                 <div style={{ position: 'relative', flex: 1, display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
@@ -292,19 +292,19 @@ export default function AnalyticsPage() {
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-6)' }}>
             
             {/* Top Products */}
-            <div className="card">
-              <div className="card-header">
-                <span className="card-title">Top 5 Productos más vendidos</span>
+            <div className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)' }}>
+              <div className="card-header" style={{ marginBottom: '24px' }}>
+                <span className="card-title" style={{ fontSize: '1.125rem', fontWeight: 700, color: '#fff' }}>Top 5 Productos más vendidos</span>
               </div>
               <div className="card-body">
                 {stats.topProducts.map((prod, i) => (
-                  <div key={i} style={{ padding: '16px 0', borderBottom: i < 2 ? '1px solid #2A2735' : 'none' }}>
-                    <div className="flex justify-between" style={{ marginBottom: '8px', fontSize: '0.875rem' }}>
+                  <div key={i} style={{ padding: '16px 0', borderBottom: i < stats.topProducts.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+                    <div className="flex justify-between" style={{ marginBottom: '12px', fontSize: '0.9375rem', fontWeight: 600 }}>
                       <span style={{ color: '#fff' }}>{prod.name}</span>
-                      <span style={{ color: 'var(--color-secondary)' }}>{prod.qty} uds</span>
+                      <span style={{ color: 'var(--color-primary)' }}>{prod.qty} uds</span>
                     </div>
-                    <div className="progress-bar-container">
-                      <div className="progress-bar-fill" style={{ width: `${(prod.qty / prod.max) * 100}%` }}></div>
+                    <div className="progress-bar-container" style={{ height: '6px', background: 'var(--bg-surface)', borderRadius: '10px', overflow: 'hidden' }}>
+                      <div className="progress-bar-fill" style={{ width: `${(prod.qty / prod.max) * 100}%`, height: '100%', background: 'linear-gradient(90deg, var(--color-primary) 0%, #34D399 100%)', borderRadius: '10px' }}></div>
                     </div>
                   </div>
                 ))}
@@ -315,27 +315,27 @@ export default function AnalyticsPage() {
             </div>
 
             {/* Stagnant Products */}
-            <div className="card">
-              <div className="card-header">
-                <span className="card-title">Productos Estancados</span>
+            <div className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)' }}>
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '24px' }}>
+                <span className="card-title" style={{ fontSize: '1.125rem', fontWeight: 700, color: '#fff' }}>Productos Estancados</span>
                 <span style={{ color: 'var(--text-muted)' }}>ⓘ</span>
               </div>
               <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                 {stats.stagnantProducts.map((prod, i) => (
                   <div key={i} style={{ 
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
-                    padding: '16px', background: 'rgba(255,255,255,0.03)', borderRadius: 'var(--radius-md)' 
+                    padding: '16px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' 
                   }}>
                     <div className="flex items-center gap-3">
-                      <div style={{ width: '32px', height: '32px', borderRadius: '8px', background: '#3F2C1D', color: '#FDBA74', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-error)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.125rem' }}>
                         📦
                       </div>
                       <div>
-                        <div style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 500 }}>{prod.name}</div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>Sin ventas</div>
+                        <div style={{ color: '#fff', fontSize: '0.9375rem', fontWeight: 600 }}>{prod.name}</div>
+                        <div style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem' }}>Sin ventas</div>
                       </div>
                     </div>
-                    <div style={{ background: '#3F2C1D', color: '#FDBA74', padding: '4px 8px', borderRadius: '4px', fontSize: '0.6875rem' }}>
+                    <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-error)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
                       {prod.days} días
                     </div>
                   </div>

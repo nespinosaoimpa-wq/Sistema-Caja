@@ -326,35 +326,68 @@ export default function POSPage() {
     }
   }
 
+  // Category filtering
+  const [activeCategory, setActiveCategory] = useState('Todos')
+  const uniqueCategories = ['Todos', ...new Set(products.map(p => p.categories?.name).filter(Boolean))]
+
+  const filteredProductsByCategory = filteredProducts.filter(p => 
+    activeCategory === 'Todos' || p.categories?.name === activeCategory
+  )
+
   return (
     <>
-      <div style={{ display: 'flex', height: 'calc(100vh - var(--header-height) - 64px)', gap: 'var(--space-6)', overflow: 'hidden' }}>
+      <div style={{ display: 'flex', height: 'calc(100vh - var(--header-height) - 32px)', gap: 'var(--space-6)', overflow: 'hidden' }}>
         
         {/* LEFT SIDE - Product Catalog */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-6)' }}>
-            <div>
-              <h1 style={{ fontSize: '1.75rem', fontWeight: 700 }}>Caja Registradora</h1>
-            </div>
-            <form onSubmit={handleBarcodeSubmit} style={{ width: '350px' }}>
-              <input 
-                id="barcode-scanner"
-                ref={barcodeInputRef}
-                className="form-input" 
-                placeholder="🔍 Buscar nombre o escanear..."
-                value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                autoFocus
-              />
+          
+          {/* Header & Filters */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+            <form onSubmit={handleBarcodeSubmit} style={{ width: '400px' }}>
+              <div className="form-input-icon">
+                <span className="input-icon">🔍</span>
+                <input 
+                  id="barcode-scanner"
+                  ref={barcodeInputRef}
+                  className="form-input" 
+                  placeholder="Buscar por nombre, SKU o código de barras ‖‖"
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
+                  autoFocus
+                />
+              </div>
             </form>
+
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+              {uniqueCategories.map(cat => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  style={{
+                    padding: '8px 24px',
+                    borderRadius: 'var(--radius-md)',
+                    background: activeCategory === cat ? 'var(--bg-card-hover)' : 'var(--bg-card)',
+                    border: `1px solid ${activeCategory === cat ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                    color: activeCategory === cat ? '#fff' : 'var(--text-secondary)',
+                    fontWeight: 600,
+                    fontSize: '0.875rem',
+                    transition: 'var(--transition)',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
           </div>
 
           <div style={{ flex: 1, overflowY: 'auto', paddingRight: 'var(--space-2)' }}>
             {loading ? (
               <div style={{ color: 'var(--text-muted)' }}>Cargando inventario...</div>
             ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 'var(--space-4)' }}>
-                {filteredProducts.map(product => (
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
+                {filteredProductsByCategory.map(product => (
                   <div 
                     key={product.id} 
                     onClick={() => addToCart(product)}
@@ -368,33 +401,48 @@ export default function POSPage() {
                       textAlign: 'center',
                       position: 'relative',
                       opacity: product.stock_quantity <= 0 ? 0.5 : 1,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center'
                     }}
                     onMouseOver={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--color-primary)'
+                      e.currentTarget.style.borderColor = 'var(--color-primary-border)'
                       e.currentTarget.style.transform = 'translateY(-2px)'
+                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)'
                     }}
                     onMouseOut={(e) => {
                       e.currentTarget.style.borderColor = 'var(--border-color)'
                       e.currentTarget.style.transform = 'translateY(0)'
+                      e.currentTarget.style.boxShadow = 'none'
                     }}
                   >
-                    <div style={{ fontSize: '2.5rem', marginBottom: '12px' }}>
+                    {/* Category Badge */}
+                    {product.categories?.name && (
+                      <div style={{ 
+                        position: 'absolute', top: '0', right: '16px', 
+                        background: 'rgba(78, 222, 163, 0.1)', color: 'var(--color-secondary)',
+                        padding: '4px 12px', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px',
+                        fontSize: '0.6875rem', fontWeight: 600
+                      }}>
+                        {product.categories.name}
+                      </div>
+                    )}
+                    
+                    <div style={{ 
+                      width: '64px', height: '64px', borderRadius: '50%', 
+                      background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      fontSize: '2rem', marginBottom: '16px', marginTop: '12px',
+                      border: '1px solid var(--border-highlight)'
+                    }}>
                       {product.categories?.icon || '📦'}
                     </div>
-                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: '#fff', marginBottom: '4px' }} className="truncate">
+
+                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px', minHeight: '40px' }} className="truncate">
                       {product.name}
                     </div>
-                    <div style={{ fontSize: '1.125rem', fontWeight: 700, color: 'var(--color-secondary)' }}>
+
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-secondary)' }}>
                       {formatCurrency(product.sale_price)}
-                    </div>
-                    {/* Stock badge with color coding */}
-                    <div style={{ 
-                      position: 'absolute', top: '8px', right: '8px', fontSize: '0.6875rem', 
-                      background: product.stock_quantity <= (product.min_stock_alert || 5) ? 'rgba(239,68,68,0.2)' : '#1A1822',
-                      color: product.stock_quantity <= (product.min_stock_alert || 5) ? '#ef4444' : 'var(--text-muted)', 
-                      padding: '2px 6px', borderRadius: '4px' 
-                    }}>
-                      {product.stock_quantity} {product.unit_label || (product.unit_type === 'weight' ? 'kg' : product.unit_type === 'volume' ? 'L' : 'u')}
                     </div>
                   </div>
                 ))}
@@ -405,22 +453,28 @@ export default function POSPage() {
 
         {/* RIGHT SIDE - Checkout Panel */}
         <div style={{ 
-          width: '400px', 
+          width: '420px', 
           background: 'var(--bg-card)', 
-          borderRadius: 'var(--radius-lg)', 
+          borderRadius: 'var(--radius-xl)', 
           border: '1px solid var(--border-color)',
           display: 'flex', 
           flexDirection: 'column', 
-          overflow: 'hidden'
+          overflow: 'hidden',
+          boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
         }}>
-          <div style={{ padding: 'var(--space-5)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <h2 style={{ fontSize: '1.125rem', fontWeight: 600 }}>Ticket Actual</h2>
-            <span style={{ fontSize: '0.8125rem', background: '#1A1822', color: 'var(--text-secondary)', padding: '4px 10px', borderRadius: '4px' }}>
-              {isDecimalProduct({ unit_type: 'unit' }) ? cartItemsCount : cartItemsCount.toFixed(cart.some(i => isDecimalProduct(i)) ? 2 : 0)} Ítems
-            </span>
+          <div style={{ padding: 'var(--space-6)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+            <div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', marginBottom: '4px', fontFamily: 'var(--font-headline)' }}>Ticket #{Date.now().toString().slice(-6)}</h2>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                👤 {profile?.full_name || 'Vendedor'}
+              </div>
+            </div>
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '100px', padding: '6px 12px', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+              🕒 {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            </div>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
             {cart.length === 0 ? (
               <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
                 Añade productos para cobrar
@@ -428,168 +482,132 @@ export default function POSPage() {
             ) : (
               cart.map(item => (
                 <div key={item.id} style={{ 
-                  background: '#1A1822', 
-                  borderRadius: 'var(--radius-md)', 
-                  padding: '12px',
-                  display: 'grid',
-                  gridTemplateColumns: '1fr auto',
-                  gap: '12px',
-                  border: '1px solid #2A2735'
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                  borderBottom: '1px solid var(--border-color)',
+                  paddingBottom: '16px'
                 }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#fff', marginBottom: '2px' }}>{item.name}</div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#fff', marginBottom: '2px' }}>{item.name}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      {formatCurrency(item.sale_price)} / {item.unit_label || (item.unit_type === 'weight' ? 'kg' : item.unit_type === 'volume' ? 'L' : 'u')}
+                      {formatCurrency(item.sale_price)} c/u
                     </div>
-                    
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '16px', marginTop: '12px' }}>
-                      {/* 1d. Decimal input for weight/volume, +/- for unit */}
-                      {isDecimalProduct(item) ? (
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                          <input
+                  </div>
+                  
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+                    {isDecimalProduct(item) ? (
+                      <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                         <input
                             type="number"
                             step="0.001"
-                            min="0.001"
                             value={item.qty}
                             onChange={(e) => updateQtyDirect(item.id, e.target.value)}
                             style={{
-                              width: '80px', padding: '4px 6px', textAlign: 'center',
-                              background: '#0B0A0F', border: '1px solid #2A2735', borderRadius: '6px',
-                              color: '#fff', fontWeight: 600, fontSize: '0.8125rem'
+                              width: '60px', padding: '6px', textAlign: 'center',
+                              background: 'transparent', border: 'none',
+                              color: '#fff', fontWeight: 600, fontSize: '0.875rem'
                             }}
                           />
-                          <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            {item.unit_label || (item.unit_type === 'weight' ? 'kg' : 'L')}
-                          </span>
-                        </div>
-                      ) : (
-                        <div style={{ display: 'flex', alignItems: 'center', background: '#0B0A0F', borderRadius: '6px', border: '1px solid #2A2735' }}>
-                          <button onClick={() => updateQty(item.id, -1)} style={{ width: '28px', height: '24px', color: 'var(--text-secondary)' }}>-</button>
-                          <span style={{ width: '24px', textAlign: 'center', fontWeight: 600, fontSize: '0.8125rem' }}>{item.qty}</span>
-                          <button onClick={() => updateQty(item.id, 1)} style={{ width: '28px', height: '24px', color: 'var(--text-secondary)' }}>+</button>
-                        </div>
-                      )}
-                      <button onClick={() => removeFromCart(item.id)} style={{ color: 'var(--color-error)', fontSize: '0.75rem' }}>Quitar</button>
+                      </div>
+                    ) : (
+                      <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                        <button onClick={() => updateQty(item.id, -1)} style={{ padding: '4px 10px', color: 'var(--text-secondary)' }}>−</button>
+                        <span style={{ width: '20px', textAlign: 'center', fontWeight: 600, fontSize: '0.875rem', color: '#fff' }}>{item.qty}</span>
+                        <button onClick={() => updateQty(item.id, 1)} style={{ padding: '4px 10px', color: 'var(--text-secondary)' }}>+</button>
+                      </div>
+                    )}
+                    <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text-primary)', width: '60px', textAlign: 'right' }}>
+                      {formatCurrency(item.subtotal)}
                     </div>
-                  </div>
-                  <div style={{ fontWeight: 700, fontSize: '1rem', color: 'var(--color-secondary)' }}>
-                    {formatCurrency(item.subtotal)}
                   </div>
                 </div>
               ))
             )}
           </div>
 
-          <div style={{ background: '#0B0A0F', padding: 'var(--space-5)', borderTop: '1px solid var(--border-color)' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-5)' }}>
-              <span style={{ fontSize: '1rem', color: 'var(--text-secondary)' }}>Total</span>
-              <span style={{ fontSize: '2rem', fontWeight: 800, color: '#fff' }}>
+          <div style={{ padding: 'var(--space-6)', borderTop: '1px solid var(--border-color)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
+              <span>Subtotal</span>
+              <span>{formatCurrency(cartTotal)}</span>
+            </div>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
+              <span>Descuento</span>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <span style={{ border: '1px solid var(--border-color)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>Aplicar %</span>
+                <span style={{ border: '1px solid var(--border-color)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>Monto Fijo</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
+              <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', fontFamily: 'var(--font-headline)' }}>TOTAL</span>
+              <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-secondary)' }}>
                 {formatCurrency(cartTotal)}
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '8px', marginBottom: 'var(--space-5)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: 'var(--space-6)' }}>
               {[
                 { id: 'cash', label: 'Efectivo', icon: '💵' },
                 { id: 'debit', label: 'Débito', icon: '💳' },
-                { id: 'credit', label: 'Crédito', icon: '🏦' }
+                { id: 'credit', label: 'Crédito', icon: '🏦' },
+                { id: 'mixed', label: 'Mixto', icon: '➗' },
+                { id: 'installment', label: 'Cuotas', icon: '📅' }
               ].map(method => (
                 <button
                   key={method.id}
                   onClick={() => setPaymentMethod(method.id)}
                   style={{
-                    padding: '10px 8px',
+                    padding: '12px 4px',
                     borderRadius: 'var(--radius-md)',
-                    background: paymentMethod === method.id ? 'var(--color-primary-light)' : '#1A1822',
-                    border: `1px solid ${paymentMethod === method.id ? 'var(--color-primary)' : '#2A2735'}`,
+                    background: paymentMethod === method.id ? 'var(--color-primary-light)' : 'var(--bg-surface)',
+                    border: `1px solid ${paymentMethod === method.id ? 'var(--color-primary)' : 'var(--border-color)'}`,
                     color: paymentMethod === method.id ? 'var(--color-primary)' : 'var(--text-secondary)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
                     transition: 'var(--transition)'
                   }}
                 >
                   <span style={{ fontSize: '1.25rem' }}>{method.icon}</span>
-                  <span style={{ fontSize: '0.6875rem', fontWeight: 600 }}>{method.label}</span>
+                  <span style={{ fontSize: '0.625rem', fontWeight: 600, textTransform: 'uppercase' }}>{method.label}</span>
                 </button>
               ))}
             </div>
 
-            {/* 1c. Cash change calculator */}
-            {paymentMethod === 'cash' && cart.length > 0 && (
-              <div style={{ 
-                marginBottom: 'var(--space-4)', padding: '12px', 
-                background: '#1A1822', borderRadius: 'var(--radius-md)', 
-                border: '1px solid #2A2735'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
-                  <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', whiteSpace: 'nowrap' }}>Recibido:</label>
-                  <div style={{ position: 'relative', flex: 1 }}>
-                    <span style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)', fontSize: '0.875rem' }}>$</span>
-                    <input
-                      type="number"
-                      step="0.01"
-                      min="0"
-                      value={cashReceived}
-                      onChange={(e) => setCashReceived(e.target.value)}
-                      placeholder="0"
-                      style={{
-                        width: '100%', padding: '8px 10px 8px 24px',
-                        background: '#0B0A0F', border: '1px solid #2A2735', borderRadius: '6px',
-                        color: '#fff', fontWeight: 700, fontSize: '1.125rem', textAlign: 'right'
-                      }}
-                    />
-                  </div>
-                </div>
-                {cashReceived && (
-                  <div style={{ 
-                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                    padding: '8px 10px', borderRadius: '6px',
-                    background: cashChange >= 0 ? 'rgba(16,185,129,0.1)' : 'rgba(239,68,68,0.1)',
-                    border: `1px solid ${cashChange >= 0 ? 'rgba(16,185,129,0.3)' : 'rgba(239,68,68,0.3)'}`
-                  }}>
-                    <span style={{ fontSize: '0.875rem', color: cashChange >= 0 ? '#10B981' : '#ef4444', fontWeight: 600 }}>
-                      Vuelto:
-                    </span>
-                    <span style={{ fontSize: '1.25rem', fontWeight: 800, color: cashChange >= 0 ? '#10B981' : '#ef4444' }}>
-                      {formatCurrency(Math.abs(cashChange))}
-                      {cashChange < 0 && <span style={{ fontSize: '0.75rem', marginLeft: '4px' }}>(falta)</span>}
-                    </span>
-                  </div>
-                )}
-              </div>
-            )}
-
             <button 
-              className="btn btn-primary" 
+              className="glow-primary" 
               style={{ 
                 width: '100%', 
-                padding: '16px', 
-                fontSize: '1.125rem', 
-                borderRadius: 'var(--radius-md)',
-                background: cart.length === 0 ? '#1A1822' : 'var(--color-primary)',
+                padding: '20px', 
+                fontSize: '1.25rem',
+                fontWeight: 700, 
+                borderRadius: 'var(--radius-lg)',
+                background: cart.length === 0 ? 'var(--bg-surface)' : 'var(--color-primary-hover)',
                 color: cart.length === 0 ? 'var(--text-muted)' : '#fff',
-                pointerEvents: cart.length === 0 ? 'none' : 'auto'
+                border: 'none',
+                pointerEvents: cart.length === 0 ? 'none' : 'auto',
+                transition: 'var(--transition)'
               }}
               onClick={handleCheckout}
               disabled={isProcessing || cart.length === 0}
             >
-              {isProcessing ? 'Procesando...' : `Cobrar ${formatCurrency(cartTotal)}`}
+              {isProcessing ? 'Procesando...' : `Confirmar Venta →`}
             </button>
           </div>
         </div>
       </div>
 
-      {/* 1e. Receipt Modal */}
+      {/* Receipt Modal (Unchanged structurally, kept dark theme compatible) */}
       {showReceipt && receiptData && (
         <div style={{
           position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-          background: 'rgba(0,0,0,0.7)', backdropFilter: 'blur(4px)',
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 9999
         }} onClick={() => setShowReceipt(false)}>
           <div 
             onClick={(e) => e.stopPropagation()}
             style={{
-              background: 'var(--bg-card)', borderRadius: 'var(--radius-2xl)',
+              background: 'var(--bg-card)', borderRadius: 'var(--radius-xl)',
               border: '1px solid var(--border-color)',
               maxWidth: '440px', width: '100%', maxHeight: '90vh',
               display: 'flex', flexDirection: 'column', overflow: 'hidden',
@@ -608,7 +626,7 @@ export default function POSPage() {
                 </p>
               </div>
               <div style={{ 
-                background: 'rgba(16,185,129,0.15)', color: '#10B981', 
+                background: 'rgba(78, 222, 163, 0.15)', color: 'var(--color-secondary)', 
                 padding: '6px 12px', borderRadius: 'var(--radius-full)', 
                 fontSize: '0.8125rem', fontWeight: 600 
               }}>
@@ -619,7 +637,7 @@ export default function POSPage() {
             {/* Receipt preview */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '16px 24px' }}>
               <div style={{ 
-                background: '#fff', borderRadius: 'var(--radius-lg)', 
+                background: '#fff', borderRadius: 'var(--radius-md)', 
                 padding: '16px', color: '#000', fontSize: '12px',
                 fontFamily: "'Courier New', Courier, monospace"
               }}>
@@ -650,7 +668,7 @@ export default function POSPage() {
                       const unitLabel = item.unit_label || (item.unit_type === 'weight' ? 'kg' : item.unit_type === 'volume' ? 'L' : 'u')
                       const qtyStr = isDecimalProduct(item) ? `${item.qty.toFixed(3)} ${unitLabel}` : `${item.qty} ${unitLabel}`
                       return (
-                        <tr key={i}>
+                         <tr key={i}>
                           <td style={{ textAlign: 'left', padding: '3px 0' }}>{item.name}</td>
                           <td style={{ textAlign: 'center', padding: '3px 0' }}>{qtyStr}</td>
                           <td style={{ textAlign: 'right', padding: '3px 0' }}>{formatCurrency(item.sale_price)}</td>
@@ -699,12 +717,12 @@ export default function POSPage() {
               padding: '16px 24px', borderTop: '1px solid var(--border-color)',
               display: 'flex', gap: '12px'
             }}>
-              <button
+               <button
                 className="btn"
                 onClick={() => setShowReceipt(false)}
                 style={{ 
                   flex: 1, padding: '12px', borderRadius: 'var(--radius-md)',
-                  background: '#1A1822', border: '1px solid #2A2735', color: 'var(--text-secondary)',
+                  background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)',
                   fontSize: '0.9375rem', fontWeight: 600
                 }}
               >
@@ -715,7 +733,8 @@ export default function POSPage() {
                 onClick={handlePrintReceipt}
                 style={{ 
                   flex: 1, padding: '12px', borderRadius: 'var(--radius-md)',
-                  fontSize: '0.9375rem', fontWeight: 600
+                  fontSize: '0.9375rem', fontWeight: 600,
+                  background: 'var(--color-primary-hover)'
                 }}
               >
                 🖨️ Imprimir

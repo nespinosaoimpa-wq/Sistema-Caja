@@ -3,43 +3,44 @@
    Matte Dark Mode, High Contrast, Precision UI
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&display=swap');
 
 /* ============================================================
    CSS VARIABLES — Design Tokens
    ============================================================ */
 :root {
   /* Brand Colors - High Contrast Neon */
-  --color-primary: #A855F7; /* Bright Purple */
-  --color-primary-hover: #9333EA;
-  --color-primary-light: rgba(168, 85, 247, 0.1);
+  --color-primary: #ddb7ff; /* Neon Purple */
+  --color-primary-hover: #b76dff;
+  --color-primary-light: rgba(221, 183, 255, 0.1);
+  --color-primary-border: #a855f7;
   
-  --color-secondary: #10B981; /* Bright Emerald */
-  --color-secondary-hover: #059669;
-  --color-secondary-light: rgba(16, 185, 129, 0.1);
+  --color-secondary: #4edea3; /* Emerald Green */
+  --color-secondary-hover: #00a572;
+  --color-secondary-light: rgba(78, 222, 163, 0.1);
   
-  --color-tertiary: #F59E0B; /* Amber for warnings/idle */
-  --color-tertiary-light: rgba(245, 158, 11, 0.1);
+  --color-tertiary: #ffb2b7; /* Rose/Amber */
+  --color-tertiary-light: rgba(255, 178, 183, 0.1);
   
-  --color-error: #EF4444; /* Rose/Red */
+  --color-error: #ffb4ab; /* Rose/Red */
   
   /* Backgrounds - Matte Dark */
-  --bg-base: #0B0A0F; /* Pure dark matte */
-  --bg-surface: #13111A; /* Slightly lighter for panels */
-  --bg-card: #15141B; /* Cards background */
-  --bg-card-hover: #1A1822; 
-  --bg-input: #1A1822; /* Input fields */
-  --bg-sidebar: #0B0A0F;
+  --bg-base: #060e20; /* Pure dark matte */
+  --bg-surface: #0b1326; /* Slightly lighter for panels */
+  --bg-card: #131b2e; /* Cards background */
+  --bg-card-hover: #171f33; 
+  --bg-input: #171f33; /* Input fields */
+  --bg-sidebar: #060e20;
 
   /* Text - Crisp & Legible */
-  --text-primary: #FFFFFF;
-  --text-secondary: #A1A1AA; /* Muted gray for labels */
-  --text-muted: #71717A;
+  --text-primary: #dae2fd;
+  --text-secondary: #cfc2d6; /* Muted gray for labels */
+  --text-muted: #988d9f;
   
   /* Borders - Subtle and Sharp */
-  --border-color: #2A2735;
-  --border-highlight: #3F3B4E;
-  --border-focus: #A855F7;
+  --border-color: #2d3449;
+  --border-highlight: #4d4354;
+  --border-focus: #ddb7ff;
 
   /* Spacing */
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
@@ -51,8 +52,8 @@
   --radius-xl: 16px; --radius-2xl: 24px; --radius-full: 9999px;
 
   /* Typography */
-  --font-body: 'Inter', sans-serif;
-  --font-headline: 'Inter', sans-serif; /* We use Inter for everything for that ultra-clean look */
+  --font-body: 'Hanken Grotesk', sans-serif;
+  --font-headline: 'Hanken Grotesk', sans-serif;
 
   /* Layout */
   --sidebar-width: 250px;
