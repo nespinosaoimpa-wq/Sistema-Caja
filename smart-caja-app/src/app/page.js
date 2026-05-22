@@ -174,9 +174,9 @@ export default function LandingPage() {
       <footer style={{ borderTop: '1px solid var(--border-color)', padding: '32px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: 'var(--text-muted)', fontSize: '0.75rem' }}>
         <div style={{ fontWeight: 700, color: '#fff', fontSize: '1rem', fontFamily: 'var(--font-headline)' }}>Smart Caja</div>
         <div style={{ display: 'flex', gap: '24px' }}>
-          <span>Privacy Policy</span>
-          <span>Terms of Service</span>
-          <span>Contact Support</span>
+          <Link href="/privacy" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Política de Privacidad</Link>
+          <Link href="/terms" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Términos de Servicio</Link>
+          <a href="mailto:soporte@smartcaja.com.ar" style={{ color: 'var(--text-muted)', textDecoration: 'none' }}>Contactar Soporte</a>
         </div>
         <div>© 2026 Smart Caja. All rights reserved.</div>
       </footer>

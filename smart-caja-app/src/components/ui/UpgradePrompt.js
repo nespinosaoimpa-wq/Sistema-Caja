@@ -1,6 +1,44 @@
 'use client'
 
+import { useState } from 'react'
+import { useAuth } from '@/lib/hooks/useAuth'
+import { useToast } from '@/lib/hooks/useToast'
+
 export default function UpgradePrompt({ title, description, requiredPlan }) {
+  const { tenant } = useAuth()
+  const toast = useToast()
+  const [loading, setLoading] = useState(false)
+
+  const handleUpgrade = async () => {
+    if (!tenant?.id) return
+    setLoading(true)
+
+    try {
+      const res = await fetch('/api/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          plan: requiredPlan,
+          tenant_id: tenant.id
+        })
+      })
+      
+      const data = await res.json()
+      
+      if (data.init_point) {
+        // Redirigir a MercadoPago
+        window.location.href = data.init_point
+      } else {
+        throw new Error(data.error || 'Error al generar link de pago')
+      }
+    } catch (err) {
+      console.error(err)
+      toast.error('Aún no configuramos los pagos de producción: ' + err.message)
+    } finally {
+      setLoading(false)
+    }
+  }
+
   return (
     <div style={{
       display: 'flex',
@@ -51,14 +89,17 @@ export default function UpgradePrompt({ title, description, requiredPlan }) {
           padding: '12px 24px',
           borderRadius: 'var(--radius-md)',
           fontWeight: 600,
-          cursor: 'pointer',
+          cursor: loading ? 'not-allowed' : 'pointer',
           width: '100%',
+          opacity: loading ? 0.7 : 1,
           transition: 'opacity 0.2s'
         }}
-        onMouseEnter={(e) => e.currentTarget.style.opacity = '0.9'}
-        onMouseLeave={(e) => e.currentTarget.style.opacity = '1'}
+        onClick={handleUpgrade}
+        disabled={loading}
+        onMouseEnter={(e) => { if(!loading) e.currentTarget.style.opacity = '0.9' }}
+        onMouseLeave={(e) => { if(!loading) e.currentTarget.style.opacity = '1' }}
         >
-          Mejorar Plan
+          {loading ? 'Generando pago...' : 'Mejorar Plan'}
         </button>
       </div>
     </div>
