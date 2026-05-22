@@ -33,7 +33,7 @@ export default function AnalyticsPage() {
     }
   }, [tenant?.id, timeRange])
 
-  const loadData = async () => {
+  async function loadData() {
     setLoading(true)
     // Mocking exact data from the screenshot for perfect layout matching
     setStats({

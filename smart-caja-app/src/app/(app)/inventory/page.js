@@ -21,11 +21,11 @@ export default function InventoryPage() {
 
   useEffect(() => {
     if (tenant?.id) {
-      loadData()
+      loadInventory()
     }
   }, [tenant?.id])
 
-  const loadData = async () => {
+  async function loadInventory() {
     setLoading(true)
     
     // Load categories

@@ -20,7 +20,7 @@ export default function SalesPage() {
     }
   }, [tenant?.id])
 
-  const loadSales = async () => {
+  async function loadSales() {
     setLoading(true)
     
     // In a real app we'd paginate, but for now we fetch top 100

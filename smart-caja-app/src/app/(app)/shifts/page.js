@@ -23,7 +23,7 @@ export default function ShiftsPage() {
     }
   }, [tenant?.id])
 
-  const loadShifts = async () => {
+  async function loadShifts() {
     setLoading(true)
     const { data } = await supabase
       .from('shifts')

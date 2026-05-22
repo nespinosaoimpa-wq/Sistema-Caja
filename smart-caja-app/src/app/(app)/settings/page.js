@@ -26,6 +26,7 @@ export default function SettingsPage() {
 
   useEffect(() => {
     if (tenant) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setForm({
         name: tenant.name || '',
         business_type: tenant.business_type || '',

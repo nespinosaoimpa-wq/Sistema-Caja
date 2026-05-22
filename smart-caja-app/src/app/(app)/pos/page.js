@@ -27,7 +27,7 @@ export default function POSPage() {
     }
   }, [tenant?.id])
 
-  const loadData = async () => {
+  async function loadData() {
     setLoading(true)
     const { data: shiftData } = await supabase
       .from('shifts')
@@ -117,6 +117,7 @@ export default function POSPage() {
         .from('sales')
         .insert({
           tenant_id: tenant.id, user_id: profile.id, shift_id: activeShift.id,
+          // eslint-disable-next-line react-hooks/purity
           ticket_number: Date.now().toString().slice(-8),
           subtotal: cartTotal, total: cartTotal, payment_method: paymentMethod, status: 'completed'
         }).select().single()
