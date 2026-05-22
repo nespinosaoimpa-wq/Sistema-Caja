@@ -42,24 +42,21 @@ export default function LandingPage() {
       {/* Hero Image / Dashboard Mockup */}
       <div style={{ maxWidth: '1000px', margin: '0 auto 80px', padding: '24px' }}>
         <div style={{ 
-          background: 'linear-gradient(180deg, #15141B 0%, #0B0A0F 100%)', 
-          border: '1px solid #2A2735', 
           borderRadius: '24px', 
           padding: '4px',
           boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
           overflow: 'hidden'
         }}>
-          {/* We simulate the mockup image using a styled div or if the user has landing_page.jpg, we can show it. 
-              Since this is code, we render a highly stylized placeholder that looks like the mockup */}
-          <div style={{ background: '#13111A', borderRadius: '20px', height: '500px', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-             <div style={{ textAlign: 'center', opacity: 0.5 }}>
-               <div style={{ fontSize: '3rem', marginBottom: '16px', color: '#A855F7' }}>📊</div>
-               <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#A1A1AA' }}>Dashboard Visual Interface</div>
-             </div>
-             {/* Neon accents */}
-             <div style={{ position: 'absolute', bottom: '-50px', left: '20%', width: '300px', height: '100px', background: '#A855F7', filter: 'blur(100px)', opacity: 0.3 }}></div>
-             <div style={{ position: 'absolute', top: '10%', right: '10%', width: '200px', height: '200px', background: '#10B981', filter: 'blur(120px)', opacity: 0.2 }}></div>
-          </div>
+          <img 
+            src="/hero-dashboard.png" 
+            alt="Smart Caja Dashboard 3D Interface" 
+            style={{ 
+              width: '100%', 
+              height: 'auto', 
+              borderRadius: '20px',
+              display: 'block'
+            }} 
+          />
         </div>
       </div>
 
