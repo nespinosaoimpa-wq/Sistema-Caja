@@ -23,6 +23,7 @@ export default function InventoryPage() {
   const [showImportModal, setShowImportModal] = useState(false)
   const [newCategory, setNewCategory] = useState({ name: '', icon: '🏷️', color: '#7C3AED' })
   const [creatingCategory, setCreatingCategory] = useState(false)
+  const [categoryError, setCategoryError] = useState(null)
   const [importingFile, setImportingFile] = useState(false)
 
   useEffect(() => {
@@ -76,7 +77,11 @@ export default function InventoryPage() {
   }
 
   const handleCreateCategory = async () => {
-    if (!newCategory.name.trim()) return
+    setCategoryError(null)
+    if (!newCategory.name.trim()) {
+      setCategoryError('Ingresá un nombre válido')
+      return
+    }
     setCreatingCategory(true)
     try {
       const { data, error } = await supabase
@@ -91,6 +96,7 @@ export default function InventoryPage() {
       setShowCategoryModal(false)
     } catch (err) {
       console.error(err)
+      setCategoryError(err.message)
       toast.error('Error: ' + err.message)
     } finally {
       setCreatingCategory(false)
@@ -374,6 +380,12 @@ export default function InventoryPage() {
                 <input type="color" style={{ width: '40px', height: '40px', padding: 0, border: 'none', borderRadius: '4px' }} value={newCategory.color} onChange={e => setNewCategory(prev => ({...prev, color: e.target.value}))} />
                 <button className="btn btn-primary" onClick={handleCreateCategory} disabled={creatingCategory}>+</button>
               </div>
+
+              {categoryError && (
+                <div style={{ background: 'var(--color-error)', color: '#fff', padding: '8px', borderRadius: '4px', fontSize: '0.875rem' }}>
+                  {categoryError}
+                </div>
+              )}
 
               <div style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-4)' }}>
                 {categories.length === 0 && <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '16px' }}>No hay categorías. Creá una arriba.</div>}
