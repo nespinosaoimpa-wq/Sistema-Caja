@@ -1,182 +1,187 @@
 'use client'
 
-import { useEffect } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 
 export default function LandingPage() {
-  useEffect(() => {
-    // Register PWA service worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {})
-    }
-  }, [])
-
-  const features = [
-    { icon: '📦', title: 'Inventario Inteligente', desc: 'Escaneá con lector USB o la cámara del celular. Cargá con código de referencia propio.' },
-    { icon: '💰', title: 'Caja Registradora Virtual', desc: 'Sumá productos, aplicá descuentos, cobrá en efectivo, débito, crédito o combinado.' },
-    { icon: '📋', title: 'Cuotas de la Casa', desc: 'Registrá ventas a plazo informal. Seguí los pagos de cada cliente.' },
-    { icon: '📊', title: 'Estadísticas en Tiempo Real', desc: 'Ventas por hora, productos más vendidos, métodos de pago y stock estancado.' },
-    { icon: '🖨️', title: 'Tickets No Fiscales', desc: 'Imprimí o compartí el ticket de cada venta con todos los detalles.' },
-    { icon: '📱', title: 'Funciona Sin Internet', desc: 'PWA offline-first. Seguís vendiendo aunque se corte la conexión.' },
-  ]
-
   return (
-    <div style={{ minHeight: '100vh', background: 'var(--bg-base)' }}>
-      {/* Background glow effects */}
-      <div style={{
-        position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse at 20% 20%, rgba(124,58,237,0.15) 0%, transparent 60%), radial-gradient(ellipse at 80% 80%, rgba(16,185,129,0.08) 0%, transparent 60%)'
-      }} />
-
-      {/* NAVBAR */}
-      <nav style={{
-        position: 'sticky', top: 0, zIndex: 100,
-        background: 'rgba(10,10,15,0.85)', backdropFilter: 'blur(20px)',
-        borderBottom: '1px solid var(--border-color)',
-        padding: '0 var(--space-6)',
-        height: '64px', display: 'flex', alignItems: 'center',
-        justifyContent: 'space-between',
-      }}>
-        <div className="flex items-center gap-3">
-          <div className="sidebar-logo-icon">🏪</div>
-          <span className="sidebar-logo-text" style={{ fontSize: '1.25rem' }}>Smart Caja</span>
+    <div style={{ backgroundColor: '#0B0A0F', minHeight: '100vh', color: '#fff', fontFamily: 'var(--font-body)' }}>
+      {/* Navbar */}
+      <nav style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '24px 48px', borderBottom: '1px solid #2A2735' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <div style={{ width: '24px', height: '24px', background: 'linear-gradient(135deg, #A855F7, #9333EA)', borderRadius: '4px' }}></div>
+          <span style={{ fontSize: '1.25rem', fontWeight: 700, letterSpacing: '-0.02em' }}>Smart Caja</span>
         </div>
-        <div className="flex items-center gap-3">
-          <Link href="/login" className="btn btn-ghost btn-sm">Iniciar sesión</Link>
-          <Link href="/register" className="btn btn-primary btn-sm">Probar gratis</Link>
+        
+        <div style={{ display: 'flex', gap: '32px', color: '#A1A1AA', fontSize: '0.875rem' }}>
+          <span style={{ cursor: 'pointer' }}>Características</span>
+          <span style={{ cursor: 'pointer' }}>Precios</span>
+          <span style={{ cursor: 'pointer' }}>Testimonios</span>
+        </div>
+
+        <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+          <Link href="/login" style={{ color: '#A1A1AA', fontSize: '0.875rem' }}>Login</Link>
+          <Link href="/register" style={{ padding: '8px 16px', background: '#A855F7', color: '#fff', borderRadius: '6px', fontSize: '0.875rem', fontWeight: 600 }}>
+            Empezar ahora
+          </Link>
         </div>
       </nav>
 
-      {/* HERO */}
-      <section style={{ padding: '80px var(--space-6) 60px', textAlign: 'center', position: 'relative', zIndex: 1 }}>
-        <div style={{ maxWidth: '800px', margin: '0 auto' }}>
-          <div className="badge badge-primary" style={{ marginBottom: 'var(--space-5)', display: 'inline-flex' }}>
-            🚀 ¡Nuevo! — Sistema POS en la nube
-          </div>
-          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: 'clamp(2.5rem, 5vw, 4rem)', fontWeight: 800, lineHeight: 1.1, marginBottom: 'var(--space-6)' }}>
-            La caja que se adapta<br />
-            <span style={{ background: 'linear-gradient(135deg, #7C3AED, #10B981)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>
-              a tu negocio
-            </span>
-          </h1>
-          <p style={{ fontSize: '1.1875rem', color: 'var(--text-secondary)', lineHeight: 1.7, maxWidth: '600px', margin: '0 auto var(--space-8)' }}>
-            Desde el kiosco del barrio hasta la cadena de supermercados. 
-            Inventario, ventas, estadísticas y cuotas en un solo lugar.
-            Funciona sin internet.
-          </p>
-          <div className="flex items-center justify-center gap-4" style={{ flexWrap: 'wrap' }}>
-            <Link href="/register" className="btn btn-primary btn-xl">
-              Empezar gratis — 14 días 🎉
-            </Link>
-            <a href="#features" className="btn btn-ghost btn-lg">Ver funciones</a>
-          </div>
-          <p style={{ marginTop: 'var(--space-4)', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
-            Sin tarjeta de crédito. Solo <strong style={{ color: 'var(--color-secondary)' }}>$20.000 ARS/mes</strong> después de la prueba.
-          </p>
-        </div>
+      {/* Hero Section */}
+      <section style={{ textAlign: 'center', padding: '80px 24px 40px', maxWidth: '800px', margin: '0 auto' }}>
+        <h1 style={{ fontSize: '3.5rem', fontWeight: 800, lineHeight: 1.1, marginBottom: '24px', letterSpacing: '-0.03em' }}>
+          Tu negocio, <span style={{ color: '#A855F7' }}>digitalizado</span>
+        </h1>
+        <p style={{ fontSize: '1.125rem', color: '#A1A1AA', marginBottom: '40px', maxWidth: '600px', margin: '0 auto 40px' }}>
+          Kiosco, supermercado, boutique o lubricentro — un solo sistema para gestionar todo con precisión y control.
+        </p>
+        <Link href="/register" style={{ display: 'inline-block', padding: '12px 32px', background: '#A855F7', color: '#fff', borderRadius: '8px', fontSize: '1rem', fontWeight: 600, transition: 'background 0.2s' }}>
+          Empezar ahora
+        </Link>
       </section>
 
-      {/* STATS BAR */}
-      <div style={{ borderTop: '1px solid var(--border-color)', borderBottom: '1px solid var(--border-color)', background: 'rgba(124,58,237,0.05)' }}>
-        <div style={{ maxWidth: '900px', margin: '0 auto', padding: 'var(--space-6)', display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 'var(--space-6)', textAlign: 'center' }}>
-          {[
-            { value: 'Multirubro', label: 'Cualquier negocio' },
-            { value: 'Offline', label: 'Funciona sin internet' },
-            { value: 'Multi-empleado', label: 'Turnos por cajero' },
-            { value: 'En tu cel', label: 'Scanner de cámara' },
-          ].map(stat => (
-            <div key={stat.label}>
-              <div style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '4px' }}>{stat.value}</div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{stat.label}</div>
-            </div>
-          ))}
+      {/* Hero Image / Dashboard Mockup */}
+      <div style={{ maxWidth: '1000px', margin: '0 auto 80px', padding: '24px' }}>
+        <div style={{ 
+          background: 'linear-gradient(180deg, #15141B 0%, #0B0A0F 100%)', 
+          border: '1px solid #2A2735', 
+          borderRadius: '24px', 
+          padding: '4px',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+          overflow: 'hidden'
+        }}>
+          {/* We simulate the mockup image using a styled div or if the user has landing_page.jpg, we can show it. 
+              Since this is code, we render a highly stylized placeholder that looks like the mockup */}
+          <div style={{ background: '#13111A', borderRadius: '20px', height: '500px', position: 'relative', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+             <div style={{ textAlign: 'center', opacity: 0.5 }}>
+               <div style={{ fontSize: '3rem', marginBottom: '16px', color: '#A855F7' }}>📊</div>
+               <div style={{ fontSize: '1.25rem', fontWeight: 600, color: '#A1A1AA' }}>Dashboard Visual Interface</div>
+             </div>
+             {/* Neon accents */}
+             <div style={{ position: 'absolute', bottom: '-50px', left: '20%', width: '300px', height: '100px', background: '#A855F7', filter: 'blur(100px)', opacity: 0.3 }}></div>
+             <div style={{ position: 'absolute', top: '10%', right: '10%', width: '200px', height: '200px', background: '#10B981', filter: 'blur(120px)', opacity: 0.2 }}></div>
+          </div>
         </div>
       </div>
 
-      {/* FEATURES */}
-      <section id="features" style={{ padding: '80px var(--space-6)', position: 'relative', zIndex: 1 }}>
-        <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
-          <h2 style={{ textAlign: 'center', fontFamily: 'var(--font-headline)', fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 800, marginBottom: 'var(--space-3)' }}>
-            Todo lo que necesitás
-          </h2>
-          <p style={{ textAlign: 'center', color: 'var(--text-secondary)', marginBottom: 'var(--space-12)', fontSize: '1rem' }}>
-            Sin complicaciones. Sin capacitación. Empezás en minutos.
-          </p>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-5)' }}>
-            {features.map((f, i) => (
-              <div key={i} className="card" style={{ padding: 'var(--space-6)', transition: 'all 0.2s' }}
-                onMouseEnter={e => e.currentTarget.style.borderColor = 'rgba(124,58,237,0.4)'}
-                onMouseLeave={e => e.currentTarget.style.borderColor = 'rgba(255,255,255,0.08)'}
-              >
-                <div style={{ fontSize: '2.5rem', marginBottom: 'var(--space-4)' }}>{f.icon}</div>
-                <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.0625rem', fontWeight: 700, marginBottom: 'var(--space-2)' }}>{f.title}</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6 }}>{f.desc}</p>
+      {/* Features Section */}
+      <section style={{ maxWidth: '1000px', margin: '0 auto 100px', padding: '0 24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '64px' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '16px' }}>Herramientas para crecer</h2>
+          <p style={{ color: '#A1A1AA' }}>Todo lo que necesitas en una sola plataforma.</p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px' }}>
+          {[
+            { title: 'Caja registradora', desc: 'Ventas rápidas, cierres precisos y control total del flujo de caja.', icon: '💰', color: '#A855F7' },
+            { title: 'Inventario con scanner', desc: 'Gestión de stock en tiempo real con integración de códigos de barras.', icon: '📦', color: '#A855F7' },
+            { title: 'Estadísticas de ventas', desc: 'Métricas clave para entender el crecimiento de tu negocio.', icon: '📈', color: '#10B981' },
+            { title: 'Plan de cuotas', desc: 'Configura intereses y planes de pago a la medida de tus clientes.', icon: '📋', color: '#A855F7' },
+            { title: 'Tickets digitales', desc: 'Envía comprobantes por email o WhatsApp al instante.', icon: '🧾', color: '#A855F7' },
+            { title: 'Multi-empleados', desc: 'Control de accesos y registro de ventas por usuario.', icon: '👥', color: '#A855F7' },
+          ].map((feat, i) => (
+            <div key={i} style={{ background: '#15141B', border: '1px solid #2A2735', borderRadius: '12px', padding: '24px' }}>
+              <div style={{ width: '32px', height: '32px', background: 'rgba(255,255,255,0.05)', borderRadius: '6px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px', fontSize: '14px' }}>
+                {feat.icon}
               </div>
-            ))}
-          </div>
+              <h3 style={{ fontSize: '1rem', fontWeight: 600, marginBottom: '8px' }}>{feat.title}</h3>
+              <p style={{ color: '#A1A1AA', fontSize: '0.875rem', lineHeight: 1.5 }}>{feat.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 
-      {/* PRICING */}
-      <section style={{ padding: '80px var(--space-6)', background: 'rgba(124,58,237,0.04)', borderTop: '1px solid var(--border-color)' }}>
-        <div style={{ maxWidth: '500px', margin: '0 auto', textAlign: 'center' }}>
-          <h2 style={{ fontFamily: 'var(--font-headline)', fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', fontWeight: 800, marginBottom: 'var(--space-3)' }}>
-            Un precio. Todo incluido.
-          </h2>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-8)' }}>
-            Sin planes confusos. Sin extras ocultos.
-          </p>
-          <div className="card" style={{ padding: 'var(--space-8)', border: '2px solid var(--color-primary)', position: 'relative', overflow: 'hidden' }}>
-            <div style={{
-              position: 'absolute', top: '12px', right: '12px',
-              background: 'var(--gradient-primary)', borderRadius: 'var(--radius-full)',
-              padding: '4px 12px', fontSize: '0.75rem', fontWeight: 700, color: 'white'
-            }}>
-              ¡Popular!
+      {/* Pricing Section */}
+      <section style={{ maxWidth: '1000px', margin: '0 auto 100px', padding: '0 24px' }}>
+        <div style={{ textAlign: 'center', marginBottom: '64px' }}>
+          <h2 style={{ fontSize: '2rem', fontWeight: 700, marginBottom: '16px' }}>Planes a tu medida</h2>
+          <p style={{ color: '#A1A1AA' }}>Transparencia y crecimiento para cada etapa.</p>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', alignItems: 'center' }}>
+          
+          {/* Basic */}
+          <div style={{ background: '#15141B', border: '1px solid #2A2735', borderRadius: '16px', padding: '32px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '8px' }}>Básico</h3>
+            <p style={{ color: '#A1A1AA', fontSize: '0.875rem', marginBottom: '24px' }}>Para negocios que recién empiezan.</p>
+            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#10B981', marginBottom: '24px' }}>$20.000<span style={{ fontSize: '1rem', color: '#A1A1AA', fontWeight: 400 }}>/mes</span></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px', fontSize: '0.875rem', color: '#D4D4D8' }}>
+              <div>✓ Caja registradora</div>
+              <div>✓ Inventario básico</div>
+              <div>✓ Ticket digital</div>
             </div>
-            <div style={{ fontFamily: 'var(--font-headline)', fontSize: '3.5rem', fontWeight: 800, color: 'var(--color-secondary)', lineHeight: 1 }}>
-              $20.000
-            </div>
-            <div style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>ARS / mes por comercio</div>
-            <ul style={{ listStyle: 'none', textAlign: 'left', marginBottom: 'var(--space-8)' }}>
-              {[
-                'Productos ilimitados',
-                'Ventas ilimitadas',
-                'Múltiples empleados / turnos',
-                'Scanner por cámara y USB',
-                'Cuotas informales',
-                'Estadísticas avanzadas',
-                'Tickets imprimibles',
-                'Soporte por WhatsApp',
-                'Funciona offline (PWA)',
-                '14 días de prueba gratis',
-              ].map(item => (
-                <li key={item} style={{ padding: '6px 0', fontSize: '0.9375rem', display: 'flex', alignItems: 'center', gap: '10px', borderBottom: '1px solid var(--border-color)' }}>
-                  <span style={{ color: 'var(--color-secondary)', fontWeight: 700 }}>✓</span>
-                  {item}
-                </li>
-              ))}
-            </ul>
-            <Link href="/register" className="btn btn-primary btn-xl" style={{ width: '100%', justifyContent: 'center' }}>
-              Empezar prueba gratuita
+            <Link href="/register" style={{ display: 'block', textAlign: 'center', padding: '10px', border: '1px solid #2A2735', borderRadius: '8px', color: '#fff', fontSize: '0.875rem', fontWeight: 500 }}>
+              Elegir Básico
             </Link>
           </div>
+
+          {/* Pro */}
+          <div style={{ background: '#1A1625', border: '1px solid #A855F7', borderRadius: '16px', padding: '32px', position: 'relative' }}>
+            <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: '#A855F7', padding: '4px 12px', borderRadius: '20px', fontSize: '0.75rem', fontWeight: 700, letterSpacing: '0.05em' }}>
+              MÁS POPULAR
+            </div>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '8px' }}>Profesional</h3>
+            <p style={{ color: '#A1A1AA', fontSize: '0.875rem', marginBottom: '24px' }}>La herramienta completa para crecer.</p>
+            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#10B981', marginBottom: '24px' }}>$35.000<span style={{ fontSize: '1rem', color: '#A1A1AA', fontWeight: 400 }}>/mes</span></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px', fontSize: '0.875rem', color: '#D4D4D8' }}>
+              <div>✓ Todo lo de Básico</div>
+              <div>✓ Estadísticas avanzadas</div>
+              <div>✓ Plan de cuotas</div>
+              <div>✓ Soporte prioritario</div>
+            </div>
+            <Link href="/register" style={{ display: 'block', textAlign: 'center', padding: '10px', background: '#A855F7', borderRadius: '8px', color: '#fff', fontSize: '0.875rem', fontWeight: 600 }}>
+              Elegir Profesional
+            </Link>
+          </div>
+
+          {/* Enterprise */}
+          <div style={{ background: '#15141B', border: '1px solid #2A2735', borderRadius: '16px', padding: '32px' }}>
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 600, marginBottom: '8px' }}>Empresa</h3>
+            <p style={{ color: '#A1A1AA', fontSize: '0.875rem', marginBottom: '24px' }}>Múltiples sucursales y control total.</p>
+            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: '#10B981', marginBottom: '24px' }}>$60.000<span style={{ fontSize: '1rem', color: '#A1A1AA', fontWeight: 400 }}>/mes</span></div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '32px', fontSize: '0.875rem', color: '#D4D4D8' }}>
+              <div>✓ Todo lo de Profesional</div>
+              <div>✓ Multi-sucursal</div>
+              <div>✓ API de integración</div>
+            </div>
+            <Link href="/register" style={{ display: 'block', textAlign: 'center', padding: '10px', border: '1px solid #2A2735', borderRadius: '8px', color: '#fff', fontSize: '0.875rem', fontWeight: 500 }}>
+              Elegir Empresa
+            </Link>
+          </div>
+
         </div>
       </section>
 
-      {/* FOOTER */}
-      <footer style={{ borderTop: '1px solid var(--border-color)', padding: 'var(--space-8) var(--space-6)', textAlign: 'center' }}>
-        <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-4)' }}>
-          <div className="sidebar-logo-icon">🏪</div>
-          <span className="sidebar-logo-text">Smart Caja</span>
+      {/* Bottom CTA */}
+      <section style={{ maxWidth: '1000px', margin: '0 auto 100px', padding: '0 24px' }}>
+        <div style={{ 
+          background: 'linear-gradient(180deg, #1A1625 0%, #15141B 100%)', 
+          border: '1px solid #3F3B4E', 
+          borderRadius: '24px', 
+          padding: '64px',
+          textAlign: 'center'
+        }}>
+          <h2 style={{ fontSize: '2.5rem', fontWeight: 800, marginBottom: '16px', letterSpacing: '-0.02em' }}>
+            Transformá tu negocio hoy
+          </h2>
+          <p style={{ color: '#A1A1AA', fontSize: '1.125rem', marginBottom: '32px' }}>
+            Únete a cientos de comercios argentinos que ya controlan sus ventas y stock desde una sola plataforma.
+          </p>
+          <Link href="/register" style={{ display: 'inline-block', padding: '14px 40px', background: '#A855F7', color: '#fff', borderRadius: '8px', fontSize: '1.125rem', fontWeight: 600 }}>
+            Crear cuenta gratis
+          </Link>
         </div>
-        <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-          © 2025 Smart Caja. Hecho en Argentina 🇦🇷
-        </p>
-        <div className="flex items-center justify-center gap-6" style={{ marginTop: 'var(--space-4)' }}>
-          <Link href="/login" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Iniciar sesión</Link>
-          <Link href="/register" style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Registrarse</Link>
+      </section>
+
+      {/* Footer */}
+      <footer style={{ borderTop: '1px solid #2A2735', padding: '32px 48px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', color: '#A1A1AA', fontSize: '0.75rem' }}>
+        <div style={{ fontWeight: 700, color: '#fff', fontSize: '1rem' }}>Smart Caja</div>
+        <div style={{ display: 'flex', gap: '24px' }}>
+          <span>Privacy Policy</span>
+          <span>Terms of Service</span>
+          <span>Contact Support</span>
         </div>
+        <div>© 2024 Smart Caja. All rights reserved.</div>
       </footer>
     </div>
   )
