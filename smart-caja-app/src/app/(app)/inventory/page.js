@@ -18,6 +18,12 @@ export default function InventoryPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedCategory, setSelectedCategory] = useState('all')
+  
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [showImportModal, setShowImportModal] = useState(false)
+  const [newCategory, setNewCategory] = useState({ name: '', icon: '🏷️', color: '#7C3AED' })
+  const [creatingCategory, setCreatingCategory] = useState(false)
+  const [importingFile, setImportingFile] = useState(false)
 
   useEffect(() => {
     if (tenant?.id) {
@@ -69,6 +75,70 @@ export default function InventoryPage() {
     }
   }
 
+  const handleCreateCategory = async () => {
+    if (!newCategory.name.trim()) return
+    setCreatingCategory(true)
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .insert({ tenant_id: tenant.id, name: newCategory.name, icon: newCategory.icon, color: newCategory.color })
+        .select()
+        .single()
+      if (error) throw error
+      setCategories(prev => [...prev, data])
+      setNewCategory({ name: '', icon: '🏷️', color: '#7C3AED' })
+      toast.success('Categoría creada')
+    } catch (err) {
+      toast.error('Error al crear categoría')
+    } finally {
+      setCreatingCategory(false)
+    }
+  }
+
+  const handleImportCSV = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    setImportingFile(true)
+    
+    const reader = new FileReader()
+    reader.onload = async (event) => {
+      try {
+        const text = event.target.result
+        const rows = text.split('\n').filter(row => row.trim().length > 0)
+        // Skip header
+        const parsedProducts = []
+        for (let i = 1; i < rows.length; i++) {
+          const cols = rows[i].split(',')
+          if (cols.length >= 3) {
+            parsedProducts.push({
+              tenant_id: tenant.id,
+              name: cols[0].trim(),
+              cost_price: parseFloat(cols[1]) || 0,
+              sale_price: parseFloat(cols[2]) || 0,
+              stock_quantity: parseInt(cols[3]) || 0,
+              barcode: cols[4] ? cols[4].trim() : null
+            })
+          }
+        }
+        
+        if (parsedProducts.length > 0) {
+          const { error } = await supabase.from('products').insert(parsedProducts)
+          if (error) throw error
+          toast.success(`${parsedProducts.length} productos importados`)
+          setShowImportModal(false)
+          loadInventory()
+        } else {
+          toast.warning('No se encontraron productos válidos en el CSV')
+        }
+      } catch (err) {
+        toast.error('Error al importar: Asegurate de usar el formato correcto')
+      } finally {
+        setImportingFile(false)
+      }
+    }
+    reader.readAsText(file)
+  }
+
   // Filter products
   const filteredProducts = products.filter(p => {
     const matchesSearch = !searchTerm || 
@@ -99,6 +169,12 @@ export default function InventoryPage() {
           </p>
         </div>
         <div className="flex items-center gap-3" style={{ marginLeft: 'auto' }}>
+          <button className="btn btn-ghost" onClick={() => setShowImportModal(true)} style={{ border: '1px solid var(--border-color)' }}>
+            ⬆️ Importar CSV
+          </button>
+          <button className="btn btn-ghost" onClick={() => setShowCategoryModal(true)} style={{ border: '1px solid var(--border-color)' }}>
+            🏷️ Categorías
+          </button>
           <button className="btn btn-primary" onClick={() => router.push('/inventory/new')}>
             + Nuevo Producto
           </button>
@@ -274,6 +350,75 @@ export default function InventoryPage() {
           )}
         </div>
       </div>
+
+      {/* Categories Management Modal */}
+      {showCategoryModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 'var(--space-4)'
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: '400px', background: 'var(--bg-card)' }}>
+            <div className="card-header">
+              <span className="card-title">🏷️ Gestión de Categorías</span>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowCategoryModal(false)}>✕</button>
+            </div>
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input className="form-input" placeholder="Icono" style={{ width: '60px' }} value={newCategory.icon} onChange={e => setNewCategory(prev => ({...prev, icon: e.target.value}))} />
+                <input className="form-input" placeholder="Nombre" style={{ flex: 1 }} value={newCategory.name} onChange={e => setNewCategory(prev => ({...prev, name: e.target.value}))} />
+                <input type="color" style={{ width: '40px', height: '40px', padding: 0, border: 'none', borderRadius: '4px' }} value={newCategory.color} onChange={e => setNewCategory(prev => ({...prev, color: e.target.value}))} />
+                <button className="btn btn-primary" onClick={handleCreateCategory} disabled={creatingCategory}>+</button>
+              </div>
+
+              <div style={{ maxHeight: '300px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: 'var(--space-4)' }}>
+                {categories.length === 0 && <div style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '16px' }}>No hay categorías. Creá una arriba.</div>}
+                {categories.map(cat => (
+                  <div key={cat.id} style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'var(--bg-input)', padding: '8px 12px', borderRadius: 'var(--radius-md)' }}>
+                    <span>{cat.icon}</span>
+                    <span style={{ flex: 1, fontWeight: 600 }}>{cat.name}</span>
+                    <div style={{ width: '16px', height: '16px', borderRadius: '50%', background: cat.color }}></div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* CSV Import Modal */}
+      {showImportModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 'var(--space-4)'
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: '500px', background: 'var(--bg-card)' }}>
+            <div className="card-header">
+              <span className="card-title">⬆️ Importar CSV</span>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowImportModal(false)}>✕</button>
+            </div>
+            <div className="card-body">
+              <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-4)', fontSize: '0.875rem' }}>
+                Subí tu archivo CSV. Asegurate de que la primera fila contenga los títulos y sigan este orden exacto:
+              </p>
+              
+              <div style={{ background: 'var(--bg-input)', padding: '12px', borderRadius: 'var(--radius-sm)', fontFamily: 'monospace', fontSize: '0.75rem', marginBottom: 'var(--space-6)', overflowX: 'auto', whiteSpace: 'nowrap' }}>
+                Nombre Producto, Costo, Precio Venta, Stock, Código Barras (Opcional)
+              </div>
+
+              <div style={{ border: '2px dashed var(--border-color)', padding: 'var(--space-8)', textAlign: 'center', borderRadius: 'var(--radius-md)', cursor: 'pointer' }} onClick={() => document.getElementById('csv-upload').click()}>
+                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📄</div>
+                <div style={{ fontWeight: 600 }}>{importingFile ? 'Procesando...' : 'Hacé clic para elegir un archivo'}</div>
+                <input type="file" id="csv-upload" accept=".csv" style={{ display: 'none' }} onChange={handleImportCSV} disabled={importingFile} />
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
       
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }

@@ -23,10 +23,15 @@ export default function NewProductPage() {
     category_id: '',
     cost_price: '',
     sale_price: '',
+    sale_price: '',
     stock_quantity: '0',
     min_stock_alert: '5',
   })
   const [errors, setErrors] = useState({})
+  
+  const [showCategoryModal, setShowCategoryModal] = useState(false)
+  const [newCategory, setNewCategory] = useState({ name: '', icon: '📦', color: '#10B981' })
+  const [creatingCategory, setCreatingCategory] = useState(false)
 
   useEffect(() => {
     if (tenant?.id) {
@@ -64,7 +69,6 @@ export default function NewProductPage() {
     // Validate
     const errs = {}
     if (!form.name.trim()) errs.name = 'Requerido'
-    if (!form.category_id) errs.category_id = 'Requerido'
     if (!form.cost_price || parseFloat(form.cost_price) < 0) errs.cost_price = 'Inválido'
     if (!form.sale_price || parseFloat(form.sale_price) < 0) errs.sale_price = 'Inválido'
     if (parseFloat(form.sale_price) < parseFloat(form.cost_price)) {
@@ -112,6 +116,38 @@ export default function NewProductPage() {
     }
   }
 
+  const handleCreateCategory = async () => {
+    if (!newCategory.name.trim()) {
+      toast.warning('Ingresá un nombre para la categoría')
+      return
+    }
+    setCreatingCategory(true)
+    try {
+      const { data, error } = await supabase
+        .from('categories')
+        .insert({
+          tenant_id: tenant.id,
+          name: newCategory.name,
+          icon: newCategory.icon,
+          color: newCategory.color
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      toast.success('Categoría creada exitosamente')
+      setCategories(prev => [...prev, data])
+      setForm(prev => ({ ...prev, category_id: data.id }))
+      setShowCategoryModal(false)
+      setNewCategory({ name: '', icon: '📦', color: '#10B981' })
+    } catch (err) {
+      toast.error('Error al crear categoría')
+    } finally {
+      setCreatingCategory(false)
+    }
+  }
+
   return (
     <div>
       <div className="app-header">
@@ -156,18 +192,28 @@ export default function NewProductPage() {
               </div>
 
               <div className="form-group">
-                <label className="form-label required">Categoría</label>
-                <select 
-                  className={`form-select ${errors.category_id ? 'error' : ''}`}
-                  value={form.category_id}
-                  onChange={e => updateForm('category_id', e.target.value)}
-                >
-                  <option value="" disabled>Seleccioná una categoría</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
-                  ))}
-                </select>
-                {errors.category_id && <span className="form-error">{errors.category_id}</span>}
+                <label className="form-label">Categoría</label>
+                <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                  <select 
+                    className={`form-select ${errors.category_id ? 'error' : ''}`}
+                    value={form.category_id}
+                    onChange={e => updateForm('category_id', e.target.value)}
+                    style={{ flex: 1 }}
+                  >
+                    <option value="">Sin categoría</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.icon} {cat.name}</option>
+                    ))}
+                  </select>
+                  <button 
+                    className="btn btn-ghost" 
+                    onClick={() => setShowCategoryModal(true)}
+                    style={{ padding: '0 16px' }}
+                    title="Crear nueva categoría"
+                  >
+                    +
+                  </button>
+                </div>
               </div>
 
               <div className="form-group">
@@ -319,6 +365,68 @@ export default function NewProductPage() {
           </div>
         </div>
       </div>
+
+      {/* Quick Category Modal */}
+      {showCategoryModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 'var(--space-4)'
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: '400px', background: 'var(--bg-card)' }}>
+            <div className="card-header">
+              <span className="card-title">✨ Nueva Categoría</span>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowCategoryModal(false)}>✕</button>
+            </div>
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              
+              <div className="form-group">
+                <label className="form-label required">Nombre de la categoría</label>
+                <input 
+                  className="form-input" 
+                  placeholder="Ej: Bebidas, Snacks..."
+                  value={newCategory.name}
+                  onChange={e => setNewCategory(prev => ({ ...prev, name: e.target.value }))}
+                  autoFocus
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+                <div className="form-group">
+                  <label className="form-label">Icono (Emoji)</label>
+                  <input 
+                    className="form-input" 
+                    value={newCategory.icon}
+                    onChange={e => setNewCategory(prev => ({ ...prev, icon: e.target.value }))}
+                  />
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Color del Etiqueta</label>
+                  <div style={{ display: 'flex', gap: '8px' }}>
+                    <input 
+                      type="color" 
+                      value={newCategory.color}
+                      onChange={e => setNewCategory(prev => ({ ...prev, color: e.target.value }))}
+                      style={{ width: '40px', height: '40px', padding: 0, border: 'none', borderRadius: '8px' }}
+                    />
+                    <input 
+                      className="form-input" 
+                      value={newCategory.color}
+                      onChange={e => setNewCategory(prev => ({ ...prev, color: e.target.value }))}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <button className="btn btn-primary" style={{ width: '100%', marginTop: 'var(--space-2)' }} onClick={handleCreateCategory} disabled={creatingCategory}>
+                {creatingCategory ? 'Guardando...' : 'Crear Categoría'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

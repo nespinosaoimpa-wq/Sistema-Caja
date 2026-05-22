@@ -299,9 +299,24 @@ export default function SettingsPage() {
                   </div>
                   
                   {tenant?.subscription_status === 'trial' && (
-                    <button className="btn btn-primary btn-lg" onClick={() => alert('Integración con MercadoPago Subscriptions pendiente')}>
-                      Suscribirse ahora
-                    </button>
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button className="btn btn-primary btn-lg" onClick={() => alert('Integración con MercadoPago Subscriptions pendiente')}>
+                        Suscribirse ahora
+                      </button>
+                      <button 
+                        className="btn btn-ghost btn-lg" 
+                        style={{ border: '1px solid var(--color-secondary)', color: 'var(--color-secondary)' }}
+                        onClick={async () => {
+                          const { error } = await supabase.from('tenants').update({ subscription_plan: 'enterprise' }).eq('id', tenant.id)
+                          if (!error) {
+                            toast.success('¡Plan Empresa activado!')
+                            window.location.reload()
+                          }
+                        }}
+                      >
+                        ⚡ Habilitar Empresa (Modo Dev)
+                      </button>
+                    </div>
                   )}
                 </div>
 
