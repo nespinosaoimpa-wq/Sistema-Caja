@@ -16,6 +16,19 @@ export default function ShiftsPage() {
   const [activeShift, setActiveShift] = useState(null)
   
   const [closingCash, setClosingCash] = useState('')
+  const [showBillCounter, setShowBillCounter] = useState(false)
+  const [bills, setBills] = useState({
+    '10000': 0, '5000': 0, '2000': 0, '1000': 0, '500': 0, '200': 0, '100': 0, '50': 0, '20': 0, '10': 0
+  })
+
+  const calculateTotalBills = () => {
+    return Object.entries(bills).reduce((sum, [val, qty]) => sum + (parseFloat(val) * parseInt(qty || 0)), 0)
+  }
+
+  const handleSaveBills = () => {
+    setClosingCash(calculateTotalBills().toString())
+    setShowBillCounter(false)
+  }
 
   useEffect(() => {
     if (tenant?.id) {
@@ -114,7 +127,16 @@ export default function ShiftsPage() {
                 </div>
                 <div style={{ display: 'flex', gap: 'var(--space-2)', alignItems: 'flex-end', justifyContent: 'flex-end' }}>
                   <div className="form-group" style={{ flex: 1, maxWidth: '200px' }}>
-                    <label className="form-label">Efectivo final en caja</label>
+                    <label className="form-label flex justify-between items-center">
+                      <span>Efectivo final en caja</span>
+                      <button 
+                        className="btn btn-ghost btn-sm" 
+                        style={{ padding: '2px 8px', fontSize: '0.6875rem' }}
+                        onClick={() => setShowBillCounter(true)}
+                      >
+                        💵 Contar
+                      </button>
+                    </label>
                     <input 
                       className="form-input" 
                       type="number" 
@@ -191,6 +213,55 @@ export default function ShiftsPage() {
           )}
         </div>
       </div>
+
+      {/* Bill Counter Modal */}
+      {showBillCounter && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 'var(--space-4)'
+        }}>
+          <div className="card" style={{ width: '100%', maxWidth: '400px', background: 'var(--bg-card)' }}>
+            <div className="card-header">
+              <span className="card-title">💵 Contador de Billetes</span>
+              <button className="btn btn-ghost btn-sm" onClick={() => setShowBillCounter(false)}>✕</button>
+            </div>
+            <div className="card-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                {Object.keys(bills).sort((a,b) => parseFloat(b) - parseFloat(a)).map(val => (
+                  <div key={val} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
+                    <div style={{ flex: 1, fontWeight: 600, color: 'var(--color-secondary)' }}>${val}</div>
+                    <div style={{ color: 'var(--text-muted)' }}>x</div>
+                    <input 
+                      className="form-input"
+                      type="number"
+                      min="0"
+                      value={bills[val] || ''}
+                      onChange={e => setBills(prev => ({ ...prev, [val]: parseInt(e.target.value) || 0 }))}
+                      style={{ width: '80px', textAlign: 'center' }}
+                    />
+                    <div style={{ width: '80px', textAlign: 'right', fontWeight: 700 }}>
+                      {formatCurrency(parseFloat(val) * (bills[val] || 0))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="card-body" style={{ borderTop: '1px solid var(--border-color)', background: 'var(--bg-input)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+                <span style={{ color: 'var(--text-muted)' }}>Total Efectivo:</span>
+                <span style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)' }}>
+                  {formatCurrency(calculateTotalBills())}
+                </span>
+              </div>
+              <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleSaveBills}>
+                Confirmar y Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

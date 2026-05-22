@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
+import UpgradePrompt from '@/components/ui/UpgradePrompt'
 import { formatCurrency, formatDateTime } from '@/lib/utils/formatters'
 import { useToast } from '@/lib/hooks/useToast'
 
@@ -14,6 +15,16 @@ export default function InstallmentsPage() {
   const [plans, setPlans] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+
+  if (tenant?.subscription_plan === 'basic') {
+    return (
+      <UpgradePrompt 
+        title="Plan de Cuotas y Cuentas Corrientes" 
+        description="Permite a tus clientes pagar a plazo, gestiona deudas y mantén el control financiero."
+        requiredPlan="professional"
+      />
+    )
+  }
 
   useEffect(() => {
     if (tenant?.id) {

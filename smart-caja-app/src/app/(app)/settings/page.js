@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
+import UpgradePrompt from '@/components/ui/UpgradePrompt'
 
 export default function SettingsPage() {
   const { tenant, profile, reloadProfile } = useAuth()
@@ -114,6 +115,8 @@ export default function SettingsPage() {
         <div style={{ display: 'flex', gap: 'var(--space-2)', marginBottom: 'var(--space-6)', borderBottom: '1px solid var(--border-color)' }}>
           {[
             { id: 'general', label: '🏪 General' },
+            { id: 'users', label: '👥 Usuarios' },
+            { id: 'branches', label: '🏢 Sucursales' },
             { id: 'appearance', label: '🎨 Apariencia' },
             { id: 'payments', label: '💳 Mercado Pago' },
             { id: 'billing', label: '📄 Mi Suscripción' },
@@ -168,6 +171,55 @@ export default function SettingsPage() {
                   <label className="form-label">Teléfono de contacto</label>
                   <input className="form-input" value={form.phone} onChange={e => updateForm('phone', e.target.value)} />
                 </div>
+              </div>
+            )}
+
+            {activeTab === 'users' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.125rem' }}>Gestión de Cajeros y Administradores</h3>
+                  <button className="btn btn-primary btn-sm">Invitar Usuario</button>
+                </div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
+                  Los usuarios invitados recibirán un correo para crear su contraseña.
+                </p>
+                <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', background: 'var(--bg-input)' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div>
+                      <div style={{ fontWeight: 600 }}>{profile?.full_name || 'Vos'} (Propietario)</div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{profile?.email}</div>
+                    </div>
+                    <span className="badge badge-primary">Dueño</span>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'branches' && (
+              <div style={{ minHeight: '400px' }}>
+                {tenant?.subscription_plan !== 'enterprise' ? (
+                  <UpgradePrompt 
+                    title="Múltiples Sucursales" 
+                    description="Administra diferentes puntos de venta centralizando el inventario o manteniendo stock independiente. Visualiza reportes por cada local."
+                    requiredPlan="enterprise"
+                  />
+                ) : (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                      <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.125rem' }}>Sucursales del Comercio</h3>
+                      <button className="btn btn-primary btn-sm">+ Nueva Sucursal</button>
+                    </div>
+                    <div style={{ border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: 'var(--space-4)', background: 'var(--bg-input)' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontWeight: 600 }}>Casa Central</div>
+                          <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>{form.address || 'Sin dirección'}</div>
+                        </div>
+                        <span className="badge badge-success">Activa</span>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
@@ -251,6 +303,33 @@ export default function SettingsPage() {
                       Suscribirse ahora
                     </button>
                   )}
+                </div>
+
+                <div style={{ marginTop: 'var(--space-6)' }}>
+                  <h4 style={{ marginBottom: 'var(--space-4)' }}>Planes Disponibles</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)' }}>
+                    <div className="card" style={{ border: tenant?.subscription_plan === 'basic' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)', opacity: tenant?.subscription_plan === 'basic' ? 1 : 0.6 }}>
+                      <div className="card-body" style={{ textAlign: 'center' }}>
+                        <div style={{ fontWeight: 700, fontSize: '1.125rem' }}>Básico</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '8px 0' }}>$20.000</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Caja, Inventario básico</div>
+                      </div>
+                    </div>
+                    <div className="card" style={{ border: tenant?.subscription_plan === 'professional' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)', opacity: tenant?.subscription_plan === 'professional' ? 1 : 0.6 }}>
+                      <div className="card-body" style={{ textAlign: 'center' }}>
+                        <div style={{ fontWeight: 700, fontSize: '1.125rem' }}>Profesional</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '8px 0', color: 'var(--color-primary)' }}>$35.000</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>+ Estadísticas, Cuotas</div>
+                      </div>
+                    </div>
+                    <div className="card" style={{ border: tenant?.subscription_plan === 'enterprise' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)', opacity: tenant?.subscription_plan === 'enterprise' ? 1 : 0.6 }}>
+                      <div className="card-body" style={{ textAlign: 'center' }}>
+                        <div style={{ fontWeight: 700, fontSize: '1.125rem' }}>Empresa</div>
+                        <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '8px 0', color: 'var(--color-secondary)' }}>$60.000</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>+ Multi-sucursal, API</div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}

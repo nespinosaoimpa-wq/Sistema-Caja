@@ -68,9 +68,10 @@ export default function SalesPage() {
     return matchesSearch && matchesPayment && matchesDate
   })
 
+  const [selectedSale, setSelectedSale] = useState(null)
+
   const printTicket = (sale) => {
-    // In a real implementation we'd open a printable view or send to thermal printer
-    alert(`Imprimiendo ticket #${sale.ticket_number}`)
+    setSelectedSale(sale)
   }
 
   return (
@@ -129,7 +130,7 @@ export default function SalesPage() {
           </div>
         </div>
 
-        {/* Data Table */}
+        {/* Data List */}
         <div className="card">
           {loading ? (
             <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-muted)' }}>
@@ -137,77 +138,110 @@ export default function SalesPage() {
             </div>
           ) : filteredSales.length === 0 ? (
             <div style={{ padding: 'var(--space-12)', textAlign: 'center' }}>
-              <div style={{ fontSize: '3rem', marginBottom: 'var(--space-4)' }}>📭</div>
+               <div style={{ fontSize: '3rem', marginBottom: 'var(--space-4)' }}>📭</div>
               <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.25rem', marginBottom: 'var(--space-2)' }}>No se encontraron ventas</h3>
               <p style={{ color: 'var(--text-muted)' }}>No hay resultados para los filtros seleccionados.</p>
             </div>
           ) : (
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Fecha y Hora</th>
-                    <th>Ticket #</th>
-                    <th>Cajero</th>
-                    <th>Método de Pago</th>
-                    <th style={{ textAlign: 'center' }}>Artículos</th>
-                    <th style={{ textAlign: 'right' }}>Total</th>
-                    <th style={{ textAlign: 'center' }}>Estado</th>
-                    <th style={{ textAlign: 'right' }}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredSales.map(sale => (
-                    <tr key={sale.id}>
-                      <td>
-                        <div style={{ fontWeight: 600 }}>{formatDateTime(sale.created_at).split(', ')[0]}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formatDateTime(sale.created_at).split(', ')[1]}</div>
-                      </td>
-                      <td>
-                        <div style={{ fontFamily: 'monospace', fontSize: '0.875rem' }}>{sale.ticket_number}</div>
-                      </td>
-                      <td>{sale.profiles?.full_name || 'Sistema'}</td>
-                      <td>
-                        <span className="badge badge-neutral">
-                          {PAYMENT_METHOD_LABELS[sale.payment_method]}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        {sale.sale_items?.length || 0}
-                      </td>
-                      <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-secondary)' }}>
-                        {formatCurrency(sale.total)}
-                      </td>
-                      <td style={{ textAlign: 'center' }}>
-                        <span className={`badge ${sale.status === 'completed' ? 'badge-success' : 'badge-error'}`}>
-                          {sale.status === 'completed' ? 'Completado' : 'Anulado'}
-                        </span>
-                      </td>
-                      <td style={{ textAlign: 'right' }}>
-                        <div className="flex items-center justify-end gap-2">
-                          <button 
-                            className="btn btn-ghost btn-sm"
-                            title="Ver detalles"
-                          >
-                            👁️
-                          </button>
-                          <button 
-                            className="btn btn-ghost btn-sm"
-                            title="Imprimir Ticket"
-                            onClick={() => printTicket(sale)}
-                          >
-                            🖨️
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              {filteredSales.map((sale, i) => (
+                <div key={sale.id} style={{ 
+                  display: 'grid', 
+                  gridTemplateColumns: '1fr 1fr 1fr 1fr 80px 100px',
+                  alignItems: 'center',
+                  padding: 'var(--space-4)',
+                  borderBottom: i < filteredSales.length - 1 ? '1px solid var(--border-color)' : 'none',
+                  background: 'var(--bg-input)',
+                  transition: 'background 0.2s',
+                  cursor: 'pointer'
+                }}
+                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-card)'}
+                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-input)'}
+                onClick={() => printTicket(sale)}
+                >
+                  <div>
+                    <div style={{ fontWeight: 600 }}>{formatDateTime(sale.created_at).split(', ')[0]}</div>
+                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formatDateTime(sale.created_at).split(', ')[1]}</div>
+                  </div>
+                  <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: 'var(--color-primary)' }}>#{sale.ticket_number}</div>
+                  <div>
+                    <span className="badge badge-neutral" style={{ background: 'rgba(255,255,255,0.05)' }}>
+                      {PAYMENT_METHOD_LABELS[sale.payment_method]}
+                    </span>
+                  </div>
+                  <div>
+                    <span className={`badge ${sale.status === 'completed' ? 'badge-success' : 'badge-error'}`}>
+                      {sale.status === 'completed' ? 'Completado' : 'Anulado'}
+                    </span>
+                  </div>
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                    {sale.sale_items?.length || 0} arts.
+                  </div>
+                  <div style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-secondary)' }}>
+                    {formatCurrency(sale.total)}
+                  </div>
+                </div>
+              ))}
             </div>
           )}
         </div>
       </div>
+
+      {/* Ticket Modal */}
+      {selectedSale && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(5px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 'var(--space-4)'
+        }} onClick={() => setSelectedSale(null)}>
+          <div style={{
+            background: '#fff', // Tickets are usually white like receipt paper
+            color: '#000',
+            width: '100%', maxWidth: '350px',
+            borderRadius: 'var(--radius-md)',
+            padding: 'var(--space-6)',
+            boxShadow: '0 20px 40px rgba(0,0,0,0.5)',
+            position: 'relative'
+          }} onClick={e => e.stopPropagation()}>
+            <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)', borderBottom: '1px dashed #ccc', paddingBottom: 'var(--space-4)' }}>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>{tenant?.name || 'Comercio'}</div>
+              <div style={{ fontSize: '0.875rem', color: '#666' }}>Comprobante de Venta</div>
+              <div style={{ fontSize: '0.875rem', color: '#666' }}>Nro: {selectedSale.ticket_number}</div>
+              <div style={{ fontSize: '0.875rem', color: '#666' }}>{formatDateTime(selectedSale.created_at)}</div>
+            </div>
+
+            <div style={{ marginBottom: 'var(--space-6)', minHeight: '150px' }}>
+              {selectedSale.sale_items?.map((item, idx) => (
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.875rem' }}>
+                  <div>{item.quantity}x {item.product_name}</div>
+                  <div style={{ fontWeight: 600 }}>{formatCurrency(item.subtotal)}</div>
+                </div>
+              ))}
+            </div>
+
+            <div style={{ borderTop: '1px dashed #ccc', paddingTop: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 800 }}>
+                <span>TOTAL:</span>
+                <span>{formatCurrency(selectedSale.total)}</span>
+              </div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginTop: '8px', color: '#666' }}>
+                <span>Pago con:</span>
+                <span>{PAYMENT_METHOD_LABELS[selectedSale.payment_method]}</span>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <button onClick={() => setSelectedSale(null)} style={{ flex: 1, padding: '10px', background: '#f0f0f0', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>
+                Cerrar
+              </button>
+              <button onClick={() => window.print()} style={{ flex: 1, padding: '10px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>
+                Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

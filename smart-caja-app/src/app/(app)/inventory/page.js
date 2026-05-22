@@ -190,72 +190,86 @@ export default function InventoryPage() {
               </button>
             </div>
           ) : (
-            <div className="table-wrapper">
-              <table className="table">
-                <thead>
-                  <tr>
-                    <th>Producto</th>
-                    <th>Código</th>
-                    <th>Categoría</th>
-                    <th style={{ textAlign: 'right' }}>Costo</th>
-                    <th style={{ textAlign: 'right' }}>Venta</th>
-                    <th style={{ textAlign: 'center' }}>Stock</th>
-                    <th style={{ textAlign: 'center' }}>Estado</th>
-                    <th style={{ textAlign: 'right' }}>Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredProducts.map(product => {
-                    const isLowStock = product.stock_quantity <= product.min_stock_alert
-                    return (
-                      <tr key={product.id} style={{ opacity: product.is_active ? 1 : 0.5 }}>
-                        <td>
-                          <div style={{ fontWeight: 600 }}>{product.name}</div>
-                          {product.description && <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px', maxWidth: '200px' }} className="truncate">{product.description}</div>}
-                        </td>
-                        <td>
-                          <div style={{ fontSize: '0.8125rem', fontFamily: 'monospace' }}>{product.barcode || product.reference_code || '-'}</div>
-                        </td>
-                        <td>
-                          <span className="badge badge-neutral">
-                            {product.categories?.icon} {product.categories?.name || 'Sin categoría'}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'right', color: 'var(--text-secondary)' }}>
-                          {formatCurrency(product.cost_price)}
-                        </td>
-                        <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--color-secondary)' }}>
-                          {formatCurrency(product.sale_price)}
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <span className={`badge ${isLowStock ? 'badge-error' : 'badge-success'}`}>
-                            {product.stock_quantity}
-                          </span>
-                        </td>
-                        <td style={{ textAlign: 'center' }}>
-                          <button 
-                            className={`badge ${product.is_active ? 'badge-primary' : 'badge-neutral'}`}
-                            onClick={() => toggleProductActive(product.id, product.is_active)}
-                            style={{ cursor: 'pointer', border: 'none' }}
-                          >
-                            {product.is_active ? 'Activo' : 'Inactivo'}
-                          </button>
-                        </td>
-                        <td style={{ textAlign: 'right' }}>
-                          <div className="flex items-center justify-end gap-2">
-                            <button 
-                              className="btn btn-ghost btn-sm"
-                              onClick={() => router.push(`/inventory/${product.id}`)}
-                            >
-                              ✏️
-                            </button>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: 'var(--space-4)', padding: 'var(--space-4)' }}>
+              {filteredProducts.map(product => {
+                const isLowStock = product.stock_quantity <= product.min_stock_alert
+                return (
+                  <div key={product.id} style={{ 
+                    background: 'var(--bg-input)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-lg)',
+                    padding: 'var(--space-4)',
+                    opacity: product.is_active ? 1 : 0.6,
+                    transition: 'all 0.2s',
+                    position: 'relative',
+                    overflow: 'hidden'
+                  }}>
+                    {/* Background Glow if low stock */}
+                    {isLowStock && (
+                      <div style={{ position: 'absolute', top: 0, right: 0, width: '100px', height: '100px', background: 'var(--color-error)', filter: 'blur(50px)', opacity: 0.1 }}></div>
+                    )}
+                    
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-4)' }}>
+                      <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+                        <div style={{ 
+                          width: '40px', height: '40px', borderRadius: 'var(--radius-md)', 
+                          background: 'var(--glass-bg)', border: '1px solid var(--border-color)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem'
+                        }}>
+                          {product.categories?.icon || '📦'}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#fff', fontSize: '1rem', lineHeight: 1.2 }}>{product.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: '4px' }}>
+                            {product.barcode || product.reference_code || 'SIN CÓDIGO'}
                           </div>
-                        </td>
-                      </tr>
-                    )
-                  })}
-                </tbody>
-              </table>
+                        </div>
+                      </div>
+                      
+                      <button 
+                        onClick={() => toggleProductActive(product.id, product.is_active)}
+                        style={{ background: 'transparent', border: 'none', cursor: 'pointer', opacity: 0.5 }}
+                        title={product.is_active ? "Desactivar" : "Activar"}
+                      >
+                        {product.is_active ? '👁️' : '🙈'}
+                      </button>
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+                      <div style={{ background: 'rgba(0,0,0,0.2)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-md)' }}>
+                        <div style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Costo</div>
+                        <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formatCurrency(product.cost_price)}</div>
+                      </div>
+                      <div style={{ background: 'rgba(0,0,0,0.2)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-md)' }}>
+                        <div style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Venta</div>
+                        <div style={{ fontWeight: 800, color: 'var(--color-secondary)' }}>{formatCurrency(product.sale_price)}</div>
+                      </div>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: 'var(--space-4)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Stock:</span>
+                        <span style={{ 
+                          fontWeight: 700, 
+                          color: isLowStock ? 'var(--color-error)' : '#fff',
+                          background: isLowStock ? 'var(--color-error-light)' : 'rgba(255,255,255,0.05)',
+                          padding: '2px 8px', borderRadius: '4px', fontSize: '0.8125rem'
+                        }}>
+                          {product.stock_quantity}
+                        </span>
+                      </div>
+                      
+                      <button 
+                        className="btn btn-ghost btn-sm"
+                        onClick={() => router.push(`/inventory/${product.id}`)}
+                        style={{ padding: '4px 12px', fontSize: '0.8125rem', border: '1px solid var(--border-color)' }}
+                      >
+                        Editar
+                      </button>
+                    </div>
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>

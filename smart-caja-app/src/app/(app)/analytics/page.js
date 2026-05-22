@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
+import UpgradePrompt from '@/components/ui/UpgradePrompt'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell,
@@ -26,6 +27,16 @@ export default function AnalyticsPage() {
     topProducts: [],
     stagnantProducts: []
   })
+
+  if (tenant?.subscription_plan === 'basic') {
+    return (
+      <UpgradePrompt 
+        title="Estadísticas Avanzadas" 
+        description="Obtén métricas detalladas, gráficos de rendimiento y análisis profundo de tu negocio."
+        requiredPlan="professional"
+      />
+    )
+  }
 
   useEffect(() => {
     if (tenant?.id) {
