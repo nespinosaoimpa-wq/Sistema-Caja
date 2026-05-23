@@ -277,68 +277,165 @@ export default function SettingsPage() {
             )}
 
             {activeTab === 'billing' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
                 <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.125rem' }}>Estado de Suscripción</h3>
                 
+                {/* Subscription Status details */}
                 <div style={{ 
                   padding: 'var(--space-6)', 
-                  background: tenant?.subscription_status === 'trial' ? 'var(--color-tertiary-light)' : 'var(--color-secondary-light)', 
-                  border: `1px solid ${tenant?.subscription_status === 'trial' ? 'var(--color-tertiary)' : 'var(--color-secondary)'}`, 
+                  background: tenant?.subscription_status === 'trial' ? 'var(--color-tertiary-light)' : tenant?.subscription_status === 'suspended' ? 'rgba(239, 68, 68, 0.1)' : 'var(--color-secondary-light)', 
+                  border: `1px solid ${tenant?.subscription_status === 'trial' ? 'var(--color-tertiary)' : tenant?.subscription_status === 'suspended' ? 'var(--color-error)' : 'var(--color-secondary)'}`, 
                   borderRadius: 'var(--radius-xl)',
                   display: 'flex',
                   alignItems: 'center',
-                  justifyContent: 'space-between'
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: '16px'
                 }}>
                   <div>
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: tenant?.subscription_status === 'trial' ? 'var(--color-tertiary)' : 'var(--color-secondary)', marginBottom: '4px' }}>
-                      {tenant?.subscription_status === 'trial' ? 'Período de Prueba (Gratis)' : 'Suscripción Activa'}
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: tenant?.subscription_status === 'trial' ? 'var(--color-tertiary)' : tenant?.subscription_status === 'suspended' ? 'var(--color-error)' : 'var(--color-secondary)', marginBottom: '4px' }}>
+                      {tenant?.subscription_status === 'trial' ? 'Período de Prueba (Gratis)' : tenant?.subscription_status === 'suspended' ? 'Suscripción Suspendida ⚠️' : 'Suscripción Activa ✓'}
                     </div>
-                    <div style={{ color: 'var(--text-primary)' }}>
-                      Plan: $20.000 ARS / mes
+                    <div style={{ color: 'var(--text-primary)', fontSize: '0.9rem' }}>
+                      Plan: <strong style={{ textTransform: 'capitalize' }}>{tenant?.subscription_plan}</strong> (${tenant?.subscription_plan === 'basic' ? '20.000' : tenant?.subscription_plan === 'professional' ? '35.000' : '60.000'} ARS / mes)
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                      {tenant?.subscription_status === 'trial' ? `Finaliza el: ${new Date(tenant?.trial_ends_at).toLocaleDateString()}` : 'Próximo vencimiento de factura: En 30 días'}
                     </div>
                   </div>
                   
-                  {tenant?.subscription_status === 'trial' && (
-                    <div style={{ display: 'flex', gap: '8px' }}>
-                      <button className="btn btn-primary btn-lg" onClick={() => alert('Integración con MercadoPago Subscriptions pendiente')}>
-                        Suscribirse ahora
-                      </button>
-                      <button 
-                        className="btn btn-ghost btn-lg" 
-                        style={{ border: '1px solid var(--color-secondary)', color: 'var(--color-secondary)' }}
-                        onClick={async () => {
-                          const { error } = await supabase.from('tenants').update({ subscription_plan: 'enterprise' }).eq('id', tenant.id)
-                          if (!error) {
-                            toast.success('¡Plan Empresa activado!')
-                            window.location.reload()
-                          }
-                        }}
-                      >
-                        ⚡ Habilitar Empresa (Modo Dev)
-                      </button>
-                    </div>
-                  )}
+                  <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <button 
+                      className="btn btn-primary"
+                      onClick={async () => {
+                        const { error } = await supabase
+                          .from('tenants')
+                          .update({ 
+                            subscription_status: 'active',
+                            subscription_plan: 'professional' 
+                          })
+                          .eq('id', tenant.id)
+                        if (!error) {
+                          toast.success('Suscripción simulada con éxito!')
+                          window.location.reload()
+                        }
+                      }}
+                    >
+                      💳 Suscribirse por Mercado Pago
+                    </button>
+                    
+                    <button 
+                      className="btn btn-ghost" 
+                      style={{ border: '1px solid var(--color-error)', color: 'var(--color-error)' }}
+                      onClick={async () => {
+                        const { error } = await supabase
+                          .from('tenants')
+                          .update({ subscription_status: 'suspended' })
+                          .eq('id', tenant.id)
+                        if (!error) {
+                          toast.warning('¡Servicio suspendido en modo dev!')
+                          window.location.reload()
+                        }
+                      }}
+                    >
+                      ⚠️ Simular Suspensión
+                    </button>
+
+                    <button 
+                      className="btn btn-ghost" 
+                      style={{ border: '1px solid var(--color-tertiary)', color: 'var(--color-tertiary)' }}
+                      onClick={async () => {
+                        const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+                        const { error } = await supabase
+                          .from('tenants')
+                          .update({ 
+                            subscription_status: 'trial', 
+                            trial_ends_at: yesterday 
+                          })
+                          .eq('id', tenant.id)
+                        if (!error) {
+                          toast.warning('Prueba expirada en modo dev!')
+                          window.location.reload()
+                        }
+                      }}
+                    >
+                      ⏳ Simular Prueba Expirada
+                    </button>
+                  </div>
+                </div>
+
+                {/* Technical details explaining subscription mechanism */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-6)', marginTop: 'var(--space-4)' }}>
+                  
+                  {/* Mercado Pago Subscription Explanation */}
+                  <div className="card" style={{ padding: '20px' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#009EE3', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      🔗 ¿Cómo funciona el pago de membresías?
+                    </h4>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '12px' }}>
+                      Las membresías se cobran de forma recurrente utilizando la API de <strong>Mercado Pago Preapprovals</strong>. 
+                    </p>
+                    <ol style={{ fontSize: '0.8rem', color: 'var(--text-muted)', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <li>Creas un Plan de Suscripción en Mercado Pago con el precio fijado.</li>
+                      <li>Al hacer clic en "Suscribirse", el sistema redirecciona al usuario al checkout oficial.</li>
+                      <li>Cuando el abono se acredita, Mercado Pago envía un webhook al sistema en <code style={{ color: 'var(--color-primary)' }}>/api/webhooks/mercadopago</code>.</li>
+                      <li>El servidor valida la firma y reactiva la cuenta en Supabase para el negocio.</li>
+                    </ol>
+                  </div>
+
+                  {/* WhatsApp Message Alert Bot */}
+                  <div className="card" style={{ padding: '20px' }}>
+                    <h4 style={{ fontSize: '1rem', fontWeight: 700, color: '#25D366', marginBottom: '12px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      🤖 Bot de Alertas de Pago Atrasado (WhatsApp/Email)
+                    </h4>
+                    <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '12px' }}>
+                      El sistema cuenta con un script automatizado que realiza chequeos diarios y avisa a los comercios de sus facturas:
+                    </p>
+                    <ul style={{ fontSize: '0.8rem', color: 'var(--text-muted)', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                      <li><strong>Faltan 3 días:</strong> Alerta preventivo amarillo dentro del panel.</li>
+                      <li><strong>Vence hoy:</strong> Envío de correo electrónico automático y alerta vía WhatsApp.</li>
+                      <li><strong>Suspendido (1 día de atraso):</strong> Mensaje de WhatsApp bloqueante informando de la suspensión.</li>
+                    </ul>
+                    
+                    <button 
+                      className="btn btn-secondary btn-sm" 
+                      style={{ background: '#25D366', border: 'none', color: '#000', fontWeight: 700 }}
+                      onClick={() => {
+                        toast.info('Simulación de Bot enviada!');
+                        setTimeout(() => {
+                          alert(`[MOCK WHATSAPP BOT]
+De: Smart Caja Alertas 🤖
+Para: Administrador de ${tenant?.name || 'Comercio'}
+
+Estimado cliente, le recordamos que su período de prueba de Smart Caja vence mañana. Evite el bloqueo automático de su terminal de ventas registrando su medio de pago aquí: https://smartcaja.com.ar/billing-checkout`)
+                        }, 500)
+                      }}
+                    >
+                      📲 Probar Mensaje de WhatsApp del Bot
+                    </button>
+                  </div>
+
                 </div>
 
                 <div style={{ marginTop: 'var(--space-6)' }}>
-                  <h4 style={{ marginBottom: 'var(--space-4)' }}>Planes Disponibles</h4>
+                  <h4 style={{ marginBottom: 'var(--space-4)', fontSize: '1rem', fontWeight: 700 }}>Planes Disponibles</h4>
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)' }}>
                     <div className="card" style={{ border: tenant?.subscription_plan === 'basic' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)', opacity: tenant?.subscription_plan === 'basic' ? 1 : 0.6 }}>
-                      <div className="card-body" style={{ textAlign: 'center' }}>
+                      <div className="card-body" style={{ textAlign: 'center', padding: '20px' }}>
                         <div style={{ fontWeight: 700, fontSize: '1.125rem' }}>Básico</div>
                         <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '8px 0' }}>$20.000</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Caja, Inventario básico</div>
                       </div>
                     </div>
                     <div className="card" style={{ border: tenant?.subscription_plan === 'professional' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)', opacity: tenant?.subscription_plan === 'professional' ? 1 : 0.6 }}>
-                      <div className="card-body" style={{ textAlign: 'center' }}>
+                      <div className="card-body" style={{ textAlign: 'center', padding: '20px' }}>
                         <div style={{ fontWeight: 700, fontSize: '1.125rem' }}>Profesional</div>
                         <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '8px 0', color: 'var(--color-primary)' }}>$35.000</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>+ Estadísticas, Cuotas</div>
                       </div>
                     </div>
                     <div className="card" style={{ border: tenant?.subscription_plan === 'enterprise' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)', opacity: tenant?.subscription_plan === 'enterprise' ? 1 : 0.6 }}>
-                      <div className="card-body" style={{ textAlign: 'center' }}>
+                      <div className="card-body" style={{ textAlign: 'center', padding: '20px' }}>
                         <div style={{ fontWeight: 700, fontSize: '1.125rem' }}>Empresa</div>
                         <div style={{ fontSize: '1.5rem', fontWeight: 800, margin: '8px 0', color: 'var(--color-secondary)' }}>$60.000</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>+ Multi-sucursal, API</div>

@@ -26,6 +26,34 @@ export default function POSPage() {
   const [receiptData, setReceiptData] = useState(null)
   const [showReceipt, setShowReceipt] = useState(false)
 
+  // Fullscreen and POSnet integration states
+  const [isFullscreen, setIsFullscreen] = useState(false)
+  const [posnetMode, setPosnetMode] = useState('integrated') // 'integrated' | 'manual'
+  const [showPosnetSimulator, setShowPosnetSimulator] = useState(false)
+  const [posnetStep, setPosnetStep] = useState(0) // 0: connecting, 1: swipe, 2: processing, 3: approved, 99: manual voucher modal
+  const [posnetCardBrand, setPosnetCardBrand] = useState('VISA')
+  const [posnetVoucher, setPosnetVoucher] = useState('')
+  const [manualVoucher, setManualVoucher] = useState('')
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      setIsFullscreen(!!document.fullscreenElement)
+    }
+    document.addEventListener('fullscreenchange', handleFullscreenChange)
+    return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
+  }, [])
+
+  const toggleFullscreen = () => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen()
+        .then(() => setIsFullscreen(true))
+        .catch(err => toast.error(`Error al activar pantalla completa: ${err.message}`))
+    } else {
+      document.exitFullscreen()
+      setIsFullscreen(false)
+    }
+  }
+
   useEffect(() => {
     if (tenant?.id) {
       loadData()
@@ -154,6 +182,12 @@ export default function POSPage() {
         <div style="display:flex;justify-content:space-between;"><span>Recibido:</span><span>${formatCurrency(cashReceivedNum)}</span></div>
         <div style="display:flex;justify-content:space-between;font-weight:bold;"><span>Vuelto:</span><span>${formatCurrency(cashChange)}</span></div>
       `
+    } else if (paymentMethod === 'debit' || paymentMethod === 'credit') {
+      const details = saleData?.payment_details || {}
+      paymentInfo = `
+        <div style="display:flex;justify-content:space-between;"><span>Tarjeta:</span><span>${details.card_brand || 'N/A'}</span></div>
+        <div style="display:flex;justify-content:space-between;"><span>Cupón:</span><span>#${details.voucher_number || 'N/A'}</span></div>
+      `
     }
 
     const payMethodLabel = { cash: 'Efectivo', debit: 'Débito', credit: 'Crédito' }[paymentMethod] || paymentMethod
@@ -224,26 +258,34 @@ export default function POSPage() {
     printWindow.document.close()
   }
 
-  const handleCheckout = async () => {
-    if (cart.length === 0) return
-    if (!activeShift) return toast.error('Debes abrir un turno de caja primero')
+  const startPosnetSimulation = () => {
+    setIsProcessing(true)
+    setPosnetStep(0)
+    setShowPosnetSimulator(true)
+    
+    setTimeout(() => {
+      setPosnetStep(1) // Swipe card
+      setTimeout(() => {
+        setPosnetStep(2) // Processing
+        setTimeout(() => {
+          const brands = ['VISA', 'MASTERCARD', 'MAESTRO', 'CABAL']
+          const selectedBrand = brands[Math.floor(Math.random() * brands.length)]
+          const voucher = Math.floor(100000 + Math.random() * 900000).toString()
+          
+          setPosnetCardBrand(selectedBrand)
+          setPosnetVoucher(voucher)
+          setPosnetStep(3) // Approved
+          
+          setTimeout(() => {
+            setShowPosnetSimulator(false)
+            executeSaveSale(voucher, selectedBrand)
+          }, 1500)
+        }, 1500)
+      }, 1500)
+    }, 1000)
+  }
 
-    // 1b. Stock validation before checkout
-    const outOfStock = cart.filter(item => item.qty > item.stock_quantity)
-    if (outOfStock.length > 0) {
-      const names = outOfStock.map(i => `"${i.name}" (pedido: ${i.qty}, stock: ${i.stock_quantity})`).join(', ')
-      toast.error(`Stock insuficiente para: ${names}`)
-      return
-    }
-
-    // 1c. Cash validation
-    if (paymentMethod === 'cash') {
-      if (cashReceivedNum < cartTotal) {
-        toast.error('El monto recibido es menor al total')
-        return
-      }
-    }
-
+  const executeSaveSale = async (voucher, brand) => {
     setIsProcessing(true)
     try {
       const ticketNumber = Date.now().toString().slice(-8)
@@ -260,6 +302,16 @@ export default function POSPage() {
         salePayload.cash_change = cashChange
       }
 
+      // Store card info if card payment
+      if (paymentMethod === 'debit' || paymentMethod === 'credit') {
+        salePayload.payment_details = {
+          card_brand: brand || 'N/A',
+          voucher_number: voucher || 'N/A',
+          integrated: posnetMode === 'integrated',
+          terminal_id: 'POSNET-4819'
+        }
+      }
+
       const { data: saleData, error: saleError } = await supabase
         .from('sales')
         .insert(salePayload).select().single()
@@ -274,7 +326,7 @@ export default function POSPage() {
       const { error: itemsError } = await supabase.from('sale_items').insert(itemsToInsert)
       if (itemsError) throw itemsError
 
-      // 1a. Deduct stock for each cart item
+      // Deduct stock for each cart item
       for (const item of cart) {
         if (item.id) {
           await supabase
@@ -287,7 +339,7 @@ export default function POSPage() {
         }
       }
 
-      // 1e & 1f. Build receipt and store ticket
+      // Build receipt and store ticket
       const receiptHTML = buildReceiptHTML(saleData, cart)
       
       // Insert into tickets table
@@ -326,6 +378,38 @@ export default function POSPage() {
     }
   }
 
+  const handleCheckout = async () => {
+    if (cart.length === 0) return
+    if (!activeShift) return toast.error('Debes abrir un turno de caja primero')
+
+    // 1b. Stock validation before checkout
+    const outOfStock = cart.filter(item => item.qty > item.stock_quantity)
+    if (outOfStock.length > 0) {
+      const names = outOfStock.map(i => `"${i.name}" (pedido: ${i.qty}, stock: ${i.stock_quantity})`).join(', ')
+      toast.error(`Stock insuficiente para: ${names}`)
+      return
+    }
+
+    // 1c. Cash validation
+    if (paymentMethod === 'cash') {
+      if (cashReceivedNum < cartTotal) {
+        toast.error('El monto recibido es menor al total')
+        return
+      }
+    }
+
+    // Direct checkout or POSnet triggers
+    if (paymentMethod === 'debit' || paymentMethod === 'credit') {
+      if (posnetMode === 'integrated') {
+        startPosnetSimulation()
+      } else {
+        setPosnetStep(99) // Opens manual voucher dialog
+      }
+    } else {
+      executeSaveSale(null, null)
+    }
+  }
+
   // Category filtering
   const [activeCategory, setActiveCategory] = useState('Todos')
   const uniqueCategories = ['Todos', ...new Set(products.map(p => p.categories?.name).filter(Boolean))]
@@ -342,15 +426,15 @@ export default function POSPage() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
           
           {/* Header & Filters */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
-            <form onSubmit={handleBarcodeSubmit} style={{ width: '400px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-6)', flexWrap: 'wrap' }}>
+            <form onSubmit={handleBarcodeSubmit} style={{ width: '320px' }}>
               <div className="form-input-icon">
                 <span className="input-icon">🔍</span>
                 <input 
                   id="barcode-scanner"
                   ref={barcodeInputRef}
                   className="form-input" 
-                  placeholder="Buscar por nombre, SKU o código de barras ‖‖"
+                  placeholder="Buscar por nombre, SKU..."
                   value={searchTerm}
                   onChange={e => setSearchTerm(e.target.value)}
                   style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
@@ -359,13 +443,65 @@ export default function POSPage() {
               </div>
             </form>
 
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px' }}>
+            {/* Controls: Fullscreen and Lector selector */}
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button 
+                onClick={toggleFullscreen}
+                className="btn btn-ghost"
+                style={{ 
+                  padding: '10px 16px', 
+                  borderRadius: 'var(--radius-md)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  fontWeight: 600,
+                  fontSize: '0.875rem' 
+                }}
+              >
+                {isFullscreen ? '🗗 Salir de Fullscreen' : '🖥️ Pantalla Completa'}
+              </button>
+
+              <div style={{ display: 'flex', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '3px' }}>
+                <button
+                  onClick={() => setPosnetMode('integrated')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: posnetMode === 'integrated' ? '#fff' : 'var(--text-muted)',
+                    background: posnetMode === 'integrated' ? 'var(--color-primary-light)' : 'transparent',
+                    border: posnetMode === 'integrated' ? '1px solid var(--color-primary)' : '1px solid transparent',
+                    transition: 'var(--transition)'
+                  }}
+                >
+                  ⚡ POSnet Simulado
+                </button>
+                <button
+                  onClick={() => setPosnetMode('manual')}
+                  style={{
+                    padding: '6px 12px',
+                    borderRadius: 'var(--radius-sm)',
+                    fontSize: '0.75rem',
+                    fontWeight: 600,
+                    color: posnetMode === 'manual' ? '#fff' : 'var(--text-muted)',
+                    background: posnetMode === 'manual' ? 'var(--color-primary-light)' : 'transparent',
+                    border: posnetMode === 'manual' ? '1px solid var(--color-primary)' : '1px solid transparent',
+                    transition: 'var(--transition)'
+                  }}
+                >
+                  ✍️ Manual
+                </button>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', flex: 1 }}>
               {uniqueCategories.map(cat => (
                 <button
                   key={cat}
                   onClick={() => setActiveCategory(cat)}
                   style={{
-                    padding: '8px 24px',
+                    padding: '8px 20px',
                     borderRadius: 'var(--radius-md)',
                     background: activeCategory === cat ? 'var(--bg-card-hover)' : 'var(--bg-card)',
                     border: `1px solid ${activeCategory === cat ? 'var(--color-primary)' : 'var(--border-color)'}`,
@@ -703,6 +839,18 @@ export default function POSPage() {
                       </div>
                     </>
                   )}
+                  {(receiptData.paymentMethod === 'debit' || receiptData.paymentMethod === 'credit') && (
+                    <>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>Tarjeta:</span>
+                        <span>{receiptData.saleData?.payment_details?.card_brand || 'N/A'}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
+                        <span>Cupón:</span>
+                        <span>#{receiptData.saleData?.payment_details?.voucher_number || 'N/A'}</span>
+                      </div>
+                    </>
+                  )}
                 </div>
 
                 <div style={{ borderTop: '1px dashed #999', margin: '8px 0' }} />
@@ -738,6 +886,195 @@ export default function POSPage() {
                 }}
               >
                 🖨️ Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POSnet Card Terminal Simulator Modal */}
+      {showPosnetSimulator && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10000
+        }}>
+          <div style={{
+            background: '#12121e', borderRadius: 'var(--radius-xl)',
+            border: '2px solid var(--color-primary)',
+            maxWidth: '400px', width: '100%', padding: '32px',
+            textAlign: 'center', boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+            display: 'flex', flexDirection: 'column', gap: '20px'
+          }}>
+            <div>
+              <div style={{ fontSize: '0.8rem', textTransform: 'uppercase', letterSpacing: '0.1em', color: 'var(--text-muted)', marginBottom: '4px' }}>
+                Conexión POSnet Integrada
+              </div>
+              <h3 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>
+                Terminal POS-9938
+              </h3>
+            </div>
+
+            <div style={{
+              background: '#040914', border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-lg)', padding: '24px', minHeight: '180px',
+              display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+              gap: '16px'
+            }}>
+              {posnetStep === 0 && (
+                <>
+                  <div className="spinner" style={{ border: '4px solid rgba(255,255,255,0.1)', borderLeftColor: 'var(--color-primary)', borderRadius: '50%', width: '40px', height: '40px', animation: 'spin 1s linear infinite' }} />
+                  <style>{`
+                    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+                  `}</style>
+                  <div style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                    Iniciando comunicación...
+                  </div>
+                </>
+              )}
+
+              {posnetStep === 1 && (
+                <>
+                  <div style={{ fontSize: '3rem', animation: 'pulse 1.5s infinite' }}>💳</div>
+                  <style>{`
+                    @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.15); } 100% { transform: scale(1); } }
+                  `}</style>
+                  <div>
+                    <div style={{ fontSize: '1.1rem', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                      Acerque o ingrese tarjeta
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--color-secondary)', fontWeight: 800 }}>
+                      Monto a cobrar: {formatCurrency(cartTotal)}
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {posnetStep === 2 && (
+                <>
+                  <div className="spinner" style={{ border: '4px solid rgba(255,255,255,0.1)', borderLeftColor: 'var(--color-secondary)', borderRadius: '50%', width: '40px', height: '40px', animation: 'spin 1s linear infinite' }} />
+                  <div>
+                    <div style={{ fontSize: '0.95rem', fontWeight: 600, color: '#fff', marginBottom: '4px' }}>
+                      Transfiriendo fondos...
+                    </div>
+                    <div style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>
+                      No retire la tarjeta de la terminal.
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {posnetStep === 3 && (
+                <>
+                  <div style={{ fontSize: '3.5rem', color: 'var(--color-secondary)' }}>✅</div>
+                  <div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-secondary)', marginBottom: '4px' }}>
+                      Pago Aprobado
+                    </div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-primary)' }}>
+                      Tarjeta: <strong style={{ color: '#fff' }}>{posnetCardBrand}</strong> | Cupón: <strong style={{ color: '#fff' }}>#{posnetVoucher}</strong>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              {posnetStep !== 3 && (
+                <button
+                  className="btn btn-ghost"
+                  style={{ width: '100%', padding: '12px' }}
+                  onClick={() => {
+                    setShowPosnetSimulator(false)
+                    setIsProcessing(false)
+                  }}
+                >
+                  Cancelar Cobro
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* POSnet Manual Voucher Entry Modal */}
+      {posnetStep === 99 && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 10000
+        }}>
+          <div style={{
+            background: '#12121e', borderRadius: 'var(--radius-xl)',
+            border: '1px solid var(--border-color)',
+            maxWidth: '400px', width: '100%', padding: '24px',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.5)',
+            display: 'flex', flexDirection: 'column', gap: '20px'
+          }}>
+            <div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', marginBottom: '4px' }}>
+                Registrar Cupón POSnet
+              </h3>
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                Ingrese los datos del ticket emitido por la terminal física.
+              </p>
+            </div>
+
+            <div className="form-group">
+              <label className="form-label required">Número de Cupón / Operación</label>
+              <input 
+                className="form-input" 
+                placeholder="Ej. 048293" 
+                value={manualVoucher}
+                onChange={e => setManualVoucher(e.target.value)}
+                autoFocus
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label">Marca de Tarjeta</label>
+              <select 
+                className="form-select"
+                value={posnetCardBrand}
+                onChange={e => setPosnetCardBrand(e.target.value)}
+              >
+                <option value="VISA">VISA</option>
+                <option value="MASTERCARD">MASTERCARD</option>
+                <option value="MAESTRO">MAESTRO</option>
+                <option value="CABAL">CABAL</option>
+                <option value="AMERICAN EXPRESS">AMERICAN EXPRESS</option>
+              </select>
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+              <button
+                className="btn btn-ghost"
+                style={{ flex: 1, padding: '12px' }}
+                onClick={() => {
+                  setPosnetStep(0)
+                  setIsProcessing(false)
+                  setManualVoucher('')
+                }}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 1, padding: '12px' }}
+                onClick={() => {
+                  if (!manualVoucher) {
+                    toast.warning('Ingresa el número de cupón')
+                    return
+                  }
+                  const voucher = manualVoucher
+                  setManualVoucher('')
+                  setPosnetStep(0)
+                  executeSaveSale(voucher, posnetCardBrand)
+                }}
+              >
+                Confirmar Pago
               </button>
             </div>
           </div>
