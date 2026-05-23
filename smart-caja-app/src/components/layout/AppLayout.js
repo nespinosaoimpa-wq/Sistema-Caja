@@ -54,6 +54,7 @@ export default function AppLayout({ children }) {
 
     const supabase = createClient()
     try {
+      console.log('1. Generando slug e insertando comercio...')
       const slug = setupForm.business_name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.random().toString(36).slice(2, 6)
       
       // 1. Create Tenant
@@ -68,33 +69,65 @@ export default function AppLayout({ children }) {
         .select()
         .single()
 
-      if (tenantError) throw tenantError
+      if (tenantError) {
+        console.error('Error en Paso 1 (Tenant):', tenantError)
+        throw new Error(`Error al crear comercio: ${tenantError.message}`)
+      }
+      console.log('Paso 1 Completado. Tenant ID:', tenantData.id)
 
       // 2. Create or Update Profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          tenant_id: tenantData.id,
-          full_name: profile?.full_name || user.user_metadata?.full_name || 'Propietario',
-          email: user.email,
-          role: 'owner',
-        })
+      console.log('2. Insertando/actualizando perfil...')
+      let profileError;
+      if (!profile) {
+        const { error } = await supabase
+          .from('profiles')
+          .insert({
+            id: user.id,
+            tenant_id: tenantData.id,
+            full_name: user.user_metadata?.full_name || 'Propietario',
+            email: user.email,
+            role: 'owner',
+          })
+        profileError = error;
+      } else {
+        const { error } = await supabase
+          .from('profiles')
+          .update({
+            tenant_id: tenantData.id,
+          })
+          .eq('id', user.id)
+        profileError = error;
+      }
 
-      if (profileError) throw profileError
+      if (profileError) {
+        console.error('Error en Paso 2 (Profile):', profileError)
+        throw new Error(`Error al crear perfil: ${profileError.message}`)
+      }
+      console.log('Paso 2 Completado.')
 
       // 3. Create default category
-      await supabase.from('categories').insert({
-        tenant_id: tenantData.id,
-        name: 'General',
-        icon: '📦',
-        color: '#7C3AED',
-      })
+      console.log('3. Creando categoría General...')
+      const { error: categoryError } = await supabase
+        .from('categories')
+        .insert({
+          tenant_id: tenantData.id,
+          name: 'General',
+          icon: '📦',
+          color: '#7C3AED',
+        })
+
+      if (categoryError) {
+        console.error('Error en Paso 3 (Category):', categoryError)
+        throw new Error(`Error al crear categoría inicial: ${categoryError.message}`)
+      }
+      console.log('Paso 3 Completado.')
 
       // 4. Reload auth state
+      console.log('4. Recargando perfil en la app...')
       await reloadProfile()
+      console.log('Auto-recuperación finalizada con éxito.')
     } catch (err) {
-      console.error(err)
+      console.error('Error capturado en handleSelfHeal:', err)
       setSetupError(err.message || 'Error al crear el comercio.')
     } finally {
       setSetupLoading(false)
