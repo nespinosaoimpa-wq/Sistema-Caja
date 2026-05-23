@@ -4,15 +4,27 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { 
+  LayoutDashboard, 
+  ShoppingCart, 
+  Package, 
+  Clock, 
+  Receipt, 
+  BarChart3, 
+  CreditCard,
+  Settings,
+  LogOut,
+  Lock
+} from 'lucide-react'
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: '📊', minPlan: 'basic' },
-  { href: '/pos', label: 'Caja', icon: '💰', minPlan: 'basic' },
-  { href: '/inventory', label: 'Inventario', icon: '📦', minPlan: 'basic' },
-  { href: '/shifts', label: 'Turnos', icon: '⏱️', minPlan: 'basic' },
-  { href: '/sales', label: 'Ventas', icon: '🧾', minPlan: 'basic' },
-  { href: '/analytics', label: 'Estadísticas', icon: '📈', minPlan: 'professional' },
-  { href: '/installments', label: 'Cuotas', icon: '📋', minPlan: 'professional' },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, minPlan: 'basic' },
+  { href: '/pos', label: 'Caja', icon: ShoppingCart, minPlan: 'basic' },
+  { href: '/inventory', label: 'Inventario', icon: Package, minPlan: 'basic' },
+  { href: '/shifts', label: 'Turnos', icon: Clock, minPlan: 'basic' },
+  { href: '/sales', label: 'Ventas', icon: Receipt, minPlan: 'basic' },
+  { href: '/analytics', label: 'Estadísticas', icon: BarChart3, minPlan: 'professional' },
+  { href: '/installments', label: 'Cuotas', icon: CreditCard, minPlan: 'professional' },
 ]
 
 const PLAN_WEIGHTS = {
@@ -59,6 +71,7 @@ export default function AppLayout({ children }) {
             const isActive = pathname?.startsWith(item.href)
             const itemPlanWeight = PLAN_WEIGHTS[item.minPlan]
             const isLocked = userPlanWeight < itemPlanWeight
+            const IconComponent = item.icon
 
             return (
               <Link 
@@ -67,8 +80,8 @@ export default function AppLayout({ children }) {
                 className={`sidebar-nav-item ${isActive ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
                 style={isLocked || (isSuspended && !isActive) ? { opacity: 0.6, cursor: isLocked ? 'not-allowed' : 'pointer' } : {}}
               >
-                <span className="icon" style={{ fontSize: '1.2rem', opacity: isActive ? 1 : 0.6, width: '24px', textAlign: 'center' }}>
-                  {isLocked ? '🔒' : item.icon}
+                <span className="icon" style={{ opacity: isActive ? 1 : 0.6, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {isLocked ? <Lock size={18} /> : <IconComponent size={18} />}
                 </span>
                 {item.label}
               </Link>
@@ -78,11 +91,15 @@ export default function AppLayout({ children }) {
 
         <div style={{ padding: 'var(--space-6) 0', marginTop: 'auto' }}>
           <Link href="/settings" className={`sidebar-nav-item ${pathname === '/settings' ? 'active' : ''}`}>
-             <span className="icon" style={{ fontSize: '1.2rem', opacity: 0.6, width: '24px', textAlign: 'center' }}>⚙️</span>
+             <span className="icon" style={{ opacity: 0.6, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <Settings size={18} />
+             </span>
              Configuración
           </Link>
           <button onClick={() => { signOut(); router.push('/login'); }} className="sidebar-nav-item" style={{ width: '100%', textAlign: 'left', marginTop: '8px' }}>
-             <span className="icon" style={{ fontSize: '1.2rem', opacity: 0.6, width: '24px', textAlign: 'center' }}>🚪</span>
+             <span className="icon" style={{ opacity: 0.6, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <LogOut size={18} />
+             </span>
             Salir
           </button>
         </div>

@@ -409,3 +409,23 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
 .form-input-icon .form-input {
   padding-left: 36px;
 }
+
+/* ============================================================
+   FULLSCREEN POS REGISTER OVERRIDES
+   ============================================================ */
+body.pos-fullscreen .app-sidebar {
+  display: none !important;
+}
+
+body.pos-fullscreen .app-main {
+  margin-left: 0 !important;
+  width: 100vw !important;
+  max-width: 100vw !important;
+}
+
+body.pos-fullscreen .app-content {
+  padding: 0 !important;
+  margin: 0 !important;
+  padding-top: 0 !important;
+}
+

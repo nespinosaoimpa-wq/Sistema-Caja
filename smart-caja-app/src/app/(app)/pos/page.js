@@ -5,6 +5,10 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
 import { formatCurrency, formatDateTime } from '@/lib/utils/formatters'
+import { 
+  Maximize, Minimize, Search, Zap, Edit, Banknote, CreditCard, Landmark, Split, Calendar, 
+  ShoppingCart, User, Clock, Trash2, Printer, Package
+} from 'lucide-react'
 
 export default function POSPage() {
   const { tenant, profile } = useAuth()
@@ -35,19 +39,34 @@ export default function POSPage() {
   const [posnetVoucher, setPosnetVoucher] = useState('')
   const [manualVoucher, setManualVoucher] = useState('')
 
+  const posContainerRef = useRef(null)
+
   useEffect(() => {
     const handleFullscreenChange = () => {
-      setIsFullscreen(!!document.fullscreenElement)
+      setIsFullscreen(document.fullscreenElement === posContainerRef.current)
     }
     document.addEventListener('fullscreenchange', handleFullscreenChange)
     return () => document.removeEventListener('fullscreenchange', handleFullscreenChange)
   }, [])
 
+  useEffect(() => {
+    if (isFullscreen) {
+      document.body.classList.add('pos-fullscreen')
+    } else {
+      document.body.classList.remove('pos-fullscreen')
+    }
+    return () => {
+      document.body.classList.remove('pos-fullscreen')
+    }
+  }, [isFullscreen])
+
   const toggleFullscreen = () => {
     if (!document.fullscreenElement) {
-      document.documentElement.requestFullscreen()
-        .then(() => setIsFullscreen(true))
-        .catch(err => toast.error(`Error al activar pantalla completa: ${err.message}`))
+      if (posContainerRef.current?.requestFullscreen) {
+        posContainerRef.current.requestFullscreen()
+          .then(() => setIsFullscreen(true))
+          .catch(err => toast.error(`Error al activar pantalla completa: ${err.message}`))
+      }
     } else {
       document.exitFullscreen()
       setIsFullscreen(false)
@@ -420,7 +439,17 @@ export default function POSPage() {
 
   return (
     <>
-      <div style={{ display: 'flex', height: 'calc(100vh - var(--header-height) - 32px)', gap: 'var(--space-6)', overflow: 'hidden' }}>
+      <div 
+        ref={posContainerRef}
+        style={{ 
+          display: 'flex', 
+          height: isFullscreen ? '100vh' : 'calc(100vh - var(--header-height) - 32px)', 
+          gap: 'var(--space-6)', 
+          overflow: 'hidden',
+          background: 'var(--bg-base)',
+          padding: isFullscreen ? '24px' : '0'
+        }}
+      >
         
         {/* LEFT SIDE - Product Catalog */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
@@ -429,7 +458,9 @@ export default function POSPage() {
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-6)', flexWrap: 'wrap' }}>
             <form onSubmit={handleBarcodeSubmit} style={{ width: '320px' }}>
               <div className="form-input-icon">
-                <span className="input-icon">🔍</span>
+                <span className="input-icon" style={{ top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+                  <Search size={16} />
+                </span>
                 <input 
                   id="barcode-scanner"
                   ref={barcodeInputRef}
@@ -458,7 +489,8 @@ export default function POSPage() {
                   fontSize: '0.875rem' 
                 }}
               >
-                {isFullscreen ? '🗗 Salir de Fullscreen' : '🖥️ Pantalla Completa'}
+                {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+                {isFullscreen ? 'Salir de Fullscreen' : 'Pantalla Completa'}
               </button>
 
               <div style={{ display: 'flex', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '3px' }}>
@@ -472,10 +504,13 @@ export default function POSPage() {
                     color: posnetMode === 'integrated' ? '#fff' : 'var(--text-muted)',
                     background: posnetMode === 'integrated' ? 'var(--color-primary-light)' : 'transparent',
                     border: posnetMode === 'integrated' ? '1px solid var(--color-primary)' : '1px solid transparent',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
                     transition: 'var(--transition)'
                   }}
                 >
-                  ⚡ POSnet Simulado
+                  <Zap size={14} /> POSnet Simulado
                 </button>
                 <button
                   onClick={() => setPosnetMode('manual')}
@@ -487,10 +522,13 @@ export default function POSPage() {
                     color: posnetMode === 'manual' ? '#fff' : 'var(--text-muted)',
                     background: posnetMode === 'manual' ? 'var(--color-primary-light)' : 'transparent',
                     border: posnetMode === 'manual' ? '1px solid var(--color-primary)' : '1px solid transparent',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '4px',
                     transition: 'var(--transition)'
                   }}
                 >
-                  ✍️ Manual
+                  <Edit size={14} /> Manual
                 </button>
               </div>
             </div>
@@ -601,12 +639,12 @@ export default function POSPage() {
           <div style={{ padding: 'var(--space-6)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', marginBottom: '4px', fontFamily: 'var(--font-headline)' }}>Ticket #{Date.now().toString().slice(-6)}</h2>
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                👤 {profile?.full_name || 'Vendedor'}
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                <User size={14} /> {profile?.full_name || 'Vendedor'}
               </div>
             </div>
-            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '100px', padding: '6px 12px', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
-              🕒 {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
+            <div style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '100px', padding: '6px 12px', fontSize: '0.8125rem', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <Clock size={14} /> {new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}
             </div>
           </div>
 
@@ -684,11 +722,11 @@ export default function POSPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: 'var(--space-6)' }}>
               {[
-                { id: 'cash', label: 'Efectivo', icon: '💵' },
-                { id: 'debit', label: 'Débito', icon: '💳' },
-                { id: 'credit', label: 'Crédito', icon: '🏦' },
-                { id: 'mixed', label: 'Mixto', icon: '➗' },
-                { id: 'installment', label: 'Cuotas', icon: '📅' }
+                { id: 'cash', label: 'Efectivo', icon: <Banknote size={20} /> },
+                { id: 'debit', label: 'Débito', icon: <CreditCard size={20} /> },
+                { id: 'credit', label: 'Crédito', icon: <Landmark size={20} /> },
+                { id: 'mixed', label: 'Mixto', icon: <Split size={20} /> },
+                { id: 'installment', label: 'Cuotas', icon: <Calendar size={20} /> }
               ].map(method => (
                 <button
                   key={method.id}
@@ -703,7 +741,7 @@ export default function POSPage() {
                     transition: 'var(--transition)'
                   }}
                 >
-                  <span style={{ fontSize: '1.25rem' }}>{method.icon}</span>
+                  <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{method.icon}</span>
                   <span style={{ fontSize: '0.625rem', fontWeight: 600, textTransform: 'uppercase' }}>{method.label}</span>
                 </button>
               ))}
