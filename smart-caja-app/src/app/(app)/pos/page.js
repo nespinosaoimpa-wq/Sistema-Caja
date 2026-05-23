@@ -130,6 +130,8 @@ export default function POSPage() {
           setPaymentMethod('credit')
           break
         case 'F12':
+        case 'Enter':
+          if (e.target.tagName === 'INPUT') return
           e.preventDefault()
           const confirmBtn = document.getElementById('btn-confirm-sale')
           if (confirmBtn && !confirmBtn.disabled) confirmBtn.click()
@@ -477,20 +479,10 @@ export default function POSPage() {
 
   return (
     <>
-      <div 
-        ref={posContainerRef}
-        style={{ 
-          display: 'flex', 
-          height: isFullscreen ? '100vh' : 'calc(100vh - var(--header-height) - 32px)', 
-          gap: 'var(--space-6)', 
-          overflow: 'hidden',
-          background: 'var(--bg-base)',
-          padding: isFullscreen ? '24px' : '0'
-        }}
-      >
+      <div ref={posContainerRef} className="pos-container">
         
         {/* LEFT SIDE - Product Catalog */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div className="pos-left">
           
           {/* Header & Filters */}
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-6)', flexWrap: 'wrap' }}>
@@ -664,16 +656,7 @@ export default function POSPage() {
         </div>
 
         {/* RIGHT SIDE - Checkout Panel */}
-        <div style={{ 
-          width: '420px', 
-          background: 'var(--bg-card)', 
-          borderRadius: 'var(--radius-xl)', 
-          border: '1px solid var(--border-color)',
-          display: 'flex', 
-          flexDirection: 'column', 
-          overflow: 'hidden',
-          boxShadow: '0 10px 40px rgba(0,0,0,0.2)'
-        }}>
+        <div className="pos-right">
           <div style={{ padding: 'var(--space-6)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
               {/* eslint-disable-next-line react-hooks/purity */}
@@ -833,7 +816,7 @@ export default function POSPage() {
                 onClick={handleCheckout}
                 disabled={isProcessing || cart.length === 0}
               >
-                {isProcessing ? 'Procesando...' : `Confirmar Venta (F12) →`}
+                {isProcessing ? 'Procesando...' : `Confirmar Venta (Enter) →`}
               </button>
 
               <button 
