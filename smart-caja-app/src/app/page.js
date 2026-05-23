@@ -67,14 +67,11 @@ export default function LandingPage() {
       {/* Hero Image / Dashboard Mockup */}
       <div className={styles.mockupWrapper}>
         <div className={styles.mockupBorder}>
-          <div style={{ background: '#0b1326', minHeight: '300px', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '20px', color: 'var(--text-muted)' }}>
-            {/* Visual representation instead of raw missing image */}
-            <div style={{ textAlign: 'center', padding: '40px' }}>
-              <div style={{ fontSize: '4rem', marginBottom: '16px' }}>📊</div>
-              <h3 style={{ fontSize: '1.5rem', color: '#fff', marginBottom: '8px' }}>Smart Caja Dashboard</h3>
-              <p style={{ fontSize: '0.9rem' }}>Interfaz 3D Premium y control en tiempo real</p>
-            </div>
-          </div>
+          <img 
+            src="/hero-dashboard.png" 
+            alt="Smart Caja Dashboard" 
+            className={styles.mockupImage}
+          />
         </div>
       </div>
 

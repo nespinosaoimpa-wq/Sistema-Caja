@@ -102,7 +102,11 @@
   box-shadow: 0 6px 20px rgba(183, 109, 255, 0.5);
 }
 
-/* Mobile Menu Button */
+.navActionsMobile {
+  display: none;
+}
+ 
+ /* Mobile Menu Button */
 .hamburger {
   display: none;
   flex-direction: column;
