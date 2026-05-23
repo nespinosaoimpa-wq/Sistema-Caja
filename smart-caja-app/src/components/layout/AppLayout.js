@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { createClient } from '@/lib/supabase/client'
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -36,7 +37,161 @@ const PLAN_WEIGHTS = {
 export default function AppLayout({ children }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { tenant, profile, signOut } = useAuth()
+  const { user, tenant, profile, loading, signOut, reloadProfile } = useAuth()
+
+  const [setupForm, setSetupForm] = useState({ business_name: '', business_type: 'general' })
+  const [setupLoading, setSetupLoading] = useState(false)
+  const [setupError, setSetupError] = useState(null)
+
+  const handleSelfHeal = async (e) => {
+    e.preventDefault()
+    if (!setupForm.business_name.trim()) {
+      setSetupError('Ingresá el nombre del negocio')
+      return
+    }
+    setSetupLoading(true)
+    setSetupError(null)
+
+    const supabase = createClient()
+    try {
+      const slug = setupForm.business_name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.random().toString(36).slice(2, 6)
+      
+      // 1. Create Tenant
+      const { data: tenantData, error: tenantError } = await supabase
+        .from('tenants')
+        .insert({
+          name: setupForm.business_name,
+          slug,
+          business_type: setupForm.business_type,
+          email: user.email,
+        })
+        .select()
+        .single()
+
+      if (tenantError) throw tenantError
+
+      // 2. Create or Update Profile
+      const { error: profileError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          tenant_id: tenantData.id,
+          full_name: profile?.full_name || user.user_metadata?.full_name || 'Propietario',
+          email: user.email,
+          role: 'owner',
+        })
+
+      if (profileError) throw profileError
+
+      // 3. Create default category
+      await supabase.from('categories').insert({
+        tenant_id: tenantData.id,
+        name: 'General',
+        icon: '📦',
+        color: '#7C3AED',
+      })
+
+      // 4. Reload auth state
+      await reloadProfile()
+    } catch (err) {
+      console.error(err)
+      setSetupError(err.message || 'Error al crear el comercio.')
+    } finally {
+      setSetupLoading(false)
+    }
+  }
+
+  // Self-heal check: if logged in but no profile/tenant exists
+  if (!loading && user && (!profile || !tenant)) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--bg-base)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 'var(--space-4)',
+      }}>
+        <div className="card" style={{ maxWidth: '500px', width: '100%', padding: 'var(--space-8)' }}>
+          <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)' }}>
+            <span style={{ fontSize: '3rem' }}>🏪</span>
+            <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginTop: '12px' }}>
+              Completar Configuración del Comercio
+            </h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '6px' }}>
+              Detectamos que tu cuenta no tiene un comercio inicializado. Completá estos datos para comenzar.
+            </p>
+          </div>
+
+          <form onSubmit={handleSelfHeal} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+            <div className="form-group">
+              <label className="form-label required">Nombre del negocio</label>
+              <input
+                className="form-input"
+                placeholder="Ej: Almacén La Esperanza"
+                value={setupForm.business_name}
+                onChange={e => setSetupForm(prev => ({ ...prev, business_name: e.target.value }))}
+                required
+              />
+            </div>
+
+            <div className="form-group">
+              <label className="form-label required">Rubro</label>
+              <select
+                className="form-select"
+                value={setupForm.business_type}
+                onChange={e => setSetupForm(prev => ({ ...prev, business_type: e.target.value }))}
+              >
+                <option value="general">🏪 General / Kiosco</option>
+                <option value="supermercado">🛒 Supermercado</option>
+                <option value="ropa">👗 Ropa / Indumentaria</option>
+                <option value="lubricentro">🔧 Lubricentro</option>
+                <option value="farmacia">💊 Farmacia</option>
+                <option value="ferreteria">🔨 Ferretería</option>
+                <option value="otro">📦 Otro</option>
+              </select>
+            </div>
+
+            {setupError && (
+              <div style={{
+                background: 'rgba(255, 180, 171, 0.1)',
+                border: '1px solid var(--color-error)',
+                borderRadius: 'var(--radius-md)',
+                padding: '12px',
+                color: 'var(--color-error)',
+                fontSize: '0.8125rem',
+                lineHeight: 1.4
+              }}>
+                <strong>Error:</strong> {setupError}
+                <div style={{ marginTop: '8px', fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Asegurate de haber ejecutado el archivo de políticas RLS en Supabase SQL Editor para permitir la creación del comercio.
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+              <button
+                type="button"
+                className="btn btn-ghost"
+                style={{ flex: 1 }}
+                onClick={() => signOut()}
+              >
+                Cerrar Sesión
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                style={{ flex: 2 }}
+                disabled={setupLoading}
+              >
+                {setupLoading ? 'Inicializando...' : 'Finalizar Configuración →'}
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    )
+  }
   
   const userPlan = tenant?.subscription_plan || 'basic'
   const userPlanWeight = PLAN_WEIGHTS[userPlan]
