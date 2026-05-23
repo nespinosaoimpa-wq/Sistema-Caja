@@ -771,7 +771,7 @@ export default function POSPage() {
                 { id: 'cash', label: 'Efectivo (F2)', icon: <Banknote size={20} /> },
                 { id: 'debit', label: 'Débito (F3)', icon: <CreditCard size={20} /> },
                 { id: 'credit', label: 'Crédito (F4)', icon: <Landmark size={20} /> },
-                { id: 'mixed', label: 'Mixto', icon: <Split size={20} /> },
+                { id: 'combined', label: 'Mixto', icon: <Split size={20} /> },
                 { id: 'installment', label: 'Cuotas', icon: <Calendar size={20} /> }
               ].map(method => (
                 <button
