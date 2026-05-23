@@ -82,6 +82,11 @@ export default function NewProductPage() {
       return
     }
 
+    if (!tenant || !tenant.id) {
+      toast.error('Error: No se detectó un comercio activo en tu sesión.')
+      return
+    }
+
     setLoading(true)
 
     try {
@@ -124,8 +129,22 @@ export default function NewProductPage() {
       toast.warning('Ingresá un nombre para la categoría')
       return
     }
+    
+    if (!tenant || !tenant.id) {
+      console.error('Category creation blocked: tenant is null or missing id', tenant)
+      toast.error('Error: No se detectó un comercio activo en tu sesión. Probá recargar la página.')
+      return
+    }
+
     setCreatingCategory(true)
     try {
+      console.log('Inserting category with:', {
+        tenant_id: tenant.id,
+        name: newCategory.name,
+        icon: newCategory.icon,
+        color: newCategory.color
+      })
+
       const { data, error } = await supabase
         .from('categories')
         .insert({
@@ -137,7 +156,17 @@ export default function NewProductPage() {
         .select()
         .single()
 
-      if (error) throw error
+      console.log('Category insert result:', { data, error })
+
+      if (error) {
+        console.error('Supabase category insert error:', error)
+        throw new Error(error.message || `Error de base de datos (${error.code || 'sin código'})`)
+      }
+
+      if (!data) {
+        console.error('Supabase category insert returned null data and null error')
+        throw new Error('La base de datos no devolvió los datos de la categoría creada.')
+      }
 
       toast.success('Categoría creada exitosamente')
       setCategories(prev => [...prev, data])
@@ -145,7 +174,7 @@ export default function NewProductPage() {
       setShowCategoryModal(false)
       setNewCategory({ name: '', icon: '📦', color: '#10B981' })
     } catch (err) {
-      console.error(err)
+      console.error('Error in handleCreateCategory catch block:', err)
       toast.error('Error: ' + err.message)
     } finally {
       setCreatingCategory(false)
