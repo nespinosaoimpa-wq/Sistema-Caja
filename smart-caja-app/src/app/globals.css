@@ -462,7 +462,12 @@ body.pos-fullscreen .app-content {
 
 body.pos-fullscreen .pos-container {
   height: 100vh !important;
-  padding: 24px !important;
+  padding: 32px !important;
+  gap: 32px;
+}
+
+body.pos-fullscreen .pos-right {
+  width: 420px;
 }
 
 @media (max-width: 1150px) {

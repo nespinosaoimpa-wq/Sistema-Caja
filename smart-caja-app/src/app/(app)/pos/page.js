@@ -947,7 +947,6 @@ export default function POSPage() {
             </div>
           </div>
         </div>
-      </div>
 
       {/* Receipt Modal (Unchanged structurally, kept dark theme compatible) */}
       {showReceipt && receiptData && (
@@ -1297,6 +1296,7 @@ export default function POSPage() {
           </div>
         </div>
       )}
+      </div>
     </>
   )
 }
