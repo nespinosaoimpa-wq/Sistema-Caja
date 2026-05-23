@@ -103,16 +103,53 @@ export default function POSPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id])
 
+  const stateRef = useRef({ showReceipt })
   useEffect(() => {
-    const handleKeyPress = (e) => {
-      if (e.target.tagName === 'INPUT' && e.target.id !== 'barcode-scanner') return
-      if (!barcodeInputRef.current) return
-      if (document.activeElement !== barcodeInputRef.current) {
-        barcodeInputRef.current.focus()
+    stateRef.current = { showReceipt }
+  }, [showReceipt])
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.target.tagName === 'INPUT' && e.target.id !== 'barcode-scanner') {
+        if (e.key !== 'Escape') return
+      }
+
+      const { showReceipt } = stateRef.current
+
+      switch (e.key) {
+        case 'F2':
+          e.preventDefault()
+          setPaymentMethod('cash')
+          break
+        case 'F3':
+          e.preventDefault()
+          setPaymentMethod('debit')
+          break
+        case 'F4':
+          e.preventDefault()
+          setPaymentMethod('credit')
+          break
+        case 'F12':
+          e.preventDefault()
+          const confirmBtn = document.getElementById('btn-confirm-sale')
+          if (confirmBtn && !confirmBtn.disabled) confirmBtn.click()
+          break
+        case 'Escape':
+          e.preventDefault()
+          if (showReceipt) setShowReceipt(false)
+          else setCart([])
+          break
+        default:
+          if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+            if (e.target.tagName === 'INPUT') return
+            if (barcodeInputRef.current && document.activeElement !== barcodeInputRef.current) {
+              barcodeInputRef.current.focus()
+            }
+          }
       }
     }
-    window.addEventListener('keypress', handleKeyPress)
-    return () => window.removeEventListener('keypress', handleKeyPress)
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
   const handleBarcodeSubmit = (e) => {
@@ -177,7 +214,7 @@ export default function POSPage() {
   const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0)
   const cartItemsCount = cart.reduce((sum, item) => sum + item.qty, 0)
 
-  const cashReceivedNum = parseFloat(cashReceived) || 0
+  const cashReceivedNum = cashReceived ? parseFloat(cashReceived) : cartTotal
   const cashChange = cashReceivedNum - cartTotal
 
   // Build receipt HTML for thermal printer (80mm)
@@ -412,7 +449,7 @@ export default function POSPage() {
 
     // 1c. Cash validation
     if (paymentMethod === 'cash') {
-      if (cashReceivedNum < cartTotal) {
+      if (cashReceived && cashReceivedNum < cartTotal) {
         toast.error('El monto recibido es menor al total')
         return
       }
@@ -696,6 +733,13 @@ export default function POSPage() {
                     <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text-primary)', width: '60px', textAlign: 'right' }}>
                       {formatCurrency(item.subtotal)}
                     </div>
+                    <button 
+                      onClick={() => removeFromCart(item.id)}
+                      style={{ color: 'var(--color-error)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', marginLeft: '4px' }}
+                      title="Eliminar producto"
+                    >
+                      <Trash2 size={18} />
+                    </button>
                   </div>
                 </div>
               ))
@@ -724,9 +768,9 @@ export default function POSPage() {
 
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: 'var(--space-6)' }}>
               {[
-                { id: 'cash', label: 'Efectivo', icon: <Banknote size={20} /> },
-                { id: 'debit', label: 'Débito', icon: <CreditCard size={20} /> },
-                { id: 'credit', label: 'Crédito', icon: <Landmark size={20} /> },
+                { id: 'cash', label: 'Efectivo (F2)', icon: <Banknote size={20} /> },
+                { id: 'debit', label: 'Débito (F3)', icon: <CreditCard size={20} /> },
+                { id: 'credit', label: 'Crédito (F4)', icon: <Landmark size={20} /> },
                 { id: 'mixed', label: 'Mixto', icon: <Split size={20} /> },
                 { id: 'installment', label: 'Cuotas', icon: <Calendar size={20} /> }
               ].map(method => (
@@ -749,8 +793,30 @@ export default function POSPage() {
               ))}
             </div>
 
+            {paymentMethod === 'cash' && (
+              <div style={{ marginBottom: 'var(--space-6)' }}>
+                <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Efectivo Recibido (opcional)</label>
+                <div className="form-input-icon">
+                  <span className="input-icon" style={{ color: 'var(--color-secondary)' }}>$</span>
+                  <input 
+                    type="number" 
+                    className="form-input" 
+                    placeholder="Dejar vacío si paga con cambio exacto"
+                    value={cashReceived}
+                    onChange={(e) => setCashReceived(e.target.value)}
+                  />
+                </div>
+                {cashReceived && parseFloat(cashReceived) >= cartTotal && (
+                  <div style={{ marginTop: '8px', fontSize: '0.9375rem', color: 'var(--color-secondary)', fontWeight: 600, textAlign: 'right' }}>
+                    Vuelto a entregar: {formatCurrency(parseFloat(cashReceived) - cartTotal)}
+                  </div>
+                )}
+              </div>
+            )}
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <button 
+                id="btn-confirm-sale"
                 className="glow-primary" 
                 style={{ 
                   width: '100%', 
@@ -767,7 +833,7 @@ export default function POSPage() {
                 onClick={handleCheckout}
                 disabled={isProcessing || cart.length === 0}
               >
-                {isProcessing ? 'Procesando...' : `Confirmar Venta →`}
+                {isProcessing ? 'Procesando...' : `Confirmar Venta (F12) →`}
               </button>
 
               <button 
