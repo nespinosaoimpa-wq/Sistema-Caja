@@ -771,7 +771,7 @@ export default function POSPage() {
             )}
           </div>
 
-          <div style={{ padding: 'var(--space-6)', borderTop: '1px solid var(--border-color)' }}>
+          <div style={{ padding: 'var(--space-6)', borderTop: '1px solid var(--border-color)', overflowY: 'auto', flexShrink: 1, display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
               <span>Subtotal</span>
               <span>{formatCurrency(cartSubtotal)}</span>
