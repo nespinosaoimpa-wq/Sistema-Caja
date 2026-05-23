@@ -73,13 +73,6 @@ export default function POSPage() {
     }
   }
 
-  useEffect(() => {
-    if (tenant?.id) {
-      loadData()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant?.id])
-
   async function loadData() {
     setLoading(true)
     const { data: shiftData } = await supabase
@@ -102,6 +95,13 @@ export default function POSPage() {
     if (prods) setProducts(prods)
     setLoading(false)
   }
+
+  useEffect(() => {
+    if (tenant?.id) {
+      loadData()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant?.id])
 
   useEffect(() => {
     const handleKeyPress = (e) => {
@@ -307,6 +307,7 @@ export default function POSPage() {
   const executeSaveSale = async (voucher, brand) => {
     setIsProcessing(true)
     try {
+      // eslint-disable-next-line react-hooks/purity
       const ticketNumber = Date.now().toString().slice(-8)
       
       const salePayload = {
@@ -638,6 +639,7 @@ export default function POSPage() {
         }}>
           <div style={{ padding: 'var(--space-6)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
+              {/* eslint-disable-next-line react-hooks/purity */}
               <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', marginBottom: '4px', fontFamily: 'var(--font-headline)' }}>Ticket #{Date.now().toString().slice(-6)}</h2>
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <User size={14} /> {profile?.full_name || 'Vendedor'}
@@ -747,25 +749,47 @@ export default function POSPage() {
               ))}
             </div>
 
-            <button 
-              className="glow-primary" 
-              style={{ 
-                width: '100%', 
-                padding: '20px', 
-                fontSize: '1.25rem',
-                fontWeight: 700, 
-                borderRadius: 'var(--radius-lg)',
-                background: cart.length === 0 ? 'var(--bg-surface)' : 'var(--color-primary-hover)',
-                color: cart.length === 0 ? 'var(--text-muted)' : '#fff',
-                border: 'none',
-                pointerEvents: cart.length === 0 ? 'none' : 'auto',
-                transition: 'var(--transition)'
-              }}
-              onClick={handleCheckout}
-              disabled={isProcessing || cart.length === 0}
-            >
-              {isProcessing ? 'Procesando...' : `Confirmar Venta →`}
-            </button>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button 
+                className="glow-primary" 
+                style={{ 
+                  width: '100%', 
+                  padding: '20px', 
+                  fontSize: '1.25rem',
+                  fontWeight: 700, 
+                  borderRadius: 'var(--radius-lg)',
+                  background: cart.length === 0 ? 'var(--bg-surface)' : 'var(--color-primary-hover)',
+                  color: cart.length === 0 ? 'var(--text-muted)' : '#fff',
+                  border: 'none',
+                  pointerEvents: cart.length === 0 ? 'none' : 'auto',
+                  transition: 'var(--transition)'
+                }}
+                onClick={handleCheckout}
+                disabled={isProcessing || cart.length === 0}
+              >
+                {isProcessing ? 'Procesando...' : `Confirmar Venta →`}
+              </button>
+
+              <button 
+                className="glow-secondary"
+                style={{ 
+                  width: '100%', 
+                  padding: '16px', 
+                  fontSize: '1rem',
+                  fontWeight: 600, 
+                  borderRadius: 'var(--radius-lg)',
+                  background: cart.length === 0 ? 'var(--bg-surface)' : 'rgba(16, 185, 129, 0.1)',
+                  color: cart.length === 0 ? 'var(--text-muted)' : 'var(--color-secondary)',
+                  border: `1px solid ${cart.length === 0 ? 'transparent' : 'var(--color-secondary)'}`,
+                  pointerEvents: cart.length === 0 ? 'none' : 'auto',
+                  transition: 'var(--transition)'
+                }}
+                onClick={() => alert('Próximamente: Se abrirá modal para ingresar fecha de entrega y seña.')}
+                disabled={isProcessing || cart.length === 0}
+              >
+                📝 Guardar como Pedido
+              </button>
+            </div>
           </div>
         </div>
       </div>

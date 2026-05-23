@@ -9,8 +9,30 @@ export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
   const [tenant, setTenant] = useState(null)
+  const [currentBranch, setCurrentBranchState] = useState(null)
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
+
+  // Sincronizar con localStorage
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const stored = localStorage.getItem('smartcaja_current_branch')
+      if (stored) {
+        try {
+          setCurrentBranchState(JSON.parse(stored))
+        } catch(e) {}
+      }
+    }
+  }, [])
+
+  const setCurrentBranch = (branch) => {
+    setCurrentBranchState(branch)
+    if (branch) {
+      localStorage.setItem('smartcaja_current_branch', JSON.stringify(branch))
+    } else {
+      localStorage.removeItem('smartcaja_current_branch')
+    }
+  }
 
   const loadProfile = useCallback(async (userId) => {
     const { data: profileData, error } = await supabase
@@ -78,6 +100,8 @@ export function AuthProvider({ children }) {
       user,
       profile,
       tenant,
+      currentBranch,
+      setCurrentBranch,
       loading,
       signOut,
       reloadProfile: () => user && loadProfile(user.id),

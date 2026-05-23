@@ -14,7 +14,7 @@ export default function TermsPage() {
 
           <section>
             <h2 style={{ color: 'var(--text-primary)', fontSize: '1.25rem', marginBottom: '12px' }}>1. Aceptación de los Términos</h2>
-            <p>Al acceder y utilizar el software Smart Caja ("el Servicio"), usted acepta estar sujeto a estos Términos y Condiciones. Si no está de acuerdo con alguna parte de los términos, no podrá utilizar nuestro Servicio.</p>
+            <p>Al acceder y utilizar el software Smart Caja (&quot;el Servicio&quot;), usted acepta estar sujeto a estos Términos y Condiciones. Si no está de acuerdo con alguna parte de los términos, no podrá utilizar nuestro Servicio.</p>
           </section>
 
           <section>
@@ -29,7 +29,7 @@ export default function TermsPage() {
 
           <section>
             <h2 style={{ color: 'var(--text-primary)', fontSize: '1.25rem', marginBottom: '12px' }}>4. Disponibilidad y Garantías</h2>
-            <p>Nos esforzamos por mantener una disponibilidad del 99.9%. Sin embargo, el Servicio se provee "tal cual" (as is), sin garantías expresas o implícitas sobre interrupciones temporales debido a mantenimientos o fallas de servidores externos (ej: Vercel, Supabase).</p>
+            <p>Nos esforzamos por mantener una disponibilidad del 99.9%. Sin embargo, el Servicio se provee &quot;tal cual&quot; (as is), sin garantías expresas o implícitas sobre interrupciones temporales debido a mantenimientos o fallas de servidores externos (ej: Vercel, Supabase).</p>
           </section>
 
           <section>

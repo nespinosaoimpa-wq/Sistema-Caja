@@ -18,13 +18,6 @@ export default function SalesPage() {
   const [dateFilter, setDateFilter] = useState('all') // all, today, this_week, this_month
   const [paymentFilter, setPaymentFilter] = useState('all')
 
-  useEffect(() => {
-    if (tenant?.id) {
-      loadSales(true)
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant?.id])
-
   const loadSales = useCallback(async (reset = false) => {
     if (reset) {
       setLoading(true)
@@ -54,7 +47,15 @@ export default function SalesPage() {
 
     setLoading(false)
     setLoadingMore(false)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sales.length, supabase, tenant?.id])
+
+  useEffect(() => {
+    if (tenant?.id) {
+      loadSales(true)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant?.id])
 
   // Filters
   const filteredSales = sales.filter(sale => {

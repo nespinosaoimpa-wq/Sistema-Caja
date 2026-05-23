@@ -377,7 +377,7 @@ export default function SettingsPage() {
                     </p>
                     <ol style={{ fontSize: '0.8rem', color: 'var(--text-muted)', paddingLeft: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
                       <li>Creas un Plan de Suscripción en Mercado Pago con el precio fijado.</li>
-                      <li>Al hacer clic en "Suscribirse", el sistema redirecciona al usuario al checkout oficial.</li>
+                      <li>Al hacer clic en &quot;Suscribirse&quot;, el sistema redirecciona al usuario al checkout oficial.</li>
                       <li>Cuando el abono se acredita, Mercado Pago envía un webhook al sistema en <code style={{ color: 'var(--color-primary)' }}>/api/webhooks/mercadopago</code>.</li>
                       <li>El servidor valida la firma y reactiva la cuenta en Supabase para el negocio.</li>
                     </ol>

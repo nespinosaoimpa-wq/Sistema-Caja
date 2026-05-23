@@ -26,13 +26,6 @@ export default function InventoryPage() {
   const [categoryError, setCategoryError] = useState(null)
   const [importingFile, setImportingFile] = useState(false)
 
-  useEffect(() => {
-    if (tenant?.id) {
-      loadInventory()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant?.id])
-
   async function loadInventory() {
     setLoading(true)
     
@@ -60,6 +53,13 @@ export default function InventoryPage() {
     
     setLoading(false)
   }
+
+  useEffect(() => {
+    if (tenant?.id) {
+      loadInventory()
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant?.id])
 
   const toggleProductActive = async (id, currentStatus) => {
     const { error } = await supabase

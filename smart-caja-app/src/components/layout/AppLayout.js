@@ -15,7 +15,9 @@ import {
   CreditCard,
   Settings,
   LogOut,
-  Lock
+  Lock,
+  ListTodo,
+  Store
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -24,8 +26,10 @@ const NAV_ITEMS = [
   { href: '/inventory', label: 'Inventario', icon: Package, minPlan: 'basic' },
   { href: '/shifts', label: 'Turnos', icon: Clock, minPlan: 'basic' },
   { href: '/sales', label: 'Ventas', icon: Receipt, minPlan: 'basic' },
+  { href: '/orders', label: 'Pedidos', icon: ListTodo, minPlan: 'professional' },
   { href: '/analytics', label: 'Estadísticas', icon: BarChart3, minPlan: 'professional' },
   { href: '/installments', label: 'Cuotas', icon: CreditCard, minPlan: 'professional' },
+  { href: '/branches', label: 'Sucursales', icon: Store, minPlan: 'enterprise' },
 ]
 
 const PLAN_WEIGHTS = {
