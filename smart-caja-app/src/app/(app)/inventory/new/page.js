@@ -338,6 +338,9 @@ export default function NewProductPage() {
                     <span style={{ fontSize: '0.75rem', color: 'var(--color-warning)' }}>Bajo margen</span>
                   )}
                 </div>
+                <span className="form-hint" style={{ marginTop: '6px', fontSize: '0.75rem', display: 'block', color: 'var(--text-muted)', lineHeight: '1.3' }}>
+                  Margen sobre venta: representa qué % del precio final es ganancia neta. Fórmula: ((Venta - Costo) / Venta) * 100
+                </span>
               </div>
             </div>
           </div>
