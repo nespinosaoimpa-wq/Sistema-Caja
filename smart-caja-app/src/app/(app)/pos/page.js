@@ -25,6 +25,8 @@ export default function POSPage() {
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [isProcessing, setIsProcessing] = useState(false)
   const [cashReceived, setCashReceived] = useState('')
+  const [discountType, setDiscountType] = useState(null)
+  const [discountValue, setDiscountValue] = useState('')
   
   // Receipt modal state
   const [receiptData, setReceiptData] = useState(null)
@@ -213,8 +215,17 @@ export default function POSPage() {
     p.categories?.name.toLowerCase().includes(searchTerm.toLowerCase())
   )
 
-  const cartTotal = cart.reduce((sum, item) => sum + item.subtotal, 0)
+  const cartSubtotal = cart.reduce((sum, item) => sum + item.subtotal, 0)
   const cartItemsCount = cart.reduce((sum, item) => sum + item.qty, 0)
+
+  let discountAmount = 0
+  if (discountType === 'percentage' && discountValue) {
+    discountAmount = cartSubtotal * (Number(discountValue) / 100)
+  } else if (discountType === 'fixed' && discountValue) {
+    discountAmount = Number(discountValue)
+  }
+  
+  const cartTotal = Math.max(0, cartSubtotal - discountAmount)
 
   const cashReceivedNum = cashReceived ? parseFloat(cashReceived) : cartTotal
   const cashChange = cashReceivedNum - cartTotal
@@ -276,7 +287,8 @@ export default function POSPage() {
         </table>
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
         <div style="font-size:12px;">
-          <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>${formatCurrency(cartTotal)}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>${formatCurrency(cartSubtotal)}</span></div>
+          ${discountAmount > 0 ? `<div style="display:flex;justify-content:space-between;color:#d00;"><span>Descuento:</span><span>-${formatCurrency(discountAmount)}</span></div>` : ''}
           <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin:4px 0;"><span>TOTAL:</span><span>${formatCurrency(cartTotal)}</span></div>
         </div>
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
@@ -352,7 +364,13 @@ export default function POSPage() {
       const salePayload = {
         tenant_id: tenant.id, user_id: profile.id, shift_id: activeShift.id,
         ticket_number: ticketNumber,
-        subtotal: cartTotal, total: cartTotal, payment_method: paymentMethod, status: 'completed'
+        subtotal: cartSubtotal, 
+        discount_type: discountType,
+        discount_value: discountValue ? Number(discountValue) : 0,
+        discount_amount: discountAmount,
+        total: cartTotal, 
+        payment_method: paymentMethod, 
+        status: 'completed'
       }
 
       // Store cash info if cash payment
@@ -732,14 +750,37 @@ export default function POSPage() {
           <div style={{ padding: 'var(--space-6)', borderTop: '1px solid var(--border-color)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
               <span>Subtotal</span>
-              <span>{formatCurrency(cartTotal)}</span>
+              <span>{formatCurrency(cartSubtotal)}</span>
             </div>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
-              <span>Descuento</span>
-              <div style={{ display: 'flex', gap: '8px' }}>
-                <span style={{ border: '1px solid var(--border-color)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>Aplicar %</span>
-                <span style={{ border: '1px solid var(--border-color)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem' }}>Monto Fijo</span>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span>Descuento</span>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button 
+                    onClick={() => { setDiscountType(discountType === 'percentage' ? null : 'percentage'); setDiscountValue('') }}
+                    style={{ border: `1px solid ${discountType === 'percentage' ? 'var(--color-primary)' : 'var(--border-color)'}`, background: discountType === 'percentage' ? 'var(--color-primary-light)' : 'transparent', color: discountType === 'percentage' ? 'var(--color-primary)' : 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>
+                    Aplicar %
+                  </button>
+                  <button 
+                    onClick={() => { setDiscountType(discountType === 'fixed' ? null : 'fixed'); setDiscountValue('') }}
+                    style={{ border: `1px solid ${discountType === 'fixed' ? 'var(--color-primary)' : 'var(--border-color)'}`, background: discountType === 'fixed' ? 'var(--color-primary-light)' : 'transparent', color: discountType === 'fixed' ? 'var(--color-primary)' : 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>
+                    Monto Fijo
+                  </button>
+                </div>
               </div>
+              {discountType && (
+                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                  <input
+                    type="number"
+                    placeholder={discountType === 'percentage' ? "Ej: 10 (%)" : "Ej: 500 ($)"}
+                    value={discountValue}
+                    onChange={(e) => setDiscountValue(e.target.value)}
+                    className="form-input"
+                    style={{ width: '120px', padding: '4px 8px', fontSize: '0.875rem' }}
+                    min="0"
+                  />
+                </div>
+              )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
