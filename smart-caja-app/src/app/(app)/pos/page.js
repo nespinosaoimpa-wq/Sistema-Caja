@@ -25,6 +25,9 @@ export default function POSPage() {
   const [paymentMethod, setPaymentMethod] = useState('cash')
   const [isProcessing, setIsProcessing] = useState(false)
   const [cashReceived, setCashReceived] = useState('')
+  const [splitCash, setSplitCash] = useState('')
+  const [splitDebit, setSplitDebit] = useState('')
+  const [splitCredit, setSplitCredit] = useState('')
   const [discountType, setDiscountType] = useState(null)
   const [discountValue, setDiscountValue] = useState('')
   
@@ -389,6 +392,19 @@ export default function POSPage() {
         }
       }
 
+      // Store splits if combined
+      if (paymentMethod === 'combined') {
+        salePayload.payment_details = {
+          splits: [
+            { method: 'cash', amount: Number(splitCash || 0) },
+            { method: 'debit', amount: Number(splitDebit || 0) },
+            { method: 'credit', amount: Number(splitCredit || 0) }
+          ].filter(s => s.amount > 0),
+          card_brand: brand || 'N/A',
+          voucher_number: voucher || 'N/A'
+        }
+      }
+
       const { data: saleData, error: saleError } = await supabase
         .from('sales')
         .insert(salePayload).select().single()
@@ -467,6 +483,14 @@ export default function POSPage() {
       return
     }
 
+    if (paymentMethod === 'combined') {
+      const sum = Number(splitCash || 0) + Number(splitDebit || 0) + Number(splitCredit || 0)
+      if (Math.abs(sum - cartTotal) > 0.01) {
+        toast.error(`La suma de pagos (${formatCurrency(sum)}) no coincide con el total.`)
+        return
+      }
+    }
+
     // 1c. Cash validation
     if (paymentMethod === 'cash') {
       if (cashReceived && cashReceivedNum < cartTotal) {
@@ -476,7 +500,7 @@ export default function POSPage() {
     }
 
     // Direct checkout or POSnet triggers
-    if (paymentMethod === 'debit' || paymentMethod === 'credit') {
+    if (paymentMethod === 'debit' || paymentMethod === 'credit' || (paymentMethod === 'combined' && (Number(splitDebit || 0) > 0 || Number(splitCredit || 0) > 0))) {
       if (posnetMode === 'integrated') {
         startPosnetSimulation()
       } else {
@@ -835,6 +859,47 @@ export default function POSPage() {
                     Vuelto a entregar: {formatCurrency(parseFloat(cashReceived) - cartTotal)}
                   </div>
                 )}
+              </div>
+            )}
+
+            {paymentMethod === 'combined' && (
+              <div style={{ marginBottom: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Monto a pagar con cada medio:</label>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '80px', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Efectivo</div>
+                  <div className="form-input-icon" style={{ flex: 1 }}>
+                    <span className="input-icon" style={{ color: 'var(--text-muted)' }}>$</span>
+                    <input type="number" className="form-input" style={{ padding: '8px 8px 8px 32px' }} value={splitCash} onChange={e => setSplitCash(e.target.value)} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '80px', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Débito</div>
+                  <div className="form-input-icon" style={{ flex: 1 }}>
+                    <span className="input-icon" style={{ color: 'var(--text-muted)' }}>$</span>
+                    <input type="number" className="form-input" style={{ padding: '8px 8px 8px 32px' }} value={splitDebit} onChange={e => setSplitDebit(e.target.value)} />
+                  </div>
+                </div>
+
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{ width: '80px', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Crédito</div>
+                  <div className="form-input-icon" style={{ flex: 1 }}>
+                    <span className="input-icon" style={{ color: 'var(--text-muted)' }}>$</span>
+                    <input type="number" className="form-input" style={{ padding: '8px 8px 8px 32px' }} value={splitCredit} onChange={e => setSplitCredit(e.target.value)} />
+                  </div>
+                </div>
+
+                {(() => {
+                  const sum = Number(splitCash || 0) + Number(splitDebit || 0) + Number(splitCredit || 0)
+                  const diff = cartTotal - sum
+                  return (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '0.875rem', fontWeight: 600, color: Math.abs(diff) < 0.01 ? 'var(--color-secondary)' : 'var(--color-error)' }}>
+                      <span>Ingresado: {formatCurrency(sum)}</span>
+                      {diff > 0 ? <span>Falta: {formatCurrency(diff)}</span> : diff < 0 ? <span>Sobra: {formatCurrency(Math.abs(diff))}</span> : <span>¡Completo!</span>}
+                    </div>
+                  )
+                })()}
               </div>
             )}
 
