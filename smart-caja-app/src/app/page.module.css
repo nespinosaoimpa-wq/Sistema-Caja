@@ -89,17 +89,17 @@
   padding: 10px 20px;
   background: var(--color-primary-hover);
   color: #fff !important;
-  border-radius: 8px;
+  border-radius: var(--radius-md);
   font-size: 0.875rem;
   font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   transition: var(--transition);
-  box-shadow: 0 4px 14px rgba(183, 109, 255, 0.3);
 }
 
 .registerButton:hover {
   transform: translateY(-1px);
   background: var(--color-primary);
-  box-shadow: 0 6px 20px rgba(183, 109, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 .navActionsMobile {
@@ -169,17 +169,17 @@
   padding: 14px 40px;
   background: var(--color-primary-hover);
   color: #fff !important;
-  border-radius: 10px;
-  font-size: 1.05rem;
-  font-weight: 700;
+  border-radius: var(--radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   transition: var(--transition);
-  box-shadow: 0 4px 20px rgba(183, 109, 255, 0.4);
 }
 
 .heroButton:hover {
-  transform: translateY(-2px) scale(1.02);
+  transform: translateY(-1px);
   background: var(--color-primary);
-  box-shadow: 0 8px 30px rgba(183, 109, 255, 0.6);
+  border-color: rgba(255, 255, 255, 0.25);
 }
 
 /* Dashboard Mockup */
@@ -191,15 +191,16 @@
 
 .mockupBorder {
   border-radius: 24px;
-  padding: 4px;
-  background: linear-gradient(135deg, rgba(221,183,255,0.3) 0%, rgba(78,222,163,0.1) 100%);
-  box-shadow: 0 25px 60px rgba(0,0,0,0.6);
+  padding: 1px;
+  background: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.5);
   transition: var(--transition);
 }
 
 .mockupBorder:hover {
-  transform: translateY(-4px);
-  box-shadow: 0 30px 70px rgba(221,183,255,0.15);
+  background: rgba(255, 255, 255, 0.15);
+  transform: translateY(-2px);
+  box-shadow: 0 25px 60px rgba(0,0,0,0.6);
 }
 
 .mockupImage {
@@ -249,30 +250,29 @@
 }
 
 .featureCard:hover {
-  transform: translateY(-5px);
+  transform: translateY(-2px);
   border-color: var(--border-highlight);
   background: var(--bg-card-hover);
-  box-shadow: 0 10px 30px rgba(0,0,0,0.25);
 }
 
 .featureIconWrapper {
   width: 44px;
   height: 44px;
-  background: rgba(255,255,255,0.03);
+  background: rgba(255,255,255,0.02);
   border: 1px solid var(--border-color);
   border-radius: 10px;
   display: flex;
   align-items: center;
   justify-content: center;
   margin-bottom: 24px;
-  font-size: 1.5rem;
+  color: var(--color-primary);
+  font-size: 1.25rem;
   transition: var(--transition);
 }
 
 .featureCard:hover .featureIconWrapper {
   background: var(--color-primary-light);
   border-color: var(--color-primary);
-  transform: scale(1.1) rotate(5deg);
 }
 
 .featureCard h3 {
@@ -313,7 +313,8 @@
 }
 
 .pricingCard:hover {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
+  border-color: var(--border-highlight);
 }
 
 .pricingCardPro {
@@ -322,15 +323,14 @@
   border-radius: 20px;
   padding: 40px 32px;
   position: relative;
-  box-shadow: 0 15px 40px rgba(168, 85, 247, 0.15);
   display: flex;
   flex-direction: column;
   transition: var(--transition);
 }
 
 .pricingCardPro:hover {
-  transform: translateY(-5px);
-  box-shadow: 0 20px 50px rgba(168, 85, 247, 0.25);
+  transform: translateY(-2px);
+  border-color: var(--color-primary);
 }
 
 .popularBadge {
@@ -418,17 +418,17 @@
   text-align: center;
   padding: 12px;
   background: var(--color-primary-hover);
-  border-radius: 10px;
+  border-radius: var(--radius-md);
   color: #fff !important;
   font-size: 0.9rem;
-  font-weight: 700;
+  font-weight: 600;
+  border: 1px solid rgba(255, 255, 255, 0.15);
   transition: var(--transition);
-  box-shadow: 0 4px 14px rgba(183, 109, 255, 0.3);
 }
 
 .pricingButtonPro:hover {
   background: var(--color-primary);
-  box-shadow: 0 6px 20px rgba(183, 109, 255, 0.5);
+  border-color: rgba(255, 255, 255, 0.25);
   transform: translateY(-1px);
 }
 
@@ -772,3 +772,45 @@
     gap: 12px;
   }
 }
+
+/* Distintivo de Confianza de Comercios Activos */
+.trustBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(78, 222, 163, 0.05);
+  border: 1px solid rgba(78, 222, 163, 0.2);
+  padding: 6px 16px;
+  border-radius: 9999px;
+  font-size: 0.85rem;
+  color: var(--color-secondary);
+  font-weight: 500;
+  margin-top: 16px;
+  letter-spacing: 0.02em;
+}
+
+.activeDot {
+  width: 6px;
+  height: 6px;
+  background-color: var(--color-secondary);
+  border-radius: 50%;
+  display: inline-block;
+  box-shadow: 0 0 8px var(--color-secondary);
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(78, 222, 163, 0.7);
+  }
+  70% {
+    transform: scale(1);
+    box-shadow: 0 0 0 6px rgba(78, 222, 163, 0);
+  }
+  100% {
+    transform: scale(0.95);
+    box-shadow: 0 0 0 0 rgba(78, 222, 163, 0);
+  }
+}
+
