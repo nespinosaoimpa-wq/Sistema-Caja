@@ -10,9 +10,13 @@ export function AuthProvider({ children }) {
   const [profile, setProfile] = useState(null)
   const [tenant, setTenant] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [profileLoaded, setProfileLoaded] = useState(false)
+  const [profileError, setProfileError] = useState(null)
   const supabase = createClient()
 
   const loadProfile = useCallback(async (userId) => {
+    setProfileLoaded(false)
+    setProfileError(null)
     try {
       const { data: profileData, error } = await supabase
         .from('profiles')
@@ -24,13 +28,24 @@ export function AuthProvider({ children }) {
         .single()
 
       if (error) {
-        console.error('Error loading profile:', error)
+        if (error.code === 'PGRST116') {
+          // No profile row exists yet - this is a valid state (needs self-healing/setup)
+          setProfile(null)
+          setTenant(null)
+          setProfileLoaded(true)
+          setProfileError(null)
+        } else {
+          console.error('Error loading profile:', error)
+          setProfileError(error.message || 'Error cargando perfil')
+          setProfileLoaded(false)
+        }
         return
       }
 
       if (profileData) {
         setProfile(profileData)
         setTenant(profileData.tenants)
+        setProfileLoaded(true)
 
         // Apply tenant theme to CSS variables safely
         if (profileData.tenants?.theme_config && typeof window !== 'undefined' && document?.documentElement) {
@@ -46,9 +61,16 @@ export function AuthProvider({ children }) {
             )
           }
         }
+      } else {
+        // Fallback for null profileData without error
+        setProfile(null)
+        setTenant(null)
+        setProfileLoaded(true)
       }
     } catch (err) {
       console.error('Exception inside loadProfile:', err)
+      setProfileError(err.message || 'Excepción cargando perfil')
+      setProfileLoaded(false)
     }
   }, [supabase])
 
@@ -59,6 +81,8 @@ export function AuthProvider({ children }) {
         setUser(currentUser)
         if (currentUser) {
           await loadProfile(currentUser.id)
+        } else {
+          setProfileLoaded(true) // No user, so profile check is complete
         }
       } catch (err) {
         console.error('Exception inside getSession:', err)
@@ -71,13 +95,16 @@ export function AuthProvider({ children }) {
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setUser(session?.user ?? null)
+        const currentUser = session?.user ?? null
+        setUser(currentUser)
         try {
-          if (session?.user) {
-            await loadProfile(session.user.id)
+          if (currentUser) {
+            await loadProfile(currentUser.id)
           } else {
             setProfile(null)
             setTenant(null)
+            setProfileLoaded(true)
+            setProfileError(null)
           }
         } catch (err) {
           console.error('Exception inside onAuthStateChange handler:', err)
@@ -99,6 +126,8 @@ export function AuthProvider({ children }) {
       setUser(null)
       setProfile(null)
       setTenant(null)
+      setProfileLoaded(false)
+      setProfileError(null)
     }
   }
 
@@ -108,6 +137,8 @@ export function AuthProvider({ children }) {
       profile,
       tenant,
       loading,
+      profileLoaded,
+      profileError,
       signOut,
       reloadProfile: async () => {
         if (user) {
