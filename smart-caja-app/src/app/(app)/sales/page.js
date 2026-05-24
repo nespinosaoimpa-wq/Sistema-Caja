@@ -129,7 +129,7 @@ export default function SalesPage() {
             Registro completo de transacciones
           </p>
         </div>
-        <div className="flex items-center gap-3" style={{ marginLeft: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
           <button className="btn btn-primary" onClick={exportCSV}>
             ⬇️ Exportar CSV
           </button>

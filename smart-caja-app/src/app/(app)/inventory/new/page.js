@@ -185,7 +185,7 @@ export default function NewProductPage() {
   return (
     <div>
       <div className="app-header">
-        <div className="flex items-center gap-3">
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
           <button className="btn btn-ghost btn-sm" onClick={() => router.push('/inventory')}>
             ← Volver
           </button>
@@ -196,7 +196,7 @@ export default function NewProductPage() {
             </h1>
           </div>
         </div>
-        <div className="flex items-center gap-3" style={{ marginLeft: 'auto' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
           <button className="btn btn-ghost" onClick={() => router.push('/inventory')}>Cancelar</button>
           <button className="btn btn-primary" onClick={handleSave} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
             <Save size={16} /> {loading ? 'Guardando...' : 'Guardar Producto'}

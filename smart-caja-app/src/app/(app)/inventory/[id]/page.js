@@ -308,7 +308,7 @@ export default function EditProductPage() {
     return (
       <div>
         <div className="app-header">
-          <div className="flex items-center gap-3">
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
             <button className="btn btn-ghost btn-sm" onClick={() => router.push('/inventory')}>
               ← Volver
             </button>
@@ -354,7 +354,7 @@ export default function EditProductPage() {
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{form.name}</span>
           </div>
         </div>
-        <div className="flex items-center gap-3" style={{ marginLeft: 'auto', display: 'flex', gap: '12px' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '12px', alignItems: 'center' }}>
           <button
             className="btn btn-ghost"
             onClick={() => setShowDeleteConfirm(true)}

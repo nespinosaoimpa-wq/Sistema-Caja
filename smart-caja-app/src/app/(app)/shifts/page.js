@@ -25,6 +25,12 @@ export default function ShiftsPage() {
   const [shiftSales, setShiftSales] = useState([])
   const [checkedVouchers, setCheckedVouchers] = useState({})
   const [editedVouchers, setEditedVouchers] = useState({})
+  // Open Shift Modal state
+
+  const [showOpenModal, setShowOpenModal] = useState(false)
+  const [openingCashInput, setOpeningCashInput] = useState('')
+  const [openingShift, setOpeningShift] = useState(false)
+
 
   const calculateTotalBills = () => {
     return Object.entries(bills).reduce((sum, [val, qty]) => sum + (parseFloat(val) * parseInt(qty || 0)), 0)
@@ -172,7 +178,8 @@ export default function ShiftsPage() {
   }
 
   const handleOpenShift = async () => {
-    const openingCash = parseFloat(prompt('¿Con cuánto efectivo iniciás la caja?', '0') || 0)
+    const openingCash = parseFloat(openingCashInput) || 0
+    setOpeningShift(true)
     try {
       const { error } = await supabase
         .from('shifts')
@@ -183,10 +190,14 @@ export default function ShiftsPage() {
           status: 'open',
         })
       if (error) throw error
-      toast.success('Caja abierta exitosamente')
+      toast.success('¡Caja abierta exitosamente!')
+      setShowOpenModal(false)
+      setOpeningCashInput('')
       loadShifts()
     } catch (err) {
       toast.error(err.message)
+    } finally {
+      setOpeningShift(false)
     }
   }
 
@@ -375,7 +386,7 @@ export default function ShiftsPage() {
                 <div style={{ fontSize: '2.5rem', marginBottom: 'var(--space-3)' }}>😴</div>
                 <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.25rem', marginBottom: 'var(--space-2)' }}>No tenés un turno activo</h3>
                 <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>Para empezar a registrar ventas en efectivo, abrí un nuevo turno de caja.</p>
-                <button className="btn btn-secondary btn-lg" onClick={handleOpenShift}>
+                <button className="btn btn-secondary btn-lg" onClick={() => setShowOpenModal(true)}>
                   🔓 Abrir Caja Nueva
                 </button>
               </div>
@@ -477,6 +488,132 @@ export default function ShiftsPage() {
               </div>
               <button className="btn btn-primary" style={{ width: '100%' }} onClick={handleSaveBills}>
                 Confirmar y Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ============ OPEN SHIFT PREMIUM MODAL ============ */}
+      {showOpenModal && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, padding: '16px',
+            animation: 'fadeIn 0.15s ease'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowOpenModal(false); setOpeningCashInput('') } }}
+        >
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--glass-border)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '32px',
+            width: '100%',
+            maxWidth: '420px',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.6), 0 0 0 1px rgba(78,222,163,0.1)',
+            position: 'relative',
+          }}>
+            {/* Close */}
+            <button
+              onClick={() => { setShowOpenModal(false); setOpeningCashInput('') }}
+              style={{ position: 'absolute', top: '16px', right: '16px', background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', fontSize: '1.25rem' }}
+            >✕</button>
+
+            {/* Header */}
+            <div style={{ textAlign: 'center', marginBottom: '28px' }}>
+              <div style={{
+                width: '64px', height: '64px', borderRadius: '50%',
+                background: 'rgba(78,222,163,0.1)',
+                border: '2px solid rgba(78,222,163,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '2rem', margin: '0 auto 16px'
+              }}>🔓</div>
+              <h2 style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--font-headline)', color: '#fff', marginBottom: '6px' }}>
+                Abrir Nueva Caja
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                Ingresá el efectivo inicial con el que empezás el turno.
+              </p>
+            </div>
+
+            {/* Amount Input */}
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                Efectivo Inicial
+              </label>
+              <div style={{ position: 'relative' }}>
+                <span style={{
+                  position: 'absolute', left: '16px', top: '50%', transform: 'translateY(-50%)',
+                  color: 'var(--color-secondary)', fontWeight: 800, fontSize: '1.25rem'
+                }}>$</span>
+                <input
+                  type="number"
+                  className="form-input"
+                  value={openingCashInput}
+                  onChange={e => setOpeningCashInput(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter' && !openingShift) handleOpenShift() }}
+                  placeholder="0"
+                  autoFocus
+                  min="0"
+                  style={{
+                    fontSize: '1.75rem', fontWeight: 800, textAlign: 'right',
+                    paddingLeft: '40px', paddingRight: '16px', paddingTop: '16px', paddingBottom: '16px',
+                    height: 'auto',
+                    background: 'var(--bg-surface)',
+                    border: openingCashInput ? '2px solid var(--color-secondary)' : '2px solid var(--border-color)',
+                    borderRadius: 'var(--radius-lg)',
+                    transition: 'border-color 0.2s',
+                    color: '#fff'
+                  }}
+                />
+              </div>
+              {openingCashInput && (
+                <div style={{ textAlign: 'right', fontSize: '0.8125rem', color: 'var(--color-secondary)', marginTop: '6px', fontWeight: 600 }}>
+                  {formatCurrency(parseFloat(openingCashInput) || 0)}
+                </div>
+              )}
+            </div>
+
+            {/* Info Box */}
+            <div style={{
+              background: 'rgba(78,222,163,0.05)', border: '1px solid rgba(78,222,163,0.15)',
+              borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: '24px',
+              fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5
+            }}>
+              💡 Si empezás sin efectivo, podés dejar en <strong style={{ color: '#fff' }}>$0</strong>. El sistema igual va a registrar todas las ventas.
+            </div>
+
+            {/* Actions */}
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="btn btn-ghost"
+                onClick={() => { setShowOpenModal(false); setOpeningCashInput('') }}
+                style={{ flex: 1 }}
+                disabled={openingShift}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn btn-secondary"
+                onClick={handleOpenShift}
+                disabled={openingShift}
+                style={{
+                  flex: 2,
+                  fontWeight: 800,
+                  fontSize: '1rem',
+                  padding: '14px',
+                  opacity: openingShift ? 0.7 : 1
+                }}
+              >
+                {openingShift ? (
+                  <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                    <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
+                    Abriendo...
+                  </span>
+                ) : '🔓 Confirmar Apertura'}
               </button>
             </div>
           </div>

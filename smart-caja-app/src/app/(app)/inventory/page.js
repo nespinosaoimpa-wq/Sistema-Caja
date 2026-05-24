@@ -245,7 +245,7 @@ export default function InventoryPage() {
             Gestioná tus productos, precios y stock
           </p>
         </div>
-        <div className="flex items-center gap-3" style={{ marginLeft: 'auto', display: 'flex', gap: '12px' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '12px', alignItems: 'center' }}>
           <button className="btn btn-ghost" onClick={() => setShowImportModal(true)} style={{ border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
             <Upload size={16} /> Importar CSV
           </button>

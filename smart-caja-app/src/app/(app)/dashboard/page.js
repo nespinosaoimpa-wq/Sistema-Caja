@@ -6,7 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
-import { Bell, Plus, Rocket, MessageSquare, Check, ShoppingCart, DollarSign, Unlock, Package } from 'lucide-react'
+import { Bell, Plus, Rocket, MessageSquare, Check, ShoppingCart } from 'lucide-react'
 
 export default function DashboardPage() {
   const { tenant, profile } = useAuth()
@@ -14,8 +14,11 @@ export default function DashboardPage() {
   const supabase = createClient()
   
   const [loading, setLoading] = useState(true)
+  const [recentSales, setRecentSales] = useState([])
+  const [lowStockCount, setLowStockCount] = useState(0)
   const [stats, setStats] = useState({
     todaySales: 0,
+    yesterdaySales: 0,
     monthSales: 0,
     totalProducts: 0,
     openShifts: 0,
@@ -34,17 +37,44 @@ export default function DashboardPage() {
     setLoading(true)
     
     try {
+      const today = new Date()
+      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
+      const yesterdayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1).toISOString()
+      const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString()
+
+      // Fetch all completed sales (for chart + month + today)
       const { data: sales } = await supabase
         .from('sales')
         .select('total, created_at')
         .eq('tenant_id', tenant.id)
         .eq('status', 'completed')
+        .gte('created_at', monthStart)
 
+      // Fetch recent sales for activity feed (real data)
+      const { data: latestSales } = await supabase
+        .from('sales')
+        .select('id, ticket_number, total, payment_method, created_at, profiles:user_id(full_name)')
+        .eq('tenant_id', tenant.id)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+        .limit(5)
+
+      // Fetch product count
       const { count: prodCount } = await supabase
         .from('products')
         .select('*', { count: 'exact', head: true })
         .eq('tenant_id', tenant.id)
 
+      // Fetch low stock products count (stock <= reorder_point or stock <= 2)
+      const { count: lowStock } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenant.id)
+        .eq('is_active', true)
+        .gt('track_stock', false)
+        .lte('stock', 2)
+
+      // Fetch open shifts
       const { count: shiftCount } = await supabase
         .from('shifts')
         .select('*', { count: 'exact', head: true })
@@ -61,9 +91,10 @@ export default function DashboardPage() {
         .select('*', { count: 'exact', head: true })
         .eq('tenant_id', tenant.id)
 
+      // Calculate KPIs from real data
       let todayTotal = 0
+      let yesterdayTotal = 0
       let monthTotal = 0
-      const today = new Date()
 
       const hours = ['08h', '10h', '12h', '14h', '16h', '18h', '20h']
       const hourlyTotals = { '08h': 0, '10h': 0, '12h': 0, '14h': 0, '16h': 0, '18h': 0, '20h': 0 }
@@ -77,9 +108,12 @@ export default function DashboardPage() {
             const timeLabel = hour < 10 ? '08h' : hour < 12 ? '10h' : hour < 14 ? '12h' : hour < 16 ? '14h' : hour < 18 ? '16h' : hour < 20 ? '18h' : '20h'
             hourlyTotals[timeLabel] += Number(sale.total)
           }
-          if (date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {
-            monthTotal += Number(sale.total)
+          const yesterday = new Date(today)
+          yesterday.setDate(today.getDate() - 1)
+          if (date.toDateString() === yesterday.toDateString()) {
+            yesterdayTotal += Number(sale.total)
           }
+          monthTotal += Number(sale.total)
         })
       }
 
@@ -92,8 +126,11 @@ export default function DashboardPage() {
         total: hasSales ? hourlyTotals[h] : (h === '08h' ? 0 : h === '10h' ? 12000 : h === '12h' ? 25000 : h === '14h' ? 18000 : h === '16h' ? 32000 : h === '18h' ? 45000 : 58000)
       }))
 
+      setRecentSales(latestSales || [])
+      setLowStockCount(lowStock || 0)
       setStats({
         todaySales: todayTotal,
+        yesterdaySales: yesterdayTotal,
         monthSales: monthTotal,
         totalProducts: actualProducts,
         openShifts: shiftCount || 0,
@@ -308,18 +345,54 @@ export default function DashboardPage() {
             </div>
           )}
 
+          {/* Low Stock Alert Banner */}
+          {lowStockCount > 0 && (
+            <div style={{
+              background: 'rgba(255,178,183,0.08)',
+              border: '1px solid rgba(255,178,183,0.25)',
+              borderRadius: 'var(--radius-lg)',
+              padding: '14px 20px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '12px',
+              flexWrap: 'wrap'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <span style={{ fontSize: '1.25rem' }}>⚠️</span>
+                <div>
+                  <span style={{ fontWeight: 700, color: 'var(--color-error)', fontSize: '0.9375rem' }}>
+                    {lowStockCount} producto{lowStockCount > 1 ? 's' : ''} con stock crítico
+                  </span>
+                  <span style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginLeft: '8px' }}>
+                    Revisá y reabastecé antes de quedarte sin stock.
+                  </span>
+                </div>
+              </div>
+              <button className="btn btn-sm" onClick={() => router.push('/inventory')} style={{ background: 'rgba(255,178,183,0.15)', color: 'var(--color-error)', border: '1px solid rgba(255,178,183,0.3)', whiteSpace: 'nowrap' }}>
+                Ver Inventario →
+              </button>
+            </div>
+          )}
+
           {/* KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-6)' }}>
             <div className="kpi-card" style={{ borderColor: 'rgba(139, 92, 246, 0.3)' }}>
               <div className="kpi-label">Ventas de Hoy</div>
               <div className="kpi-value primary">{formatCurrency(stats.todaySales)}</div>
-              <div className="kpi-change up">↑ 18.2% vs ayer</div>
+              {stats.yesterdaySales > 0 ? (
+                <div className={`kpi-change ${stats.todaySales >= stats.yesterdaySales ? 'up' : 'down'}`}>
+                  {stats.todaySales >= stats.yesterdaySales ? '↑' : '↓'} {Math.abs(Math.round((stats.todaySales - stats.yesterdaySales) / stats.yesterdaySales * 100))}% vs ayer
+                </div>
+              ) : (
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Ventas del día actual</div>
+              )}
             </div>
             
             <div className="kpi-card" style={{ borderColor: 'rgba(16, 185, 129, 0.3)' }}>
               <div className="kpi-label">Ingresos del Mes</div>
               <div className="kpi-value success">{formatCurrency(stats.monthSales)}</div>
-              <div className="kpi-change up">↑ 5.4% vs mes anterior</div>
+              <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Mes en curso</div>
             </div>
 
             <div className="kpi-card">
@@ -387,35 +460,39 @@ export default function DashboardPage() {
 
               <div className="card" style={{ flex: 1 }}>
                 <div className="card-header" style={{ border: 'none' }}>
-                  <span className="card-title">Actividad Reciente</span>
+                  <span className="card-title">Últimas Ventas</span>
+                  {recentSales.length > 0 && (
+                    <button className="btn btn-sm btn-ghost" onClick={() => router.push('/sales')} style={{ fontSize: '0.75rem' }}>Ver todo →</button>
+                  )}
                 </div>
                 <div className="card-body" style={{ padding: '0 var(--space-6)' }}>
-                  {/* Mock Activity List */}
-                  {[
-                    { title: 'Venta #00042', time: 'Hace 5 min', val: '+$1,250', type: 'sale' },
-                    { title: 'Turno abierto', time: 'Hace 2 horas', val: 'Admin', type: 'shift' },
-                    { title: 'Stock actualizado', time: 'Hace 4 horas', val: '+50 Coca Cola', type: 'stock' },
-                  ].map((item, i) => {
-                    let activityIcon;
-                    if (item.type === 'sale') activityIcon = <DollarSign size={18} style={{ color: 'var(--color-secondary)' }} />;
-                    else if (item.type === 'shift') activityIcon = <Unlock size={18} style={{ color: 'var(--color-primary)' }} />;
-                    else activityIcon = <Package size={18} style={{ color: 'var(--color-primary)' }} />;
-                    
-                    return (
-                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-4) 0', borderBottom: i !== 2 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          {activityIcon}
+                  {recentSales.length === 0 ? (
+                    <div style={{ padding: 'var(--space-6) 0', textAlign: 'center' }}>
+                      <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🛒</div>
+                      <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>Aún no hay ventas registradas.</p>
+                      <button className="btn btn-sm btn-primary" style={{ marginTop: '12px' }} onClick={() => router.push('/pos')}>Ir al POS →</button>
+                    </div>
+                  ) : (
+                    recentSales.map((sale, i) => {
+                      const mins = Math.floor((Date.now() - new Date(sale.created_at).getTime()) / 60000)
+                      const timeAgo = mins < 1 ? 'Ahora' : mins < 60 ? `Hace ${mins} min` : mins < 1440 ? `Hace ${Math.floor(mins/60)}h` : `Hace ${Math.floor(mins/1440)}d`
+                      const pmIcons = { cash: '💵', debit: '💳', credit: '💳', transfer: '📲', combined: '🔀', installment: '📋' }
+                      return (
+                        <div key={sale.id} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-3) 0', borderBottom: i < recentSales.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                          <div style={{ width: '38px', height: '38px', borderRadius: '50%', background: 'rgba(78,222,163,0.08)', border: '1px solid rgba(78,222,163,0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>
+                            {pmIcons[sale.payment_method] || '🛒'}
+                          </div>
+                          <div style={{ flex: 1, minWidth: 0 }}>
+                            <div style={{ fontWeight: 600, fontSize: '0.875rem', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>Venta #{sale.ticket_number}</div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{timeAgo}</div>
+                          </div>
+                          <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: 'var(--color-secondary)', whiteSpace: 'nowrap' }}>
+                            +{formatCurrency(sale.total)}
+                          </div>
                         </div>
-                        <div style={{ flex: 1 }}>
-                          <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{item.title}</div>
-                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{item.time}</div>
-                        </div>
-                        <div style={{ fontWeight: 600, fontSize: '0.875rem', color: item.val.startsWith('+') ? 'var(--color-secondary)' : 'inherit' }}>
-                          {item.val}
-                        </div>
-                      </div>
-                    );
-                  })}
+                      )
+                    })
+                  )}
                 </div>
               </div>
             </div>

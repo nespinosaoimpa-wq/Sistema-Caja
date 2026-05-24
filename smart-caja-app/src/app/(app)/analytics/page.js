@@ -163,7 +163,7 @@ export default function AnalyticsPage() {
       ) : (
         <>
           {/* Header */}
-          <div className="flex items-center justify-between">
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: '16px' }}>
         <h1 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.03em' }}>
           Estadísticas de Ventas
         </h1>
@@ -299,7 +299,7 @@ export default function AnalyticsPage() {
               <div className="card-body">
                 {stats.topProducts.map((prod, i) => (
                   <div key={i} style={{ padding: '16px 0', borderBottom: i < stats.topProducts.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
-                    <div className="flex justify-between" style={{ marginBottom: '12px', fontSize: '0.9375rem', fontWeight: 600 }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '12px', fontSize: '0.9375rem', fontWeight: 600 }}>
                       <span style={{ color: '#fff' }}>{prod.name}</span>
                       <span style={{ color: 'var(--color-primary)' }}>{prod.qty} uds</span>
                     </div>
@@ -326,7 +326,7 @@ export default function AnalyticsPage() {
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between', 
                     padding: '16px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' 
                   }}>
-                    <div className="flex items-center gap-3">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{ width: '36px', height: '36px', borderRadius: '10px', background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-error)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.125rem' }}>
                         📦
                       </div>
