@@ -200,7 +200,7 @@ export function AuthProvider({ children }) {
       profileLoaded,
       profileError,
       signOut,
-      reloadProfile: () => user && loadProfile(user.id),
+      reloadProfile: () => user ? loadProfile(user.id) : Promise.resolve(),
     }}>
       {children}
     </AuthContext.Provider>

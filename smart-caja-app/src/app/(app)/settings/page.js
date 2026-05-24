@@ -35,7 +35,8 @@ export default function SettingsPage() {
   const supabase = createClient()
   const toast = useToast()
   
-  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)      // for Save button
+  const [upgrading, setUpgrading] = useState(false) // for Upgrade button
   const [activeTab, setActiveTab] = useState('general')
   
   const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -108,7 +109,7 @@ export default function SettingsPage() {
     } finally {
       setLoadingTeam(false)
     }
-  }, [tenant, supabase, toast])
+  }, [tenant?.id])
 
   // Fetch Branches
   const fetchBranches = useCallback(async () => {
@@ -127,7 +128,7 @@ export default function SettingsPage() {
     } finally {
       setLoadingBranches(false)
     }
-  }, [tenant, supabase])
+  }, [tenant?.id, tenant?.subscription_plan])
 
   // Load contextual data based on active tab
   useEffect(() => {
@@ -267,7 +268,7 @@ export default function SettingsPage() {
 
   // Save Tenant settings globally
   const handleSave = async () => {
-    setLoading(true)
+    setSaving(true)
     try {
       const updates = {
         name: form.name,
@@ -295,7 +296,7 @@ export default function SettingsPage() {
 
       if (error) throw error
 
-      // Dynamically apply variables
+      // Apply CSS variables immediately
       document.documentElement.style.setProperty('--color-primary', form.primary_color)
       document.documentElement.style.setProperty('--color-secondary', form.secondary_color)
       
@@ -321,19 +322,31 @@ export default function SettingsPage() {
         localStorage.setItem('smartcaja_tenant_locale', form.locale)
       }
 
-      await reloadProfile()
-      toast.success('Configuración guardada correctamente')
+      // Reload profile with a 5s safety timeout to avoid hanging button
+      try {
+        await Promise.race([
+          reloadProfile(),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 5000))
+        ])
+      } catch (reloadErr) {
+        // If reload times out or fails, we still consider the save successful
+        // The user's data IS saved in DB - just the in-memory refresh failed
+        console.warn('Profile reload after save timed out or failed:', reloadErr.message)
+      }
+
+      toast.success('\u2705 Configuración guardada correctamente')
     } catch (err) {
+      console.error('Error saving settings:', err)
       toast.error('Error al guardar configuración: ' + err.message)
     } finally {
-      setLoading(false)
+      setSaving(false)
     }
   }
 
   // Handle Plan Upgrade checkout
   const handleUpgrade = async (plan) => {
     if (!tenant?.id) return
-    setLoading(true)
+    setUpgrading(true)
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
@@ -352,9 +365,9 @@ export default function SettingsPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Aún no configuramos los pagos de producción: ' + err.message)
+      toast.error('Aun no configuramos los pagos de producción: ' + err.message)
     } finally {
-      setLoading(false)
+      setUpgrading(false)
     }
   }
 
@@ -459,7 +472,7 @@ export default function SettingsPage() {
           <button 
             className="btn btn-primary" 
             onClick={handleSave} 
-            disabled={loading}
+            disabled={saving}
             style={{
               padding: '12px 24px',
               background: 'linear-gradient(135deg, var(--color-primary-hover), var(--color-primary))',
@@ -470,13 +483,13 @@ export default function SettingsPage() {
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              cursor: 'pointer',
+              cursor: saving ? 'not-allowed' : 'pointer',
               transition: 'transform 0.1s ease'
             }}
-            onMouseDown={e => e.currentTarget.style.transform = 'scale(0.98)'}
+            onMouseDown={e => { if (!saving) e.currentTarget.style.transform = 'scale(0.98)' }}
             onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
           >
-            {loading ? (
+            {saving ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                 <span className="spinner" style={{
                   width: '14px',
@@ -1608,6 +1621,7 @@ export default function SettingsPage() {
                   <button 
                     className="btn btn-secondary" 
                     onClick={() => handleUpgrade(tenant?.subscription_plan || 'professional')}
+                    disabled={upgrading}
                     style={{
                       background: '#009EE3',
                       color: '#fff',
@@ -1617,11 +1631,21 @@ export default function SettingsPage() {
                       display: 'flex',
                       alignItems: 'center',
                       gap: '8px',
-                      boxShadow: '0 4px 12px rgba(0, 158, 227, 0.2)'
+                      boxShadow: '0 4px 12px rgba(0, 158, 227, 0.2)',
+                      opacity: upgrading ? 0.7 : 1
                     }}
                   >
-                    <CreditCard size={16} />
-                    Pagar con Mercado Pago
+                    {upgrading ? (
+                      <>
+                        <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
+                        Procesando...
+                      </>
+                    ) : (
+                      <>
+                        <CreditCard size={16} />
+                        Pagar con Mercado Pago
+                      </>
+                    )}
                   </button>
                 </div>
               </div>
