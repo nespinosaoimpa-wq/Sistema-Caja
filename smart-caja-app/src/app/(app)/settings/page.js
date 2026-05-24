@@ -146,6 +146,14 @@ export default function SettingsPage() {
     if (!file) return
 
     setUploadingLogo(true)
+    
+    let timedOut = false
+    const timeout = setTimeout(() => {
+      timedOut = true
+      setUploadingLogo(false)
+      toast.error('La subida de imagen demoró demasiado. Verifica que el almacenamiento esté configurado.')
+    }, 12000)
+
     try {
       const fileExt = file.name.split('.').pop()
       const fileName = `${tenant.id}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
@@ -154,6 +162,8 @@ export default function SettingsPage() {
       const { error: uploadError } = await supabase.storage
         .from('tenant-logos')
         .upload(filePath, file, { upsert: true })
+
+      if (timedOut) return
 
       if (uploadError) throw uploadError
 
@@ -164,10 +174,14 @@ export default function SettingsPage() {
       updateForm('logo_url', publicUrl)
       toast.success('Logo cargado. Guarda los cambios para aplicar en tu cuenta.')
     } catch (err) {
+      if (timedOut) return
       console.error(err)
       toast.error('Error al subir imagen. ¿La tabla/storage está habilitada en Supabase?')
     } finally {
-      setUploadingLogo(false)
+      clearTimeout(timeout)
+      if (!timedOut) {
+        setUploadingLogo(false)
+      }
     }
   }
 
