@@ -686,6 +686,112 @@ export default function SettingsPage() {
               {/* Form Col */}
               <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
                 
+                {/* Preset Wallpapers */}
+                <div className="card">
+                  <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Building size={18} style={{ color: 'var(--color-secondary)' }} />
+                      <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Tema del Entorno (Fondo)</h3>
+                    </div>
+                  </div>
+                  <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '20px' }}>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '12px' }}>
+                      {[
+                        { id: 'matte', name: 'Gris Matte', color: '#060e20', swatch: ['#060e20', '#0b1326', '#131b2e'] },
+                        { id: 'cosmic', name: 'Cósmico', color: '#0c081e', swatch: ['#0c081e', '#140e30', '#1d1542'] },
+                        { id: 'ocean', name: 'Azul Océano', color: '#020d1a', swatch: ['#020d1a', '#04172e', '#062242'] },
+                        { id: 'midnight', name: 'Midnight (Negro)', color: '#000000', swatch: ['#000000', '#09090b', '#18181b'] }
+                      ].map(preset => (
+                        <button
+                          key={preset.id}
+                          type="button"
+                          onClick={() => updateForm('background_preset', preset.id)}
+                          style={{
+                            background: preset.color,
+                            border: form.background_preset === preset.id ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                            borderRadius: 'var(--radius-md)',
+                            padding: '12px 8px',
+                            cursor: 'pointer',
+                            color: '#fff',
+                            textAlign: 'center',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            gap: '8px',
+                            boxShadow: form.background_preset === preset.id ? '0 0 12px rgba(221,183,255,0.15)' : 'none',
+                            transition: 'all 0.2s'
+                          }}
+                        >
+                          {/* Mini swatch color block */}
+                          <div style={{ display: 'flex', gap: '2px', background: 'rgba(0,0,0,0.3)', padding: '3px', borderRadius: '4px' }}>
+                            {preset.swatch.map((c, i) => (
+                              <div key={i} style={{ width: '12px', height: '12px', borderRadius: '2px', background: c }} />
+                            ))}
+                          </div>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{preset.name}</span>
+                        </button>
+                      ))}
+                    </div>
+
+                  </div>
+                </div>
+
+                {/* Color Schemes */}
+                <div className="card">
+                  <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <Palette size={18} style={{ color: 'var(--color-primary)' }} />
+                      <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Esquema de Colores</h3>
+                    </div>
+                  </div>
+                  <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '20px' }}>
+                    
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Color Principal</label>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                          <input 
+                            type="color" 
+                            value={form.primary_color} 
+                            onChange={e => updateForm('primary_color', e.target.value)} 
+                            style={{ width: '45px', height: '45px', padding: '0', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'transparent' }} 
+                          />
+                          <input 
+                            className="form-input" 
+                            value={form.primary_color} 
+                            onChange={e => updateForm('primary_color', e.target.value)} 
+                          />
+                        </div>
+                        <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                          Para enlaces, elementos activos del menú e indicadores.
+                        </span>
+                      </div>
+                      
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Color Secundario (Éxito)</label>
+                        <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
+                          <input 
+                            type="color" 
+                            value={form.secondary_color} 
+                            onChange={e => updateForm('secondary_color', e.target.value)} 
+                            style={{ width: '45px', height: '45px', padding: '0', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'transparent' }} 
+                          />
+                          <input 
+                            className="form-input" 
+                            value={form.secondary_color} 
+                            onChange={e => updateForm('secondary_color', e.target.value)} 
+                          />
+                        </div>
+                        <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
+                          Para transacciones exitosas, stock positivo y confirmaciones.
+                        </span>
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+
                 {/* Logo Customizer */}
                 <div className="card">
                   <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
@@ -768,112 +874,6 @@ export default function SettingsPage() {
                         />
                       </div>
                     </div>
-                  </div>
-                </div>
-
-                {/* Color Schemes */}
-                <div className="card">
-                  <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <Palette size={18} style={{ color: 'var(--color-primary)' }} />
-                      <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Esquema de Colores</h3>
-                    </div>
-                  </div>
-                  <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '20px' }}>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                      <div className="form-group">
-                        <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Color Principal</label>
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                          <input 
-                            type="color" 
-                            value={form.primary_color} 
-                            onChange={e => updateForm('primary_color', e.target.value)} 
-                            style={{ width: '45px', height: '45px', padding: '0', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'transparent' }} 
-                          />
-                          <input 
-                            className="form-input" 
-                            value={form.primary_color} 
-                            onChange={e => updateForm('primary_color', e.target.value)} 
-                          />
-                        </div>
-                        <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                          Para enlaces, elementos activos del menú e indicadores.
-                        </span>
-                      </div>
-                      
-                      <div className="form-group">
-                        <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Color Secundario (Éxito)</label>
-                        <div style={{ display: 'flex', gap: '10px', marginTop: '6px' }}>
-                          <input 
-                            type="color" 
-                            value={form.secondary_color} 
-                            onChange={e => updateForm('secondary_color', e.target.value)} 
-                            style={{ width: '45px', height: '45px', padding: '0', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', cursor: 'pointer', background: 'transparent' }} 
-                          />
-                          <input 
-                            className="form-input" 
-                            value={form.secondary_color} 
-                            onChange={e => updateForm('secondary_color', e.target.value)} 
-                          />
-                        </div>
-                        <span style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', marginTop: '4px', display: 'block' }}>
-                          Para transacciones exitosas, stock positivo y confirmaciones.
-                        </span>
-                      </div>
-                    </div>
-
-                  </div>
-                </div>
-
-                {/* Preset Wallpapers */}
-                <div className="card">
-                  <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <Building size={18} style={{ color: 'var(--color-secondary)' }} />
-                      <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Tema del Entorno (Fondo)</h3>
-                    </div>
-                  </div>
-                  <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '20px' }}>
-                    
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '12px' }}>
-                      {[
-                        { id: 'matte', name: 'Gris Matte', color: '#060e20', swatch: ['#060e20', '#0b1326', '#131b2e'] },
-                        { id: 'cosmic', name: 'Cósmico', color: '#0c081e', swatch: ['#0c081e', '#140e30', '#1d1542'] },
-                        { id: 'ocean', name: 'Azul Océano', color: '#020d1a', swatch: ['#020d1a', '#04172e', '#062242'] },
-                        { id: 'midnight', name: 'Midnight (Negro)', color: '#000000', swatch: ['#000000', '#09090b', '#18181b'] }
-                      ].map(preset => (
-                        <button
-                          key={preset.id}
-                          type="button"
-                          onClick={() => updateForm('background_preset', preset.id)}
-                          style={{
-                            background: preset.color,
-                            border: form.background_preset === preset.id ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
-                            borderRadius: 'var(--radius-md)',
-                            padding: '12px 8px',
-                            cursor: 'pointer',
-                            color: '#fff',
-                            textAlign: 'center',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            gap: '8px',
-                            boxShadow: form.background_preset === preset.id ? '0 0 12px rgba(221,183,255,0.15)' : 'none',
-                            transition: 'all 0.2s'
-                          }}
-                        >
-                          {/* Mini swatch color block */}
-                          <div style={{ display: 'flex', gap: '2px', background: 'rgba(0,0,0,0.3)', padding: '3px', borderRadius: '4px' }}>
-                            {preset.swatch.map((c, i) => (
-                              <div key={i} style={{ width: '12px', height: '12px', borderRadius: '2px', background: c }} />
-                            ))}
-                          </div>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600 }}>{preset.name}</span>
-                        </button>
-                      ))}
-                    </div>
-
                   </div>
                 </div>
 
