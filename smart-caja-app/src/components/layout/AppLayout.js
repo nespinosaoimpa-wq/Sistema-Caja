@@ -41,7 +41,7 @@ const PLAN_WEIGHTS = {
 export default function AppLayout({ children }) {
   const pathname = usePathname()
   const router = useRouter()
-  const { user, tenant, profile, loading, signOut, reloadProfile } = useAuth()
+  const { user, tenant, profile, loading, profileLoaded, profileError, signOut, reloadProfile } = useAuth()
 
   useEffect(() => {
     if (!loading && !user) {
@@ -173,8 +173,84 @@ export default function AppLayout({ children }) {
     }
   }
 
-  // Self-heal check: if logged in but no profile/tenant exists
-  if (!loading && user && (!profile || !tenant)) {
+  // If loading finished but profile failed to load due to connection/database error
+  if (!loading && user && !profileLoaded && profileError) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--bg-base)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 'var(--space-4)',
+      }}>
+        <div className="card" style={{ maxWidth: '500px', width: '100%', padding: 'var(--space-8)', textAlign: 'center' }}>
+          <span style={{ fontSize: '3rem' }}>🔌</span>
+          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginTop: '12px', color: '#fff' }}>
+            Error de Conexión
+          </h1>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '6px', marginBottom: '24px', lineHeight: 1.5 }}>
+            No pudimos conectar con el servidor para verificar tu cuenta. Esto puede deberse a una conexión de red inestable o un mantenimiento temporal de la base de datos.
+          </p>
+          <div style={{ 
+            background: 'rgba(255, 180, 171, 0.05)', 
+            border: '1px solid rgba(255, 180, 171, 0.1)', 
+            borderRadius: 'var(--radius-md)', 
+            padding: '12px', 
+            fontSize: '0.75rem', 
+            color: 'var(--color-error)', 
+            fontFamily: 'monospace', 
+            marginBottom: '24px', 
+            textAlign: 'left', 
+            wordBreak: 'break-all' 
+          }}>
+            {profileError}
+          </div>
+          <div style={{ display: 'flex', gap: '12px' }}>
+            <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => signOut()}>
+              Cerrar Sesión
+            </button>
+            <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => { reloadProfile(); window.location.reload(); }}>
+              Reintentar
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // If loading finished but verification check hasn't completed yet (e.g. slow network timeout triggered)
+  if (!loading && user && !profileLoaded && !profileError) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--bg-base)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid var(--border-color)',
+          borderTopColor: 'var(--color-primary)',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+          Verificando cuenta...
+        </span>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+        `}</style>
+      </div>
+    )
+  }
+
+  // Self-heal check: if logged in but no profile/tenant exists (and check finished successfully)
+  if (!loading && user && profileLoaded && (!profile || !tenant)) {
     return (
       <div style={{
         minHeight: '100vh',

@@ -11,6 +11,8 @@ export function AuthProvider({ children }) {
   const [tenant, setTenant] = useState(null)
   const [currentBranch, setCurrentBranchState] = useState(null)
   const [loading, setLoading] = useState(true)
+  const [profileLoaded, setProfileLoaded] = useState(false)
+  const [profileError, setProfileError] = useState(null)
   const supabase = createClient()
 
   // Sincronizar con localStorage
@@ -35,6 +37,7 @@ export function AuthProvider({ children }) {
   }
 
   const loadProfile = useCallback(async (userId) => {
+    setProfileError(null)
     try {
       const { data: profileData, error } = await supabase
         .from('profiles')
@@ -47,6 +50,16 @@ export function AuthProvider({ children }) {
 
       if (error) {
         console.error('Error fetching profile:', error)
+        if (error.code === 'PGRST116') {
+          // Profile definitely does not exist in database
+          setProfile(null)
+          setTenant(null)
+          setProfileLoaded(true)
+        } else {
+          // Network or transient DB connection error
+          setProfileError(error.message || 'Error de conexión con la base de datos')
+          setProfileLoaded(false)
+        }
         return
       }
 
@@ -141,6 +154,8 @@ export function AuthProvider({ children }) {
             } else {
               setProfile(null)
               setTenant(null)
+              setProfileLoaded(false)
+              setProfileError(null)
             }
           }
         } catch (err) {
@@ -171,6 +186,8 @@ export function AuthProvider({ children }) {
       currentBranch,
       setCurrentBranch,
       loading,
+      profileLoaded,
+      profileError,
       signOut,
       reloadProfile: () => user && loadProfile(user.id),
     }}>
