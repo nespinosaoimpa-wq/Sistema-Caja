@@ -4,6 +4,41 @@ import { NextResponse } from 'next/server'
 export async function updateSession(request) {
   let supabaseResponse = NextResponse.next({ request })
 
+  const pathname = request.nextUrl.pathname
+
+  // Public routes that don't require auth
+  const publicRoutes = ['/', '/login', '/register', '/api/webhooks']
+  const isPublicRoute = publicRoutes.some(route =>
+    pathname === route || pathname.startsWith('/api/webhooks')
+  )
+
+  // 1. Optimize for Next.js Prefetches
+  // Prefetch requests (triggered on hover) do not need to query the database.
+  // The actual navigation request will run the middleware again and perform full validation.
+  const isPrefetch = request.headers.get('x-middleware-prefetch') === '1' ||
+                     request.headers.get('purpose') === 'prefetch'
+
+  if (isPrefetch) {
+    return supabaseResponse
+  }
+
+  // 2. Optimize for cookie presence
+  // If there are no Supabase auth cookies, we don't need to invoke getUser() to know the user is logged out.
+  const allCookies = request.cookies.getAll()
+  const hasAuthCookie = allCookies.some(cookie =>
+    cookie.name.includes('auth-token') || cookie.name.startsWith('sb-')
+  )
+
+  if (!hasAuthCookie) {
+    if (!isPublicRoute) {
+      const url = request.nextUrl.clone()
+      url.pathname = '/login'
+      return NextResponse.redirect(url)
+    }
+    return supabaseResponse
+  }
+
+  // Only query Supabase Auth when we have a candidate auth cookie
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
@@ -25,14 +60,6 @@ export async function updateSession(request) {
 
   const { data: { user } } = await supabase.auth.getUser()
 
-  const pathname = request.nextUrl.pathname
-
-  // Public routes that don't require auth
-  const publicRoutes = ['/', '/login', '/register', '/api/webhooks']
-  const isPublicRoute = publicRoutes.some(route =>
-    pathname === route || pathname.startsWith('/api/webhooks')
-  )
-
   if (!user && !isPublicRoute) {
     const url = request.nextUrl.clone()
     url.pathname = '/login'
@@ -47,3 +74,4 @@ export async function updateSession(request) {
 
   return supabaseResponse
 }
+

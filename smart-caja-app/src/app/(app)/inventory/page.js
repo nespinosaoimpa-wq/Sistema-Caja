@@ -27,31 +27,65 @@ export default function InventoryPage() {
   const [importingFile, setImportingFile] = useState(false)
 
   async function loadInventory() {
-    setLoading(true)
-    
-    // Load categories
-    const { data: cats } = await supabase
-      .from('categories')
-      .select('*')
-      .eq('tenant_id', tenant.id)
-      .order('name')
-    
-    if (cats) setCategories(cats)
+    const cacheKeyCats = `smartcaja_categories_${tenant.id}`
+    const cacheKeyProds = `smartcaja_inventory_products_${tenant.id}`
 
-    // Load products
-    const { data: prods, error } = await supabase
-      .from('products')
-      .select('*, categories(name, icon, color)')
-      .eq('tenant_id', tenant.id)
-      .order('name')
-      
-    if (error) {
-      toast.error('Error al cargar inventario')
+    // 1. Stale-While-Revalidate: Load from local cache immediately
+    if (typeof window !== 'undefined') {
+      const cachedCats = localStorage.getItem(cacheKeyCats)
+      const cachedProds = localStorage.getItem(cacheKeyProds)
+
+      if (cachedCats || cachedProds) {
+        if (cachedCats) {
+          try {
+            setCategories(JSON.parse(cachedCats))
+          } catch (e) {}
+        }
+        if (cachedProds) {
+          try {
+            setProducts(JSON.parse(cachedProds))
+          } catch (e) {}
+        }
+        setLoading(false)
+      } else {
+        setLoading(true)
+      }
     } else {
-      setProducts(prods || [])
+      setLoading(true)
     }
-    
-    setLoading(false)
+
+    // 2. Fetch fresh data from Supabase in the background
+    try {
+      // Load categories
+      const { data: cats } = await supabase
+        .from('categories')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .order('name')
+      
+      if (cats) {
+        setCategories(cats)
+        localStorage.setItem(cacheKeyCats, JSON.stringify(cats))
+      }
+
+      // Load products
+      const { data: prods, error } = await supabase
+        .from('products')
+        .select('*, categories(name, icon, color)')
+        .eq('tenant_id', tenant.id)
+        .order('name')
+        
+      if (error) {
+        toast.error('Error al cargar inventario')
+      } else if (prods) {
+        setProducts(prods)
+        localStorage.setItem(cacheKeyProds, JSON.stringify(prods))
+      }
+    } catch (err) {
+      console.error('Error refreshing inventory data in background:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {

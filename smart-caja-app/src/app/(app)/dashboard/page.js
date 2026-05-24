@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { formatCurrency } from '@/lib/utils/formatters'
@@ -8,6 +9,7 @@ import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContai
 
 export default function DashboardPage() {
   const { tenant, profile } = useAuth()
+  const router = useRouter()
   const supabase = createClient()
   
   const [loading, setLoading] = useState(true)
@@ -96,7 +98,7 @@ export default function DashboardPage() {
           <button className="btn btn-ghost" style={{ borderRadius: 'var(--radius-full)' }}>
             <span style={{ fontSize: '1.2rem' }}>🔔</span>
           </button>
-          <button className="btn btn-primary" onClick={() => window.location.href='/pos'} style={{ padding: '0 24px' }}>
+          <button className="btn btn-primary" onClick={() => router.push('/pos')} style={{ padding: '0 24px' }}>
             <span style={{ fontSize: '1.2rem', marginRight: '8px' }}>+</span> Nueva Venta
           </button>
         </div>
@@ -177,7 +179,7 @@ export default function DashboardPage() {
                   <div style={{ position: 'relative', zIndex: 2 }}>
                     <h3 style={{ fontSize: '1.25rem', marginBottom: 'var(--space-2)' }}>Punto de Venta</h3>
                     <p style={{ color: 'rgba(255,255,255,0.8)', fontSize: '0.875rem', marginBottom: 'var(--space-4)' }}>Accede rápidamente a la caja registradora para empezar a cobrar.</p>
-                    <button className="btn" style={{ background: '#fff', color: 'var(--color-primary)', width: '100%' }} onClick={() => window.location.href='/pos'}>
+                    <button className="btn" style={{ background: '#fff', color: 'var(--color-primary)', width: '100%' }} onClick={() => router.push('/pos')}>
                       Abrir Caja →
                     </button>
                   </div>

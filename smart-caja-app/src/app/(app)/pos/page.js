@@ -79,26 +79,69 @@ export default function POSPage() {
   }
 
   async function loadData() {
-    setLoading(true)
-    const { data: shiftData } = await supabase
-      .from('shifts')
-      .select('*')
-      .eq('tenant_id', tenant.id)
-      .eq('status', 'open')
-      .eq('user_id', profile.id)
-      .single()
-      
-    if (shiftData) setActiveShift(shiftData)
+    const cacheKeyShift = `smartcaja_shift_${tenant.id}_${profile.id}`
+    const cacheKeyProds = `smartcaja_products_${tenant.id}`
 
-    const { data: prods } = await supabase
-      .from('products')
-      .select('*, categories(name, icon)')
-      .eq('tenant_id', tenant.id)
-      .eq('is_active', true)
-      .order('name')
-      
-    if (prods) setProducts(prods)
-    setLoading(false)
+    // 1. Stale-While-Revalidate: Load from local cache immediately
+    if (typeof window !== 'undefined') {
+      const cachedShift = localStorage.getItem(cacheKeyShift)
+      const cachedProds = localStorage.getItem(cacheKeyProds)
+
+      if (cachedShift || cachedProds) {
+        if (cachedShift) {
+          try {
+            setActiveShift(JSON.parse(cachedShift))
+          } catch (e) {}
+        }
+        if (cachedProds) {
+          try {
+            setProducts(JSON.parse(cachedProds))
+          } catch (e) {}
+        }
+        setLoading(false)
+      } else {
+        setLoading(true)
+      }
+    } else {
+      setLoading(true)
+    }
+
+    // 2. Fetch fresh data from Supabase in the background
+    try {
+      // Fetch shift status
+      const { data: shiftData, error: shiftError } = await supabase
+        .from('shifts')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .eq('status', 'open')
+        .eq('user_id', profile.id)
+        .maybeSingle()
+
+      if (shiftData) {
+        setActiveShift(shiftData)
+        localStorage.setItem(cacheKeyShift, JSON.stringify(shiftData))
+      } else {
+        setActiveShift(null)
+        localStorage.removeItem(cacheKeyShift)
+      }
+
+      // Fetch products catalog
+      const { data: prods, error: prodsError } = await supabase
+        .from('products')
+        .select('*, categories(name, icon)')
+        .eq('tenant_id', tenant.id)
+        .eq('is_active', true)
+        .order('name')
+
+      if (prods) {
+        setProducts(prods)
+        localStorage.setItem(cacheKeyProds, JSON.stringify(prods))
+      }
+    } catch (err) {
+      console.error('Error refreshing POS data in background:', err)
+    } finally {
+      setLoading(false)
+    }
   }
 
   useEffect(() => {
