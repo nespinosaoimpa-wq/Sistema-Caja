@@ -820,6 +820,7 @@ export default function SettingsPage() {
                         <img 
                           src={form.logo_url} 
                           alt="Logo de la empresa" 
+                          onError={(e) => { e.target.style.display = 'none' }}
                           style={{ width: '80px', height: '80px', borderRadius: 'var(--radius-lg)', objectFit: 'cover', border: '1px solid var(--border-color)' }} 
                         />
                         <button 

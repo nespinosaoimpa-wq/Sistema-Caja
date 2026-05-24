@@ -53,7 +53,12 @@ export default function AppLayout({ children }) {
   const [setupLoading, setSetupLoading] = useState(false)
   const [setupError, setSetupError] = useState(null)
   const [verifyTimeout, setVerifyTimeout] = useState(false)
+  const [logoError, setLogoError] = useState(false)
   const retryCountRef = useRef(0)
+
+  useEffect(() => {
+    setLogoError(false)
+  }, [tenant?.logo_url])
 
   // Safety net: if profileLoaded stays false too long after loading, force retry or show error
   useEffect(() => {
@@ -411,10 +416,11 @@ export default function AppLayout({ children }) {
       {/* Sidebar */}
       <aside className="app-sidebar">
         <div className="sidebar-logo">
-          {tenant?.logo_url ? (
+          {tenant?.logo_url && !logoError ? (
             <img 
               src={tenant.logo_url} 
               alt="Logo" 
+              onError={() => setLogoError(true)}
               style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} 
             />
           ) : (
