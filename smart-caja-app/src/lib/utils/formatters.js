@@ -159,6 +159,7 @@ export const PAYMENT_METHOD_LABELS = {
   cash: 'Efectivo',
   debit: 'Débito',
   credit: 'Crédito',
+  transfer: 'Transferencia',
   combined: 'Combinado',
   installment: 'Cuotas',
 }
@@ -170,8 +171,31 @@ export const PAYMENT_METHOD_ICONS = {
   cash: '💵',
   debit: '💳',
   credit: '💳',
+  transfer: '📲',
   combined: '🔀',
   installment: '📋',
+}
+
+/**
+ * Get dynamic label checking if debit sale is actually a transfer
+ */
+export function getPaymentMethodLabel(sale) {
+  if (!sale) return ''
+  if (sale.payment_method === 'debit' && (sale.payment_details?.is_transfer || sale.payment_details?.card_brand === 'Transferencia')) {
+    return 'Transferencia'
+  }
+  return PAYMENT_METHOD_LABELS[sale.payment_method] || sale.payment_method || ''
+}
+
+/**
+ * Get dynamic icon checking if debit sale is actually a transfer
+ */
+export function getPaymentMethodIcon(sale) {
+  if (!sale) return ''
+  if (sale.payment_method === 'debit' && (sale.payment_details?.is_transfer || sale.payment_details?.card_brand === 'Transferencia')) {
+    return '📲'
+  }
+  return PAYMENT_METHOD_ICONS[sale.payment_method] || ''
 }
 
 /**

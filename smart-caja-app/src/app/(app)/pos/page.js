@@ -7,7 +7,7 @@ import { useToast } from '@/lib/hooks/useToast'
 import { formatCurrency, formatDateTime } from '@/lib/utils/formatters'
 import { 
   Maximize, Minimize, Search, Zap, Edit, Banknote, CreditCard, Landmark, Split, Calendar, 
-  ShoppingCart, User, Clock, Trash2, Printer, Package
+  ShoppingCart, User, Clock, Trash2, Printer, Package, ArrowLeftRight
 } from 'lucide-react'
 
 export default function POSPage() {
@@ -176,6 +176,10 @@ export default function POSPage() {
         case 'F4':
           e.preventDefault()
           setPaymentMethod('credit')
+          break
+        case 'F6':
+          e.preventDefault()
+          setPaymentMethod('transfer')
           break
         case 'F12':
         case 'Enter':
@@ -426,7 +430,7 @@ export default function POSPage() {
         discount_value: discountValue ? Number(discountValue) : 0,
         discount_amount: discountAmount,
         total: cartTotal, 
-        payment_method: paymentMethod, 
+        payment_method: paymentMethod === 'transfer' ? 'debit' : paymentMethod, 
         status: 'completed'
       }
 
@@ -443,6 +447,16 @@ export default function POSPage() {
           voucher_number: voucher || 'N/A',
           integrated: posnetMode === 'integrated',
           terminal_id: 'POSNET-4819'
+        }
+      }
+
+      // Store transfer info if transfer payment
+      if (paymentMethod === 'transfer') {
+        salePayload.payment_details = {
+          card_brand: 'Transferencia',
+          voucher_number: 'N/A',
+          integrated: false,
+          is_transfer: true
         }
       }
 
@@ -875,11 +889,12 @@ export default function POSPage() {
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: 'var(--space-6)' }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px', marginBottom: 'var(--space-6)' }}>
               {[
                 { id: 'cash', label: 'Efectivo (F2)', icon: <Banknote size={20} /> },
                 { id: 'debit', label: 'Débito (F3)', icon: <CreditCard size={20} /> },
                 { id: 'credit', label: 'Crédito (F4)', icon: <Landmark size={20} /> },
+                { id: 'transfer', label: 'Transf. (F6)', icon: <ArrowLeftRight size={20} /> },
                 { id: 'combined', label: 'Mixto', icon: <Split size={20} /> },
                 { id: 'installment', label: 'Cuotas', icon: <Calendar size={20} /> }
               ].map(method => (
@@ -1101,8 +1116,8 @@ export default function POSPage() {
 
                 <div style={{ fontSize: '11px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span>Método:</span>
-                    <span>{{ cash: 'Efectivo', debit: 'Débito', credit: 'Crédito' }[receiptData.paymentMethod] || receiptData.paymentMethod}</span>
+                    <span style={{ color: 'var(--text-secondary)' }}>Método de pago:</span>
+                    <span>{{ cash: 'Efectivo', debit: 'Débito', credit: 'Crédito', transfer: 'Transferencia', combined: 'Mixto', installment: 'Cuotas' }[receiptData.paymentMethod] || receiptData.paymentMethod}</span>
                   </div>
                   {receiptData.paymentMethod === 'cash' && (
                     <>

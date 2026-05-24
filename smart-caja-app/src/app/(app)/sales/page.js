@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
-import { formatCurrency, formatDateTime, PAYMENT_METHOD_LABELS } from '@/lib/utils/formatters'
+import { formatCurrency, formatDateTime, PAYMENT_METHOD_LABELS, getPaymentMethodLabel } from '@/lib/utils/formatters'
 
 const PAGE_SIZE = 20
 
@@ -96,7 +96,7 @@ export default function SalesPage() {
     const rows = filteredSales.map(sale => [
       formatDateTime(sale.created_at),
       sale.ticket_number || '',
-      PAYMENT_METHOD_LABELS[sale.payment_method] || sale.payment_method || '',
+      getPaymentMethodLabel(sale),
       sale.status === 'completed' ? 'Completado' : 'Anulado',
       sale.sale_items?.length || 0,
       sale.total || 0
@@ -210,7 +210,7 @@ export default function SalesPage() {
                   <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: 'var(--color-primary)' }}>#{sale.ticket_number}</div>
                   <div>
                     <span className="badge badge-neutral" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                      {PAYMENT_METHOD_LABELS[sale.payment_method]}
+                      {getPaymentMethodLabel(sale)}
                     </span>
                   </div>
                   <div>
@@ -284,7 +284,7 @@ export default function SalesPage() {
               </div>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginTop: '8px', color: '#666' }}>
                 <span>Pago con:</span>
-                <span>{PAYMENT_METHOD_LABELS[selectedSale.payment_method]}</span>
+                <span>{getPaymentMethodLabel(selectedSale)}</span>
               </div>
             </div>
 

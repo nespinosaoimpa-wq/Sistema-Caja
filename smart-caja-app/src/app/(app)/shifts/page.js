@@ -126,15 +126,23 @@ export default function ShiftsPage() {
         .filter(s => s.payment_method === 'installment')
         .reduce((sum, s) => sum + parseFloat(s.total || 0), 0)
 
-      const totalCardSalesExpected = debitSalesTotal + creditSalesTotal
+      const debitCardSalesTotal = shiftSales
+        .filter(s => s.payment_method === 'debit' && !(s.payment_details?.is_transfer || s.payment_details?.card_brand === 'Transferencia'))
+        .reduce((sum, s) => sum + parseFloat(s.total || 0), 0)
+
+      const transferSalesTotal = shiftSales
+        .filter(s => s.payment_method === 'debit' && (s.payment_details?.is_transfer || s.payment_details?.card_brand === 'Transferencia'))
+        .reduce((sum, s) => sum + parseFloat(s.total || 0), 0)
+
+      const totalCardSalesExpected = debitCardSalesTotal + creditSalesTotal
       
       const totalCardTicketsVerified = shiftSales
-        .filter(s => (s.payment_method === 'debit' || s.payment_method === 'credit') && checkedVouchers[s.id])
+        .filter(s => (s.payment_method === 'debit' || s.payment_method === 'credit') && !(s.payment_details?.is_transfer || s.payment_details?.card_brand === 'Transferencia') && checkedVouchers[s.id])
         .reduce((sum, s) => sum + parseFloat(s.total || 0), 0)
 
       const cardDiscrepancy = totalCardTicketsVerified - totalCardSalesExpected
 
-      const notesText = `Conciliación POSnet: Tarjetas registradas ${formatCurrency(totalCardSalesExpected)}, Conciliadas físicamente ${formatCurrency(totalCardTicketsVerified)}. Diferencia de tarjetas: ${formatCurrency(cardDiscrepancy)}.`
+      const notesText = `Conciliación POSnet: Tarjetas registradas ${formatCurrency(totalCardSalesExpected)}, Conciliadas físicamente ${formatCurrency(totalCardTicketsVerified)}. Diferencia de tarjetas: ${formatCurrency(cardDiscrepancy)}. Total Transferencias del turno: ${formatCurrency(transferSalesTotal)}.`
 
       // 3. Update shift in Supabase
       const { error } = await supabase
@@ -233,10 +241,10 @@ export default function ShiftsPage() {
                   {/* Left Column: POSnet voucher list */}
                   <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', padding: '20px' }}>
                     <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      💳 Control de Cupones POSnet / Tarjeta ({shiftSales.filter(s => s.payment_method === 'debit' || s.payment_method === 'credit').length})
+                      💳 Control de Cupones POSnet / Tarjeta ({shiftSales.filter(s => (s.payment_method === 'debit' || s.payment_method === 'credit') && !(s.payment_details?.is_transfer || s.payment_details?.card_brand === 'Transferencia')).length})
                     </h4>
                     
-                    {shiftSales.filter(s => s.payment_method === 'debit' || s.payment_method === 'credit').length === 0 ? (
+                    {shiftSales.filter(s => (s.payment_method === 'debit' || s.payment_method === 'credit') && !(s.payment_details?.is_transfer || s.payment_details?.card_brand === 'Transferencia')).length === 0 ? (
                       <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '16px 0' }}>
                         No se registraron ventas con tarjeta en este turno.
                       </p>
@@ -253,7 +261,7 @@ export default function ShiftsPage() {
                             </tr>
                           </thead>
                           <tbody>
-                            {shiftSales.filter(s => s.payment_method === 'debit' || s.payment_method === 'credit').map(sale => (
+                            {shiftSales.filter(s => (s.payment_method === 'debit' || s.payment_method === 'credit') && !(s.payment_details?.is_transfer || s.payment_details?.card_brand === 'Transferencia')).map(sale => (
                               <tr key={sale.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', opacity: checkedVouchers[sale.id] ? 1 : 0.6 }}>
                                 <td style={{ padding: '8px 6px' }}>
                                   <input 
