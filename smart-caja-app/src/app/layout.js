@@ -11,14 +11,19 @@ export const metadata = {
   title: 'Smart Caja — Sistema POS Inteligente',
   description: 'Sistema de gestión de caja, stock y ventas para cualquier tipo de negocio. Fácil, rápido y potente.',
   manifest: '/manifest.json',
-  themeColor: '#7C3AED',
-  viewport: 'width=device-width, initial-scale=1, maximum-scale=1',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',
     title: 'Smart Caja',
   },
 }
+
+export const generateViewport = () => ({
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  themeColor: '#7C3AED',
+})
 
 export default function RootLayout({ children }) {
   return (

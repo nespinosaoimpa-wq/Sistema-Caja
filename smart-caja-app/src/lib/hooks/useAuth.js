@@ -116,7 +116,9 @@ export function AuthProvider({ children }) {
       setProfileError(err.message || 'Excepción al cargar perfil')
       setProfileLoaded(false)
     }
-  }, [supabase])
+  // supabase is a stable module-level singleton; no need to include it as dependency
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   useEffect(() => {
     let active = true
@@ -176,7 +178,9 @@ export function AuthProvider({ children }) {
       clearTimeout(safetyTimeout)
       subscription.unsubscribe()
     }
-  }, [supabase, loadProfile])
+  // supabase is stable; only re-run when loadProfile reference changes
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loadProfile])
 
   const signOut = async () => {
     await supabase.auth.signOut()

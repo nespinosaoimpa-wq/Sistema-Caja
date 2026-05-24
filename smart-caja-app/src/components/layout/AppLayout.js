@@ -116,7 +116,7 @@ export default function AppLayout({ children }) {
 
       // 2. Create or Update Profile
       console.log('2. Insertando/actualizando perfil...')
-      let profileError;
+      let profileSaveError;
       if (!profile) {
         const { error } = await supabase
           .from('profiles')
@@ -127,7 +127,7 @@ export default function AppLayout({ children }) {
             email: user.email,
             role: 'owner',
           })
-        profileError = error;
+        profileSaveError = error;
       } else {
         const { error } = await supabase
           .from('profiles')
@@ -135,12 +135,12 @@ export default function AppLayout({ children }) {
             tenant_id: tenantData.id,
           })
           .eq('id', user.id)
-        profileError = error;
+        profileSaveError = error;
       }
 
-      if (profileError) {
-        console.error('Error en Paso 2 (Profile):', profileError)
-        throw new Error(`Error al crear perfil: ${profileError.message}`)
+      if (profileSaveError) {
+        console.error('Error en Paso 2 (Profile):', profileSaveError)
+        throw new Error(`Error al crear perfil: ${profileSaveError.message}`)
       }
       console.log('Paso 2 Completado.')
 
