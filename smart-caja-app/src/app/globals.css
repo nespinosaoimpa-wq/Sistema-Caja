@@ -23,6 +23,7 @@
   --color-tertiary-light: rgba(255, 178, 183, 0.1);
   
   --color-error: #ffb4ab; /* Rose/Red */
+  --color-error-light: rgba(255, 180, 171, 0.1); /* Error light bg */
   
   /* Backgrounds - Matte Dark */
   --bg-base: #060e20; /* Pure dark matte */
@@ -41,6 +42,10 @@
   --border-color: #2d3449;
   --border-highlight: #4d4354;
   --border-focus: #ddb7ff;
+
+  /* Glass / Overlay */
+  --glass-bg: rgba(255, 255, 255, 0.04);
+  --glass-border: rgba(255, 255, 255, 0.08);
 
   /* Spacing */
   --space-1: 4px; --space-2: 8px; --space-3: 12px; --space-4: 16px;
@@ -237,6 +242,8 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
 .btn-ghost:hover:not(:disabled) { background: rgba(255,255,255,0.05); color: #fff; }
 
 .btn-sm { padding: 6px 12px; font-size: 0.8125rem; }
+.btn-lg { padding: 14px 28px; font-size: 1rem; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
 
 /* Toggle Group (Analytics Header) */
 .toggle-group {
@@ -520,4 +527,33 @@ body.pos-fullscreen .pos-right {
   }
 }
 
+
+/* ============================================================
+   SETTINGS — Pricing Grid
+   ============================================================ */
+.pricing-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .pricing-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ============================================================
+   ANIMATIONS
+   ============================================================ */
+@keyframes ping {
+  75%, 100% {
+    transform: scale(2);
+    opacity: 0;
+  }
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
