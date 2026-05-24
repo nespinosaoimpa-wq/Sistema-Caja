@@ -57,6 +57,12 @@ export function AuthProvider({ children }) {
         document.documentElement.style.setProperty(
           '--color-secondary', theme.secondary_color || '#10B981'
         )
+        
+        // Save internationalization settings to localStorage for static helpers
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('smartcaja_tenant_currency', theme.currency || 'ARS')
+          localStorage.setItem('smartcaja_tenant_locale', theme.locale || 'es-AR')
+        }
       }
     }
   }, [supabase])

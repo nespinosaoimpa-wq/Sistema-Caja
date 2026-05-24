@@ -3,12 +3,32 @@
  */
 export function formatCurrency(amount) {
   if (amount === null || amount === undefined) return '$0'
-  return new Intl.NumberFormat('es-AR', {
-    style: 'currency',
-    currency: 'ARS',
-    minimumFractionDigits: 0,
-    maximumFractionDigits: 2,
-  }).format(amount)
+  
+  let locale = 'es-AR'
+  let currency = 'ARS'
+  
+  if (typeof window !== 'undefined') {
+    const cachedLocale = localStorage.getItem('smartcaja_tenant_locale')
+    const cachedCurrency = localStorage.getItem('smartcaja_tenant_currency')
+    if (cachedLocale) locale = cachedLocale
+    if (cachedCurrency) currency = cachedCurrency
+  }
+
+  try {
+    return new Intl.NumberFormat(locale, {
+      style: 'currency',
+      currency: currency,
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount)
+  } catch (e) {
+    return new Intl.NumberFormat('es-AR', {
+      style: 'currency',
+      currency: 'ARS',
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 2,
+    }).format(amount)
+  }
 }
 
 /**
@@ -72,7 +92,18 @@ export function calculateProfit(costPrice, salePrice, quantity = 1) {
  */
 export function formatNumber(num) {
   if (num === null || num === undefined) return '0'
-  return new Intl.NumberFormat('es-AR').format(num)
+  
+  let locale = 'es-AR'
+  if (typeof window !== 'undefined') {
+    const cachedLocale = localStorage.getItem('smartcaja_tenant_locale')
+    if (cachedLocale) locale = cachedLocale
+  }
+
+  try {
+    return new Intl.NumberFormat(locale).format(num)
+  } catch (e) {
+    return new Intl.NumberFormat('es-AR').format(num)
+  }
 }
 
 /**

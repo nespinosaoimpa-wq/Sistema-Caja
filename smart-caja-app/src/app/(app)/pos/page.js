@@ -307,6 +307,16 @@ export default function POSPage() {
 
     const payMethodLabel = { cash: 'Efectivo', debit: 'Débito', credit: 'Crédito' }[paymentMethod] || paymentMethod
 
+    // Calculate tax breakdown
+    const taxRate = tenant?.theme_config?.tax_rate !== undefined ? Number(tenant.theme_config.tax_rate) : 0
+    const taxName = tenant?.theme_config?.tax_name || 'IVA'
+    const taxAmount = taxRate > 0 ? (cartTotal * taxRate) / (100 + taxRate) : 0
+    
+    const taxHTML = taxRate > 0 ? `
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#666;margin-top:2px;"><span>Neto sin imp.:</span><span>${formatCurrency(cartTotal - taxAmount)}</span></div>
+      <div style="display:flex;justify-content:space-between;font-size:10px;color:#666;margin-top:2px;"><span>${taxName} (${taxRate}%):</span><span>${formatCurrency(taxAmount)}</span></div>
+    ` : ''
+
     return `
       <div style="font-family:'Courier New',Courier,monospace;width:72mm;padding:4mm;font-size:12px;color:#000;background:#fff;">
         <div style="text-align:center;margin-bottom:8px;">
@@ -335,6 +345,7 @@ export default function POSPage() {
         <div style="font-size:12px;">
           <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>${formatCurrency(cartSubtotal)}</span></div>
           ${discountAmount > 0 ? `<div style="display:flex;justify-content:space-between;color:#d00;"><span>Descuento:</span><span>-${formatCurrency(discountAmount)}</span></div>` : ''}
+          ${taxHTML}
           <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin:4px 0;"><span>TOTAL:</span><span>${formatCurrency(cartTotal)}</span></div>
         </div>
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
@@ -849,6 +860,13 @@ export default function POSPage() {
                 </div>
               )}
             </div>
+
+            {tenant?.theme_config?.tax_rate > 0 && (
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                <span>{tenant?.theme_config?.tax_name || 'IVA'} ({tenant?.theme_config?.tax_rate}%) Incluido</span>
+                <span>{formatCurrency((cartTotal * Number(tenant.theme_config.tax_rate)) / (100 + Number(tenant.theme_config.tax_rate)))}</span>
+              </div>
+            )}
 
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', fontFamily: 'var(--font-headline)' }}>TOTAL</span>

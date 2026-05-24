@@ -23,6 +23,10 @@ export default function SettingsPage() {
     secondary_color: '#10B981',
     mp_access_token: '',
     mp_public_key: '',
+    currency: 'ARS',
+    locale: 'es-AR',
+    tax_rate: '21',
+    tax_name: 'IVA',
   })
 
   useEffect(() => {
@@ -37,6 +41,10 @@ export default function SettingsPage() {
         secondary_color: tenant.theme_config?.secondary_color || '#10B981',
         mp_access_token: tenant.payment_config?.mp_access_token || '',
         mp_public_key: tenant.payment_config?.mp_public_key || '',
+        currency: tenant.theme_config?.currency || 'ARS',
+        locale: tenant.theme_config?.locale || 'es-AR',
+        tax_rate: tenant.theme_config?.tax_rate !== undefined ? tenant.theme_config.tax_rate.toString() : '21',
+        tax_name: tenant.theme_config?.tax_name || 'IVA',
       })
     }
   }, [tenant])
@@ -55,6 +63,10 @@ export default function SettingsPage() {
         theme_config: {
           primary_color: form.primary_color,
           secondary_color: form.secondary_color,
+          currency: form.currency,
+          locale: form.locale,
+          tax_rate: parseFloat(form.tax_rate) || 0,
+          tax_name: form.tax_name,
         },
         payment_config: {
           mp_access_token: form.mp_access_token,
@@ -73,6 +85,12 @@ export default function SettingsPage() {
       document.documentElement.style.setProperty('--color-primary', form.primary_color)
       document.documentElement.style.setProperty('--color-secondary', form.secondary_color)
       
+      // Update local storage configuration immediately
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('smartcaja_tenant_currency', form.currency)
+        localStorage.setItem('smartcaja_tenant_locale', form.locale)
+      }
+
       await reloadProfile()
       toast.success('Configuración guardada correctamente')
     } catch (err) {
@@ -170,6 +188,53 @@ export default function SettingsPage() {
                 <div className="form-group">
                   <label className="form-label">Teléfono de contacto</label>
                   <input className="form-input" value={form.phone} onChange={e => updateForm('phone', e.target.value)} />
+                </div>
+
+                <div style={{ borderTop: '1px solid var(--border-color)', margin: 'var(--space-4) 0' }} />
+                
+                <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.125rem', marginBottom: 'var(--space-2)' }}>📍 Región, Moneda e Impuestos (Internacionalización)</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>Configurá los formatos regionales y la tasa tributaria de tu comercio para adecuar los tickets a tu país.</p>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+                  <div className="form-group">
+                    <label className="form-label required">Moneda del Sistema</label>
+                    <select className="form-select" value={form.currency} onChange={e => updateForm('currency', e.target.value)}>
+                      <option value="ARS">ARS ($ - Pesos Argentinos)</option>
+                      <option value="USD">USD ($ - Dólares Estadounidenses)</option>
+                      <option value="EUR">EUR (€ - Euros)</option>
+                      <option value="MXN">MXN ($ - Pesos Mexicanos)</option>
+                      <option value="CLP">CLP ($ - Pesos Chilenos)</option>
+                      <option value="COP">COP ($ - Pesos Colombianos)</option>
+                      <option value="UYU">UYU ($ - Pesos Uruguayos)</option>
+                      <option value="BRL">BRL (R$ - Real Brasileño)</option>
+                    </select>
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label required">Formato Regional (Locale)</label>
+                    <select className="form-select" value={form.locale} onChange={e => updateForm('locale', e.target.value)}>
+                      <option value="es-AR">es-AR (Español - Argentina)</option>
+                      <option value="en-US">en-US (English - United States)</option>
+                      <option value="es-ES">es-ES (Español - España)</option>
+                      <option value="es-MX">es-MX (Español - México)</option>
+                      <option value="es-CL">es-CL (Español - Chile)</option>
+                      <option value="es-CO">es-CO (Español - Colombia)</option>
+                      <option value="es-UY">es-UY (Español - Uruguay)</option>
+                      <option value="pt-BR">pt-BR (Português - Brasil)</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+                  <div className="form-group">
+                    <label className="form-label">Nombre del Impuesto</label>
+                    <input className="form-input" value={form.tax_name} onChange={e => updateForm('tax_name', e.target.value)} placeholder="Ej: IVA, TAX, VAT, GST" />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Porcentaje de Impuesto (%)</label>
+                    <input className="form-input" type="number" step="0.01" min="0" value={form.tax_rate} onChange={e => updateForm('tax_rate', e.target.value)} placeholder="Ej: 21 (0 para exento)" />
+                  </div>
                 </div>
               </div>
             )}
