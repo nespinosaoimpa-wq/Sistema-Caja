@@ -50,6 +50,8 @@ export default function AppLayout({ children }) {
   }, [loading, user, router])
 
   const [setupForm, setSetupForm] = useState({ business_name: '', business_type: 'general' })
+  const [setupLoading, setSetupLoading] = useState(false)
+  const [setupError, setSetupError] = useState(null)
 
   if (loading) {
     return (
@@ -79,8 +81,6 @@ export default function AppLayout({ children }) {
       </div>
     )
   }
-  const [setupLoading, setSetupLoading] = useState(false)
-  const [setupError, setSetupError] = useState(null)
 
   const handleSelfHeal = async (e) => {
     e.preventDefault()
