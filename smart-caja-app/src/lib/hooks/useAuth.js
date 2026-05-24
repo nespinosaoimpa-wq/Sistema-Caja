@@ -35,63 +35,96 @@ export function AuthProvider({ children }) {
   }
 
   const loadProfile = useCallback(async (userId) => {
-    const { data: profileData, error } = await supabase
-      .from('profiles')
-      .select(`
-        *,
-        tenants (*)
-      `)
-      .eq('id', userId)
-      .single()
+    try {
+      const { data: profileData, error } = await supabase
+        .from('profiles')
+        .select(`
+          *,
+          tenants (*)
+        `)
+        .eq('id', userId)
+        .single()
 
-    if (!error && profileData) {
-      setProfile(profileData)
-      setTenant(profileData.tenants)
+      if (error) {
+        console.error('Error fetching profile:', error)
+        return
+      }
 
-      // Apply tenant theme to CSS variables
-      if (profileData.tenants?.theme_config) {
-        const theme = profileData.tenants.theme_config
-        document.documentElement.style.setProperty(
-          '--color-primary', theme.primary_color || '#7C3AED'
-        )
-        document.documentElement.style.setProperty(
-          '--color-secondary', theme.secondary_color || '#10B981'
-        )
-        
-        // Save internationalization settings to localStorage for static helpers
-        if (typeof window !== 'undefined') {
-          localStorage.setItem('smartcaja_tenant_currency', theme.currency || 'ARS')
-          localStorage.setItem('smartcaja_tenant_locale', theme.locale || 'es-AR')
+      if (profileData) {
+        setProfile(profileData)
+        setTenant(profileData.tenants)
+
+        // Apply tenant theme to CSS variables
+        if (profileData.tenants?.theme_config) {
+          const theme = profileData.tenants.theme_config
+          if (typeof window !== 'undefined' && document?.documentElement) {
+            document.documentElement.style.setProperty(
+              '--color-primary', theme.primary_color || '#7C3AED'
+            )
+            document.documentElement.style.setProperty(
+              '--color-secondary', theme.secondary_color || '#10B981'
+            )
+            
+            // Save internationalization settings to localStorage for static helpers
+            try {
+              localStorage.setItem('smartcaja_tenant_currency', theme.currency || 'ARS')
+              localStorage.setItem('smartcaja_tenant_locale', theme.locale || 'es-AR')
+            } catch (storageErr) {
+              console.warn('Could not save locale settings to localStorage:', storageErr)
+            }
+          }
         }
       }
+    } catch (err) {
+      console.error('Exception in loadProfile:', err)
     }
   }, [supabase])
 
   useEffect(() => {
+    let active = true
+
     const getSession = async () => {
-      const { data: { user: currentUser } } = await supabase.auth.getUser()
-      setUser(currentUser)
-      if (currentUser) {
-        await loadProfile(currentUser.id)
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        if (active) {
+          setUser(currentUser)
+          if (currentUser) {
+            await loadProfile(currentUser.id)
+          }
+        }
+      } catch (err) {
+        console.error('Exception in getSession:', err)
+      } finally {
+        if (active) {
+          setLoading(false)
+        }
       }
-      setLoading(false)
     }
 
     getSession()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        setUser(session?.user ?? null)
-        if (session?.user) {
-          await loadProfile(session.user.id)
-        } else {
-          setProfile(null)
-          setTenant(null)
+        try {
+          if (active) {
+            setUser(session?.user ?? null)
+            if (session?.user) {
+              await loadProfile(session.user.id)
+            } else {
+              setProfile(null)
+              setTenant(null)
+            }
+          }
+        } catch (err) {
+          console.error('Exception in onAuthStateChange handler:', err)
         }
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      active = false
+      subscription.unsubscribe()
+    }
   }, [supabase, loadProfile])
 
   const signOut = async () => {

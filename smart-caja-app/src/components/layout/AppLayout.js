@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -43,7 +43,42 @@ export default function AppLayout({ children }) {
   const router = useRouter()
   const { user, tenant, profile, loading, signOut, reloadProfile } = useAuth()
 
+  useEffect(() => {
+    if (!loading && !user) {
+      router.push('/login')
+    }
+  }, [loading, user, router])
+
   const [setupForm, setSetupForm] = useState({ business_name: '', business_type: 'general' })
+
+  if (loading) {
+    return (
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--bg-base)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '16px'
+      }}>
+        <div style={{
+          width: '40px',
+          height: '40px',
+          border: '3px solid var(--border-color)',
+          borderTopColor: 'var(--color-primary)',
+          borderRadius: '50%',
+          animation: 'spin 1s linear infinite'
+        }} />
+        <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
+          Cargando Smart Caja...
+        </span>
+        <style>{`
+          @keyframes spin { to { transform: rotate(360deg); } }
+        `}</style>
+      </div>
+    )
+  }
   const [setupLoading, setSetupLoading] = useState(false)
   const [setupError, setSetupError] = useState(null)
 

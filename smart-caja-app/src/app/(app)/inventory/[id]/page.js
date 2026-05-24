@@ -740,11 +740,46 @@ export default function EditProductPage() {
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
                 <div className="form-group">
                   <label className="form-label">Icono (Emoji)</label>
-                  <input
-                    className="form-input"
-                    value={newCategory.icon}
-                    onChange={e => setNewCategory(prev => ({ ...prev, icon: e.target.value }))}
-                  />
+                  <div style={{ display: 'flex', gap: '6px' }}>
+                    <input 
+                      className="form-input" 
+                      style={{ width: '50px', textAlign: 'center', padding: '0 4px' }}
+                      value={newCategory.icon}
+                      onChange={e => setNewCategory(prev => ({ ...prev, icon: e.target.value }))}
+                    />
+                    <div style={{ 
+                      flex: 1, 
+                      display: 'grid', 
+                      gridTemplateColumns: 'repeat(5, 1fr)', 
+                      gap: '2px', 
+                      background: 'rgba(0,0,0,0.15)', 
+                      padding: '4px', 
+                      borderRadius: 'var(--radius-sm)', 
+                      maxHeight: '80px', 
+                      overflowY: 'auto' 
+                    }}>
+                      {['📦', '🏷️', '🍎', '🥤', '🍬', '🍞', '🥩', '👕', '👟', '🔧', '🔨', '💊', '🚗', '🛢️', '✏️', '🧼', '🚬', '🍷', '⭐', '🍕', '🥬', '💡', '🍔', '🛒'].map(emoji => (
+                        <button
+                          key={emoji}
+                          type="button"
+                          onClick={() => setNewCategory(prev => ({ ...prev, icon: emoji }))}
+                          style={{
+                            background: newCategory.icon === emoji ? 'var(--color-primary-light)' : 'transparent',
+                            border: 'none',
+                            borderRadius: '3px',
+                            cursor: 'pointer',
+                            padding: '2px 0',
+                            fontSize: '1rem',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center'
+                          }}
+                        >
+                          {emoji}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
                 </div>
                 <div className="form-group">
                   <label className="form-label">Color del Etiqueta</label>

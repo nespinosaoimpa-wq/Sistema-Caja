@@ -96,6 +96,36 @@ export default function InventoryPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id])
 
+  const handleQuickStockChange = async (productId, newStock) => {
+    if (newStock < 0) return
+
+    // Optimistic update
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, stock_quantity: newStock } : p))
+
+    const { error } = await supabase
+      .from('products')
+      .update({ stock_quantity: newStock })
+      .eq('id', productId)
+      .eq('tenant_id', tenant.id)
+
+    if (error) {
+      toast.error('Error al actualizar el stock')
+      loadInventory()
+    } else {
+      const cacheKeyProds = `smartcaja_inventory_products_${tenant.id}`
+      if (typeof window !== 'undefined') {
+        const cached = localStorage.getItem(cacheKeyProds)
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached)
+            const updated = parsed.map(p => p.id === productId ? { ...p, stock_quantity: newStock } : p)
+            localStorage.setItem(cacheKeyProds, JSON.stringify(updated))
+          } catch(e) {}
+        }
+      }
+    }
+  }
+
   const toggleProductActive = async (id, currentStatus) => {
     const { error } = await supabase
       .from('products')
@@ -370,16 +400,65 @@ export default function InventoryPage() {
                     </div>
 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: 'var(--space-4)' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-2)' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                         <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Stock:</span>
-                        <span style={{ 
-                          fontWeight: 700, 
-                          color: isLowStock ? 'var(--color-error)' : '#fff',
-                          background: isLowStock ? 'var(--color-error-light)' : 'rgba(255,255,255,0.05)',
-                          padding: '2px 8px', borderRadius: '4px', fontSize: '0.8125rem'
-                        }}>
-                          {product.stock_quantity}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: 'rgba(0,0,0,0.2)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                          <button 
+                            type="button"
+                            onClick={() => handleQuickStockChange(product.id, product.stock_quantity - 1)}
+                            style={{
+                              width: '24px', height: '24px', borderRadius: '4px',
+                              background: 'transparent', border: 'none', color: '#fff',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem',
+                            }}
+                          >
+                            -
+                          </button>
+                          <input 
+                            key={product.stock_quantity}
+                            type="number"
+                            defaultValue={product.stock_quantity}
+                            onBlur={e => {
+                              const val = parseInt(e.target.value)
+                              if (!isNaN(val) && val !== product.stock_quantity) {
+                                handleQuickStockChange(product.id, val)
+                              }
+                            }}
+                            onKeyDown={e => {
+                              if (e.key === 'Enter') {
+                                const val = parseInt(e.target.value)
+                                if (!isNaN(val) && val !== product.stock_quantity) {
+                                  handleQuickStockChange(product.id, val)
+                                }
+                                e.target.blur()
+                              }
+                            }}
+                            style={{
+                              width: '38px',
+                              background: 'transparent',
+                              border: 'none',
+                              color: isLowStock ? 'var(--color-error)' : '#fff',
+                              fontWeight: 700,
+                              textAlign: 'center',
+                              fontSize: '0.8125rem',
+                              outline: 'none',
+                              padding: 0,
+                            }}
+                          />
+                          <button 
+                            type="button"
+                            onClick={() => handleQuickStockChange(product.id, product.stock_quantity + 1)}
+                            style={{
+                              width: '24px', height: '24px', borderRadius: '4px',
+                              background: 'transparent', border: 'none', color: '#fff',
+                              display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              cursor: 'pointer', fontWeight: 'bold', fontSize: '1rem',
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
                       </div>
                       
                       <button 
@@ -420,6 +499,33 @@ export default function InventoryPage() {
                 <input className="form-input" placeholder="Nombre" style={{ flex: 1 }} value={newCategory.name} onChange={e => setNewCategory(prev => ({...prev, name: e.target.value}))} />
                 <input type="color" style={{ width: '40px', height: '40px', padding: 0, border: 'none', borderRadius: '4px' }} value={newCategory.color} onChange={e => setNewCategory(prev => ({...prev, color: e.target.value}))} />
                 <button className="btn btn-primary" onClick={handleCreateCategory} disabled={creatingCategory}>+</button>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label className="form-label" style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Icono rápido (clic para seleccionar):</label>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(8, 1fr)', gap: '4px', background: 'rgba(0,0,0,0.15)', padding: '6px', borderRadius: 'var(--radius-md)' }}>
+                  {['📦', '🏷️', '🍎', '🥤', '🍬', '🍞', '🥩', '👕', '👟', '🔧', '🔨', '💊', '🚗', '🛢️', '✏️', '🧼', '🚬', '🍷', '⭐', '🍕', '🥬', '💡', '🍔', '🛒'].map(emoji => (
+                    <button
+                      key={emoji}
+                      type="button"
+                      onClick={() => setNewCategory(prev => ({ ...prev, icon: emoji }))}
+                      style={{
+                        background: newCategory.icon === emoji ? 'var(--color-primary-light)' : 'transparent',
+                        border: 'none',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        padding: '4px',
+                        fontSize: '1.1rem',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        transition: 'background 0.2s'
+                      }}
+                    >
+                      {emoji}
+                    </button>
+                  ))}
+                </div>
               </div>
 
               {categoryError && (
