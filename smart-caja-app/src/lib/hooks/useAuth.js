@@ -6,6 +6,14 @@ import { createClient } from '@/lib/supabase/client'
 const AuthContext = createContext({})
 const supabase = createClient()
 
+// Wraps any promise with a hard timeout — guarantees it always resolves/rejects
+function withTimeout(promise, ms, label = 'operation') {
+  const timeout = new Promise((_, reject) =>
+    setTimeout(() => reject(new Error(`Timeout (${ms}ms) en ${label}`)), ms)
+  )
+  return Promise.race([promise, timeout])
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -20,9 +28,7 @@ export function AuthProvider({ children }) {
     if (typeof window !== 'undefined') {
       const stored = localStorage.getItem('smartcaja_current_branch')
       if (stored) {
-        try {
-          setCurrentBranchState(JSON.parse(stored))
-        } catch(e) {}
+        try { setCurrentBranchState(JSON.parse(stored)) } catch(e) {}
       }
     }
   }, [])
@@ -36,149 +42,149 @@ export function AuthProvider({ children }) {
     }
   }
 
+  const applyTheme = useCallback((theme) => {
+    if (typeof window === 'undefined' || !document?.documentElement) return
+    document.documentElement.style.setProperty('--color-primary', theme.primary_color || '#7C3AED')
+    document.documentElement.style.setProperty('--color-secondary', theme.secondary_color || '#10B981')
+    const bgPreset = theme.background_preset || 'matte'
+    let base = '#060e20', surface = '#0b1326', card = '#131b2e', cardHover = '#171f33'
+    if (bgPreset === 'cosmic')   { base = '#0c081e'; surface = '#140e30'; card = '#1d1542'; cardHover = '#241b52' }
+    else if (bgPreset === 'ocean')    { base = '#020d1a'; surface = '#04172e'; card = '#062242'; cardHover = '#082a52' }
+    else if (bgPreset === 'midnight') { base = '#000000'; surface = '#09090b'; card = '#18181b'; cardHover = '#27272a' }
+    document.documentElement.style.setProperty('--bg-base', base)
+    document.documentElement.style.setProperty('--bg-surface', surface)
+    document.documentElement.style.setProperty('--bg-card', card)
+    document.documentElement.style.setProperty('--bg-card-hover', cardHover)
+    document.documentElement.style.setProperty('--bg-sidebar', base)
+    document.documentElement.style.setProperty('--bg-input', card)
+    try {
+      localStorage.setItem('smartcaja_tenant_currency', theme.currency || 'ARS')
+      localStorage.setItem('smartcaja_tenant_locale', theme.locale || 'es-AR')
+    } catch(e) {}
+  }, [])
+
   const loadProfile = useCallback(async (userId) => {
     setProfileError(null)
     try {
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          tenants (*)
-        `)
-        .eq('id', userId)
-        .single()
+      // Hard 6-second timeout on the Supabase fetch — guarantees this always resolves
+      const fetchResult = await withTimeout(
+        supabase
+          .from('profiles')
+          .select('*, tenants (*)')
+          .eq('id', userId)
+          .single(),
+        6000,
+        'carga de perfil'
+      )
+
+      const { data: profileData, error } = fetchResult
 
       if (error) {
-        console.error('Error fetching profile:', error)
-        if (error.code === 'PGRST116') {
-          // Profile definitely does not exist in database
-          setProfile(null)
-          setTenant(null)
-        } else {
-          // Network or transient DB connection error — report it
-          setProfileError(error.message || 'Error de conexión con la base de datos')
+        console.error('[useAuth] Error fetching profile:', error)
+        if (error.code !== 'PGRST116') {
+          setProfileError(error.message || 'Error de conexión')
         }
-        // Always mark profileLoaded=true so AppLayout doesn't hang
-        setProfileLoaded(true)
+        setProfile(null)
+        setTenant(null)
         return
       }
 
       if (profileData) {
         setProfile(profileData)
         setTenant(profileData.tenants)
-
-        // Apply tenant theme to CSS variables
         if (profileData.tenants?.theme_config) {
-          const theme = profileData.tenants.theme_config
-          if (typeof window !== 'undefined' && document?.documentElement) {
-            document.documentElement.style.setProperty(
-              '--color-primary', theme.primary_color || '#7C3AED'
-            )
-            document.documentElement.style.setProperty(
-              '--color-secondary', theme.secondary_color || '#10B981'
-            )
-            
-            // Apply background preset variables
-            const bgPreset = theme.background_preset || 'matte'
-            let base = '#060e20', surface = '#0b1326', card = '#131b2e', cardHover = '#171f33'
-            if (bgPreset === 'cosmic') {
-              base = '#0c081e'; surface = '#140e30'; card = '#1d1542'; cardHover = '#241b52'
-            } else if (bgPreset === 'ocean') {
-              base = '#020d1a'; surface = '#04172e'; card = '#062242'; cardHover = '#082a52'
-            } else if (bgPreset === 'midnight') {
-              base = '#000000'; surface = '#09090b'; card = '#18181b'; cardHover = '#27272a'
-            }
-
-            document.documentElement.style.setProperty('--bg-base', base)
-            document.documentElement.style.setProperty('--bg-surface', surface)
-            document.documentElement.style.setProperty('--bg-card', card)
-            document.documentElement.style.setProperty('--bg-card-hover', cardHover)
-            document.documentElement.style.setProperty('--bg-sidebar', base)
-            document.documentElement.style.setProperty('--bg-input', card)
-            
-            // Save internationalization settings to localStorage for static helpers
-            try {
-              localStorage.setItem('smartcaja_tenant_currency', theme.currency || 'ARS')
-              localStorage.setItem('smartcaja_tenant_locale', theme.locale || 'es-AR')
-            } catch (storageErr) {
-              console.warn('Could not save locale settings to localStorage:', storageErr)
-            }
-          }
+          applyTheme(profileData.tenants.theme_config)
         }
       } else {
         setProfile(null)
         setTenant(null)
       }
     } catch (err) {
-      console.error('Exception in loadProfile:', err)
-      setProfileError(err.message || 'Excepción al cargar perfil')
+      console.error('[useAuth] loadProfile failed:', err.message)
+      setProfileError(err.message || 'No se pudo cargar el perfil')
+      setProfile(null)
+      setTenant(null)
     } finally {
-      // ALWAYS mark as loaded so AppLayout doesn't hang
+      // ALWAYS runs — guarantees AppLayout never hangs
       setProfileLoaded(true)
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [applyTheme])
 
   useEffect(() => {
     let active = true
 
-    // Safety fallback: force loading to false after 3 seconds to prevent hangs
-    const safetyTimeout = setTimeout(() => {
-      if (active) {
-        console.warn('Auth loading safety timeout triggered')
-        setLoading(false)
-      }
-    }, 3000)
-
-    const getSession = async () => {
+    const init = async () => {
       try {
-        const { data: { session } } = await supabase.auth.getSession()
+        // getSession also gets a timeout so it can't hang
+        const { data: { session } } = await withTimeout(
+          supabase.auth.getSession(),
+          8000,
+          'getSession'
+        )
         const currentUser = session?.user ?? null
-        if (active) {
-          setUser(currentUser)
-          if (currentUser) {
-            await loadProfile(currentUser.id)
-          }
+        if (!active) return
+        setUser(currentUser)
+        if (currentUser) {
+          await loadProfile(currentUser.id)
+        } else {
+          // No user — nothing to load
+          setProfileLoaded(false)
+          setProfile(null)
+          setTenant(null)
         }
       } catch (err) {
-        console.error('Exception in getSession:', err)
-      } finally {
+        console.error('[useAuth] init failed:', err.message)
+        // Even on total failure, don't leave the app hanging
         if (active) {
-          clearTimeout(safetyTimeout)
-          setLoading(false)
+          setProfileError(err.message)
+          setProfileLoaded(true)
         }
+      } finally {
+        if (active) setLoading(false)
       }
     }
 
-    getSession()
+    init()
 
+    // onAuthStateChange handles subsequent auth events (token refresh, sign out, etc.)
+    // We DON'T call loadProfile here on INITIAL_SESSION to avoid double-fetching
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        try {
-          if (active) {
-            setUser(session?.user ?? null)
-            if (session?.user) {
+        if (!active) return
+
+        // Skip INITIAL_SESSION — init() already handles the first load
+        if (event === 'INITIAL_SESSION') return
+
+        console.log('[useAuth] onAuthStateChange:', event)
+
+        if (event === 'SIGNED_OUT') {
+          setUser(null)
+          setProfile(null)
+          setTenant(null)
+          setProfileLoaded(false)
+          setProfileError(null)
+          return
+        }
+
+        if (session?.user) {
+          setUser(session.user)
+          // On token refresh, reload profile silently if needed
+          if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
+            try {
               await loadProfile(session.user.id)
-            } else {
-              setProfile(null)
-              setTenant(null)
-              setProfileLoaded(false)
-              setProfileError(null)
+            } catch(e) {
+              console.error('[useAuth] auth state change loadProfile error:', e)
             }
           }
-        } catch (err) {
-          console.error('Exception in onAuthStateChange handler:', err)
         }
       }
     )
 
     return () => {
       active = false
-      clearTimeout(safetyTimeout)
       subscription.unsubscribe()
     }
-  // supabase is stable; only re-run when loadProfile reference changes
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loadProfile])
 
   const signOut = async () => {
@@ -186,6 +192,7 @@ export function AuthProvider({ children }) {
     setUser(null)
     setProfile(null)
     setTenant(null)
+    setProfileLoaded(false)
   }
 
   return (
