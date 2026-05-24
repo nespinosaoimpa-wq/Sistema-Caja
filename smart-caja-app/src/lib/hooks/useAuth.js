@@ -101,9 +101,18 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let active = true
 
+    // Safety fallback: force loading to false after 3 seconds to prevent hangs
+    const safetyTimeout = setTimeout(() => {
+      if (active) {
+        console.warn('Auth loading safety timeout triggered')
+        setLoading(false)
+      }
+    }, 3000)
+
     const getSession = async () => {
       try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        const { data: { session } } = await supabase.auth.getSession()
+        const currentUser = session?.user ?? null
         if (active) {
           setUser(currentUser)
           if (currentUser) {
@@ -114,6 +123,7 @@ export function AuthProvider({ children }) {
         console.error('Exception in getSession:', err)
       } finally {
         if (active) {
+          clearTimeout(safetyTimeout)
           setLoading(false)
         }
       }
@@ -141,6 +151,7 @@ export function AuthProvider({ children }) {
 
     return () => {
       active = false
+      clearTimeout(safetyTimeout)
       subscription.unsubscribe()
     }
   }, [supabase, loadProfile])
