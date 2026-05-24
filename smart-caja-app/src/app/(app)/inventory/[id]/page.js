@@ -241,10 +241,12 @@ export default function EditProductPage() {
         .insert({
           tenant_id: tenant.id,
           product_id: id,
-          quantity: delta,
-          type: stockAdjustment.type === 'add' ? 'entry' : 'exit',
-          reason: stockAdjustment.reason,
-          performed_by: profile?.id || null,
+          quantity_change: delta,
+          type: 'adjustment',
+          stock_before: currentStock,
+          stock_after: newStock,
+          notes: stockAdjustment.reason,
+          user_id: profile?.id || null,
         })
 
       if (movError) throw movError

@@ -99,7 +99,7 @@ export default function NewProductPage() {
           description: form.description,
           barcode: form.barcode || null,
           reference_code: form.reference_code || null,
-          category_id: form.category_id,
+          category_id: form.category_id || null,
           cost_price: parseFloat(form.cost_price),
           sale_price: parseFloat(form.sale_price),
           unit_type: form.unit_type,
