@@ -39,8 +39,8 @@ export default function SettingsPage() {
         phone: tenant.phone || '',
         primary_color: tenant.theme_config?.primary_color || '#7C3AED',
         secondary_color: tenant.theme_config?.secondary_color || '#10B981',
-        mp_access_token: tenant.payment_config?.mp_access_token || '',
-        mp_public_key: tenant.payment_config?.mp_public_key || '',
+        mp_access_token: tenant.theme_config?.mp_access_token || '',
+        mp_public_key: tenant.theme_config?.mp_public_key || '',
         currency: tenant.theme_config?.currency || 'ARS',
         locale: tenant.theme_config?.locale || 'es-AR',
         tax_rate: tenant.theme_config?.tax_rate !== undefined ? tenant.theme_config.tax_rate.toString() : '21',
@@ -67,8 +67,6 @@ export default function SettingsPage() {
           locale: form.locale,
           tax_rate: parseFloat(form.tax_rate) || 0,
           tax_name: form.tax_name,
-        },
-        payment_config: {
           mp_access_token: form.mp_access_token,
           mp_public_key: form.mp_public_key,
         }
