@@ -14,6 +14,7 @@ export default function SettingsPage() {
   const [loading, setLoading] = useState(false)
   const [activeTab, setActiveTab] = useState('general')
   
+  const [uploadingLogo, setUploadingLogo] = useState(false)
   const [form, setForm] = useState({
     name: '',
     business_type: '',
@@ -27,6 +28,8 @@ export default function SettingsPage() {
     locale: 'es-AR',
     tax_rate: '21',
     tax_name: 'IVA',
+    logo_url: '',
+    background_preset: 'matte',
   })
 
   useEffect(() => {
@@ -45,11 +48,43 @@ export default function SettingsPage() {
         locale: tenant.theme_config?.locale || 'es-AR',
         tax_rate: tenant.theme_config?.tax_rate !== undefined ? tenant.theme_config.tax_rate.toString() : '21',
         tax_name: tenant.theme_config?.tax_name || 'IVA',
+        logo_url: tenant.logo_url || '',
+        background_preset: tenant.theme_config?.background_preset || 'matte',
       })
     }
   }, [tenant])
 
   const updateForm = (key, value) => setForm(prev => ({ ...prev, [key]: value }))
+
+  const handleLogoUpload = async (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+
+    setUploadingLogo(true)
+    try {
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${tenant.id}-${Math.random().toString(36).substring(2, 7)}.${fileExt}`
+      const filePath = `${fileName}`
+
+      const { data, error: uploadError } = await supabase.storage
+        .from('tenant-logos')
+        .upload(filePath, file, { upsert: true })
+
+      if (uploadError) throw uploadError
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('tenant-logos')
+        .getPublicUrl(filePath)
+
+      updateForm('logo_url', publicUrl)
+      toast.success('Logo cargado. Guarda los cambios para guardarlo en tu cuenta.')
+    } catch (err) {
+      console.error(err)
+      toast.error('Error al subir imagen. ¿La tabla/storage está habilitada en Supabase?')
+    } finally {
+      setUploadingLogo(false)
+    }
+  }
 
   const handleSave = async () => {
     setLoading(true)
@@ -60,6 +95,7 @@ export default function SettingsPage() {
         business_type: form.business_type,
         address: form.address,
         phone: form.phone,
+        logo_url: form.logo_url,
         theme_config: {
           primary_color: form.primary_color,
           secondary_color: form.secondary_color,
@@ -69,6 +105,7 @@ export default function SettingsPage() {
           tax_name: form.tax_name,
           mp_access_token: form.mp_access_token,
           mp_public_key: form.mp_public_key,
+          background_preset: form.background_preset,
         }
       }
 
@@ -83,7 +120,23 @@ export default function SettingsPage() {
       document.documentElement.style.setProperty('--color-primary', form.primary_color)
       document.documentElement.style.setProperty('--color-secondary', form.secondary_color)
       
-      // Update local storage configuration immediately
+      const bgPreset = form.background_preset
+      let base = '#060e20', surface = '#0b1326', card = '#131b2e', cardHover = '#171f33'
+      if (bgPreset === 'cosmic') {
+        base = '#0c081e'; surface = '#140e30'; card = '#1d1542'; cardHover = '#241b52'
+      } else if (bgPreset === 'ocean') {
+        base = '#020d1a'; surface = '#04172e'; card = '#062242'; cardHover = '#082a52'
+      } else if (bgPreset === 'midnight') {
+        base = '#000000'; surface = '#09090b'; card = '#18181b'; cardHover = '#27272a'
+      }
+
+      document.documentElement.style.setProperty('--bg-base', base)
+      document.documentElement.style.setProperty('--bg-surface', surface)
+      document.documentElement.style.setProperty('--bg-card', card)
+      document.documentElement.style.setProperty('--bg-card-hover', cardHover)
+      document.documentElement.style.setProperty('--bg-sidebar', base)
+      document.documentElement.style.setProperty('--bg-input', card)
+
       if (typeof window !== 'undefined') {
         localStorage.setItem('smartcaja_tenant_currency', form.currency)
         localStorage.setItem('smartcaja_tenant_locale', form.locale)
@@ -287,15 +340,73 @@ export default function SettingsPage() {
             )}
 
             {activeTab === 'appearance' && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.125rem', marginBottom: 'var(--space-2)' }}>Personalización Visual</h3>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Personalizá los colores de tu sistema para que coincidan con tu marca.</p>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>
+                <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.125rem', marginBottom: 'var(--space-1)' }}>Personalización Visual</h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>Personalizá el logo, los colores y el fondo de tu sistema para adaptarlo a tu marca.</p>
                 
+                {/* Logo Section */}
+                <div style={{ display: 'flex', gap: 'var(--space-6)', flexWrap: 'wrap', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', padding: 'var(--space-4)', borderRadius: 'var(--radius-lg)' }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+                    <label className="form-label" style={{ marginBottom: 0 }}>Logo Actual</label>
+                    {form.logo_url ? (
+                      <img src={form.logo_url} alt="Logo de la empresa" style={{ width: '80px', height: '80px', borderRadius: 'var(--radius-md)', objectFit: 'cover', border: '1px solid var(--border-color)' }} />
+                    ) : (
+                      <div style={{ width: '80px', height: '80px', borderRadius: 'var(--radius-md)', background: 'var(--bg-input)', border: '1px dashed var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
+                        🏪
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', minWidth: '240px' }}>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">Logo de tu Emprendimiento (Imagen)</label>
+                      <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+                        <input
+                          type="file"
+                          id="logo-upload"
+                          accept="image/*"
+                          style={{ display: 'none' }}
+                          onChange={handleLogoUpload}
+                          disabled={uploadingLogo}
+                        />
+                        <button
+                          type="button"
+                          className="btn"
+                          style={{ border: '1px solid var(--border-color)', padding: '8px 16px', background: 'rgba(255,255,255,0.03)', color: '#fff', cursor: 'pointer' }}
+                          onClick={() => document.getElementById('logo-upload').click()}
+                          disabled={uploadingLogo}
+                        >
+                          {uploadingLogo ? 'Subiendo...' : '📁 Subir Imagen'}
+                        </button>
+                        {form.logo_url && (
+                          <button
+                            type="button"
+                            className="btn btn-ghost"
+                            style={{ color: 'var(--color-error)', border: 'none', background: 'transparent', cursor: 'pointer' }}
+                            onClick={() => updateForm('logo_url', '')}
+                          >
+                            Eliminar Logo
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    <div className="form-group" style={{ marginBottom: 0 }}>
+                      <label className="form-label">O pega la URL del Logo directamente</label>
+                      <input
+                        className="form-input"
+                        placeholder="https://ejemplo.com/mi-logo.png"
+                        value={form.logo_url}
+                        onChange={e => updateForm('logo_url', e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </div>
+
+                {/* Colors Section */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
                   <div className="form-group">
                     <label className="form-label">Color Principal</label>
                     <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                      <input type="color" value={form.primary_color} onChange={e => updateForm('primary_color', e.target.value)} style={{ width: '40px', height: '40px', padding: '0', border: 'none', borderRadius: 'var(--radius-sm)' }} />
+                      <input type="color" value={form.primary_color} onChange={e => updateForm('primary_color', e.target.value)} style={{ width: '40px', height: '40px', padding: '0', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }} />
                       <input className="form-input" value={form.primary_color} onChange={e => updateForm('primary_color', e.target.value)} />
                     </div>
                   </div>
@@ -303,9 +414,48 @@ export default function SettingsPage() {
                   <div className="form-group">
                     <label className="form-label">Color Secundario (Éxito)</label>
                     <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                      <input type="color" value={form.secondary_color} onChange={e => updateForm('secondary_color', e.target.value)} style={{ width: '40px', height: '40px', padding: '0', border: 'none', borderRadius: 'var(--radius-sm)' }} />
+                      <input type="color" value={form.secondary_color} onChange={e => updateForm('secondary_color', e.target.value)} style={{ width: '40px', height: '40px', padding: '0', border: 'none', borderRadius: 'var(--radius-sm)', cursor: 'pointer' }} />
                       <input className="form-input" value={form.secondary_color} onChange={e => updateForm('secondary_color', e.target.value)} />
                     </div>
+                  </div>
+                </div>
+
+                {/* Background Presets Section */}
+                <div className="form-group">
+                  <label className="form-label">Tema de Fondo</label>
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', gap: '12px' }}>
+                    {[
+                      { id: 'matte', name: 'Gris Matte (Original)', color: '#060e20' },
+                      { id: 'cosmic', name: 'Violeta Cósmico', color: '#0c081e' },
+                      { id: 'ocean', name: 'Azul Océano', color: '#020d1a' },
+                      { id: 'midnight', name: 'Negro Puro', color: '#000000' }
+                    ].map(preset => (
+                      <button
+                        key={preset.id}
+                        type="button"
+                        onClick={() => updateForm('background_preset', preset.id)}
+                        style={{
+                          background: preset.color,
+                          border: form.background_preset === preset.id ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
+                          borderRadius: 'var(--radius-md)',
+                          padding: '16px 12px',
+                          cursor: 'pointer',
+                          color: '#fff',
+                          textAlign: 'center',
+                          display: 'flex',
+                          flexDirection: 'column',
+                          alignItems: 'center',
+                          gap: '8px',
+                          boxShadow: form.background_preset === preset.id ? '0 0 12px rgba(221,183,255,0.2)' : 'none',
+                          transition: 'all 0.2s'
+                        }}
+                      >
+                        <div style={{ width: '20px', height: '20px', borderRadius: '50%', background: '#fff', border: '3px solid #1a1a2e', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {form.background_preset === preset.id && <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: 'var(--color-primary)' }} />}
+                        </div>
+                        <span style={{ fontSize: '0.8125rem', fontWeight: 600 }}>{preset.name}</span>
+                      </button>
+                    ))}
                   </div>
                 </div>
               </div>

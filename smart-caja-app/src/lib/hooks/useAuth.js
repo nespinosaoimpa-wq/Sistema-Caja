@@ -65,6 +65,24 @@ export function AuthProvider({ children }) {
               '--color-secondary', theme.secondary_color || '#10B981'
             )
             
+            // Apply background preset variables
+            const bgPreset = theme.background_preset || 'matte'
+            let base = '#060e20', surface = '#0b1326', card = '#131b2e', cardHover = '#171f33'
+            if (bgPreset === 'cosmic') {
+              base = '#0c081e'; surface = '#140e30'; card = '#1d1542'; cardHover = '#241b52'
+            } else if (bgPreset === 'ocean') {
+              base = '#020d1a'; surface = '#04172e'; card = '#062242'; cardHover = '#082a52'
+            } else if (bgPreset === 'midnight') {
+              base = '#000000'; surface = '#09090b'; card = '#18181b'; cardHover = '#27272a'
+            }
+
+            document.documentElement.style.setProperty('--bg-base', base)
+            document.documentElement.style.setProperty('--bg-surface', surface)
+            document.documentElement.style.setProperty('--bg-card', card)
+            document.documentElement.style.setProperty('--bg-card-hover', cardHover)
+            document.documentElement.style.setProperty('--bg-sidebar', base)
+            document.documentElement.style.setProperty('--bg-input', card)
+            
             // Save internationalization settings to localStorage for static helpers
             try {
               localStorage.setItem('smartcaja_tenant_currency', theme.currency || 'ARS')

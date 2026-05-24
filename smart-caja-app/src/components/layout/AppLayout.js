@@ -290,7 +290,31 @@ export default function AppLayout({ children }) {
       {/* Sidebar */}
       <aside className="app-sidebar">
         <div className="sidebar-logo">
-          <div className="sidebar-logo-text">Smart Caja</div>
+          {tenant?.logo_url ? (
+            <img 
+              src={tenant.logo_url} 
+              alt="Logo" 
+              style={{ width: '32px', height: '32px', borderRadius: 'var(--radius-sm)', objectFit: 'cover', border: '1px solid rgba(255,255,255,0.1)' }} 
+            />
+          ) : (
+            <div style={{
+              width: '32px',
+              height: '32px',
+              borderRadius: 'var(--radius-sm)',
+              background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              fontWeight: 800,
+              color: '#fff',
+              fontSize: '1rem'
+            }}>
+              {tenant?.name ? tenant.name.substring(0, 2).toUpperCase() : 'SC'}
+            </div>
+          )}
+          <div className="sidebar-logo-text" style={{ textTransform: 'capitalize' }}>
+            {tenant?.name || 'Smart Caja'}
+          </div>
         </div>
 
         <nav className="sidebar-nav" style={{ marginTop: 'var(--space-4)' }}>
