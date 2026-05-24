@@ -450,8 +450,8 @@ export default function LandingPage() {
         <div className={styles.faqGrid}>
           {[
             {
-              q: "¿En qué se diferencia Smart Caja de Cobrando App u otros sistemas?",
-              a: "Smart Caja incluye arqueo de caja por turno y conciliación de cupones POSnet — funciones que otros sistemas no ofrecen en ningún plan. Esto es fundamental para comercios con empleados o que aceptan tarjetas. Además, nuestro plan Profesional agrega rentabilidad real por producto, cuotas e intereses y personalización de marca."
+              q: "¿Qué tiene Smart Caja que otras plataformas no incluyen?",
+              a: "Arqueo de caja por turno, conciliación de cupones POSnet, rentabilidad real por producto y ventas en cuotas con intereses configurables. Son funciones que desarrollamos escuchando a comerciantes reales y que no encontrarás completas en la mayoría de los sistemas del mercado."
             },
             {
               q: "¿Es necesario instalar algún programa?",
