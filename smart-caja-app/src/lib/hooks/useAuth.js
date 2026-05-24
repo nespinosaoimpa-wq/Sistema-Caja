@@ -4,6 +4,7 @@ import { createContext, useContext, useState, useEffect, useCallback } from 'rea
 import { createClient } from '@/lib/supabase/client'
 
 const AuthContext = createContext({})
+const supabase = createClient()
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
@@ -13,7 +14,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [profileLoaded, setProfileLoaded] = useState(false)
   const [profileError, setProfileError] = useState(null)
-  const supabase = createClient()
 
   // Sincronizar con localStorage
   useEffect(() => {
@@ -66,6 +66,7 @@ export function AuthProvider({ children }) {
       if (profileData) {
         setProfile(profileData)
         setTenant(profileData.tenants)
+        setProfileLoaded(true)
 
         // Apply tenant theme to CSS variables
         if (profileData.tenants?.theme_config) {
@@ -105,9 +106,15 @@ export function AuthProvider({ children }) {
             }
           }
         }
+      } else {
+        setProfile(null)
+        setTenant(null)
+        setProfileLoaded(true)
       }
     } catch (err) {
       console.error('Exception in loadProfile:', err)
+      setProfileError(err.message || 'Excepción al cargar perfil')
+      setProfileLoaded(false)
     }
   }, [supabase])
 
