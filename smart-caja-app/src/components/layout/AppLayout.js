@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -52,6 +52,30 @@ export default function AppLayout({ children }) {
   const [setupForm, setSetupForm] = useState({ business_name: '', business_type: 'general' })
   const [setupLoading, setSetupLoading] = useState(false)
   const [setupError, setSetupError] = useState(null)
+  const [verifyTimeout, setVerifyTimeout] = useState(false)
+  const retryCountRef = useRef(0)
+
+  // Safety net: if profileLoaded stays false too long after loading, force retry or show error
+  useEffect(() => {
+    if (loading || !user || profileLoaded || profileError) return
+
+    const timer = setTimeout(async () => {
+      if (!profileLoaded && !profileError && retryCountRef.current < 2) {
+        retryCountRef.current += 1
+        console.warn(`[AppLayout] profileLoaded still false — auto-retry #${retryCountRef.current}`)
+        try {
+          await reloadProfile()
+        } catch(e) {
+          console.error('[AppLayout] reloadProfile retry failed:', e)
+        }
+      } else if (!profileLoaded) {
+        console.warn('[AppLayout] profileLoaded still false after retries — showing timeout error')
+        setVerifyTimeout(true)
+      }
+    }, 4000)
+
+    return () => clearTimeout(timer)
+  }, [loading, user, profileLoaded, profileError, reloadProfile])
 
   if (loading) {
     return (
@@ -219,32 +243,53 @@ export default function AppLayout({ children }) {
     )
   }
 
-  // If loading finished but verification check hasn't completed yet (e.g. slow network timeout triggered)
+  // If loading finished but verification check hasn't completed yet
+  // Show spinner, but with a hard timeout fallback
   if (!loading && user && !profileLoaded && !profileError) {
+    // Show timeout error if retries exhausted
+    if (verifyTimeout) {
+      return (
+        <div style={{
+          minHeight: '100vh', background: 'var(--bg-base)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center', padding: 'var(--space-4)'
+        }}>
+          <div className="card" style={{ maxWidth: '480px', width: '100%', padding: 'var(--space-8)', textAlign: 'center' }}>
+            <span style={{ fontSize: '3rem' }}>⏱️</span>
+            <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginTop: '12px', color: '#fff' }}>
+              Verificación lenta
+            </h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '8px', marginBottom: '24px', lineHeight: 1.6 }}>
+              No pudimos verificar tu cuenta. Puede ser un problema de conexión o un momento de alta demanda. Intentá de nuevo.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => signOut()}>Cerrar Sesión</button>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => {
+                setVerifyTimeout(false)
+                retryCountRef.current = 0
+                reloadProfile()
+              }}>Reintentar</button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div style={{
-        minHeight: '100vh',
-        background: 'var(--bg-base)',
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        justifyContent: 'center',
-        gap: '16px'
+        minHeight: '100vh', background: 'var(--bg-base)',
+        display: 'flex', flexDirection: 'column',
+        alignItems: 'center', justifyContent: 'center', gap: '16px'
       }}>
         <div style={{
-          width: '40px',
-          height: '40px',
+          width: '40px', height: '40px',
           border: '3px solid var(--border-color)',
           borderTopColor: 'var(--color-primary)',
-          borderRadius: '50%',
-          animation: 'spin 1s linear infinite'
+          borderRadius: '50%', animation: 'spin 1s linear infinite'
         }} />
         <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', fontWeight: 500 }}>
           Verificando cuenta...
         </span>
-        <style>{`
-          @keyframes spin { to { transform: rotate(360deg); } }
-        `}</style>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
     )
   }

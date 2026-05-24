@@ -54,19 +54,18 @@ export function AuthProvider({ children }) {
           // Profile definitely does not exist in database
           setProfile(null)
           setTenant(null)
-          setProfileLoaded(true)
         } else {
-          // Network or transient DB connection error
+          // Network or transient DB connection error — report it
           setProfileError(error.message || 'Error de conexión con la base de datos')
-          setProfileLoaded(false)
         }
+        // Always mark profileLoaded=true so AppLayout doesn't hang
+        setProfileLoaded(true)
         return
       }
 
       if (profileData) {
         setProfile(profileData)
         setTenant(profileData.tenants)
-        setProfileLoaded(true)
 
         // Apply tenant theme to CSS variables
         if (profileData.tenants?.theme_config) {
@@ -109,14 +108,14 @@ export function AuthProvider({ children }) {
       } else {
         setProfile(null)
         setTenant(null)
-        setProfileLoaded(true)
       }
     } catch (err) {
       console.error('Exception in loadProfile:', err)
       setProfileError(err.message || 'Excepción al cargar perfil')
-      setProfileLoaded(false)
+    } finally {
+      // ALWAYS mark as loaded so AppLayout doesn't hang
+      setProfileLoaded(true)
     }
-  // supabase is a stable module-level singleton; no need to include it as dependency
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
