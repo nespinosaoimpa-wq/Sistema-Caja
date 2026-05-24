@@ -65,14 +65,20 @@ export default function DashboardPage() {
         .select('*', { count: 'exact', head: true })
         .eq('tenant_id', tenant.id)
 
-      // Fetch low stock products count (stock <= reorder_point or stock <= 2)
-      const { count: lowStock } = await supabase
+      // Fetch products for low stock count check (selecting only necessary columns)
+      const { data: stockProducts, error: stockError } = await supabase
         .from('products')
-        .select('*', { count: 'exact', head: true })
+        .select('stock_quantity, min_stock_alert')
         .eq('tenant_id', tenant.id)
         .eq('is_active', true)
-        .gt('track_stock', false)
-        .lte('stock', 2)
+
+      if (stockError) {
+        console.error('Error fetching stock products for count:', stockError)
+      }
+
+      const calculatedLowStockCount = stockProducts
+        ? stockProducts.filter(p => p.stock_quantity <= p.min_stock_alert).length
+        : 0
 
       // Fetch open shifts
       const { count: shiftCount } = await supabase
@@ -127,7 +133,7 @@ export default function DashboardPage() {
       }))
 
       setRecentSales(latestSales || [])
-      setLowStockCount(lowStock || 0)
+      setLowStockCount(calculatedLowStockCount)
       setStats({
         todaySales: todayTotal,
         yesterdaySales: yesterdayTotal,
