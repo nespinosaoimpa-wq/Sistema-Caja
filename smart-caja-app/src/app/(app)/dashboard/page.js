@@ -18,6 +18,8 @@ export default function DashboardPage() {
     monthSales: 0,
     totalProducts: 0,
     openShifts: 0,
+    totalShifts: 0,
+    totalSales: 0,
     chartData: []
   })
 
@@ -30,57 +32,94 @@ export default function DashboardPage() {
   const loadStats = async () => {
     setLoading(true)
     
-    // Simulate complex fetching for prototype
-    const { data: sales } = await supabase
-      .from('sales')
-      .select('total, created_at')
-      .eq('tenant_id', tenant.id)
-      .eq('status', 'completed')
+    try {
+      const { data: sales } = await supabase
+        .from('sales')
+        .select('total, created_at')
+        .eq('tenant_id', tenant.id)
+        .eq('status', 'completed')
 
-    const { count: prodCount } = await supabase
-      .from('products')
-      .select('*', { count: 'exact', head: true })
-      .eq('tenant_id', tenant.id)
+      const { count: prodCount } = await supabase
+        .from('products')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenant.id)
 
-    const { count: shiftCount } = await supabase
-      .from('shifts')
-      .select('*', { count: 'exact', head: true })
-      .eq('tenant_id', tenant.id)
-      .eq('status', 'open')
+      const { count: shiftCount } = await supabase
+        .from('shifts')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenant.id)
+        .eq('status', 'open')
 
-    let todayTotal = 0
-    let monthTotal = 0
-    const today = new Date()
-    
-    const chartData = [
-      { name: '08h', total: 0 }, { name: '10h', total: 12000 },
-      { name: '12h', total: 25000 }, { name: '14h', total: 18000 },
-      { name: '16h', total: 32000 }, { name: '18h', total: 45000 },
-      { name: '20h', total: 58000 }
-    ]
+      const { count: totalShiftsCount } = await supabase
+        .from('shifts')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenant.id)
 
-    if (sales) {
-      sales.forEach(sale => {
-        const date = new Date(sale.created_at)
-        if (date.toDateString() === today.toDateString()) {
-          todayTotal += Number(sale.total)
-        }
-        if (date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {
-          monthTotal += Number(sale.total)
-        }
+      const { count: totalSalesCount } = await supabase
+        .from('sales')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenant.id)
+
+      let todayTotal = 0
+      let monthTotal = 0
+      const today = new Date()
+
+      const hours = ['08h', '10h', '12h', '14h', '16h', '18h', '20h']
+      const hourlyTotals = { '08h': 0, '10h': 0, '12h': 0, '14h': 0, '16h': 0, '18h': 0, '20h': 0 }
+
+      if (sales) {
+        sales.forEach(sale => {
+          const date = new Date(sale.created_at)
+          if (date.toDateString() === today.toDateString()) {
+            todayTotal += Number(sale.total)
+            const hour = date.getHours()
+            const timeLabel = hour < 10 ? '08h' : hour < 12 ? '10h' : hour < 14 ? '12h' : hour < 16 ? '14h' : hour < 18 ? '16h' : hour < 20 ? '18h' : '20h'
+            hourlyTotals[timeLabel] += Number(sale.total)
+          }
+          if (date.getMonth() === today.getMonth() && date.getFullYear() === today.getFullYear()) {
+            monthTotal += Number(sale.total)
+          }
+        })
+      }
+
+      const actualProducts = prodCount || 0
+      const actualSales = totalSalesCount || 0
+      const hasSales = actualSales > 0
+
+      const chartData = hours.map(h => ({
+        name: h,
+        total: hasSales ? hourlyTotals[h] : (h === '08h' ? 0 : h === '10h' ? 12000 : h === '12h' ? 25000 : h === '14h' ? 18000 : h === '16h' ? 32000 : h === '18h' ? 45000 : 58000)
+      }))
+
+      setStats({
+        todaySales: todayTotal,
+        monthSales: monthTotal,
+        totalProducts: actualProducts,
+        openShifts: shiftCount || 0,
+        totalShifts: totalShiftsCount || 0,
+        totalSales: actualSales,
+        chartData
       })
+    } catch (error) {
+      console.error('Error loading stats:', error)
+    } finally {
+      setLoading(false)
     }
-
-    setStats({
-      todaySales: todayTotal || 125400, // mock fallback
-      monthSales: monthTotal || 2450000,
-      totalProducts: prodCount || 145,
-      openShifts: shiftCount || 1,
-      chartData
-    })
-    
-    setLoading(false)
   }
+
+  // Verification of quickstart onboarding steps
+  // 1. Configured details if address or custom values set
+  const step1Completed = !!(tenant?.address || tenant?.theme_config?.tax_rate !== 21 || tenant?.theme_config?.currency !== 'ARS')
+  // 2. Added products
+  const step2Completed = stats.totalProducts > 0
+  // 3. Opened first shift
+  const step3Completed = stats.totalShifts > 0
+  // 4. Completed first sale
+  const step4Completed = stats.totalSales > 0
+
+  const completedStepsCount = [step1Completed, step2Completed, step3Completed, step4Completed].filter(Boolean).length
+  const progressPercent = completedStepsCount * 25
+  const showOnboarding = stats.totalSales === 0 || stats.totalProducts === 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', padding: 'var(--space-8)' }}>
@@ -110,6 +149,164 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
+          {/* Guía de Inicio Rápido interactiva */}
+          {showOnboarding && (
+            <div className="card" style={{
+              background: 'linear-gradient(135deg, rgba(26, 22, 37, 0.6) 0%, rgba(11, 19, 38, 0.8) 100%)',
+              border: '1px solid rgba(221, 183, 255, 0.2)',
+              boxShadow: '0 8px 32px 0 rgba(124, 58, 237, 0.1)',
+              backdropFilter: 'blur(10px)',
+              borderRadius: 'var(--radius-xl)',
+              padding: 'var(--space-6)',
+              marginBottom: 'var(--space-2)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
+                <div style={{ flex: 1, minWidth: '280px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '1.5rem' }}>🚀</span>
+                    <h2 style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-headline)', color: '#fff' }}>
+                      ¡Bienvenido a tu Smart Caja! Guía de Inicio Rápido
+                    </h2>
+                  </div>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', lineHeight: 1.5 }}>
+                    Completá estos sencillos pasos para activar tu negocio y comenzar a vender hoy mismo.
+                  </p>
+                  
+                  {/* Progress bar */}
+                  <div style={{ marginTop: '20px' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--color-primary)', marginBottom: '6px' }}>
+                      <span>Progreso de configuración</span>
+                      <span>{progressPercent}% ({completedStepsCount} de 4)</span>
+                    </div>
+                    <div style={{ width: '100%', height: '8px', background: 'var(--bg-input)', borderRadius: '999px', overflow: 'hidden' }}>
+                      <div style={{ width: `${progressPercent}%`, height: '100%', background: 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))', transition: 'width 0.5s ease-out', borderRadius: '999px' }} />
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Support Box */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(255,255,255,0.05)', maxWidth: '320px' }}>
+                  <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                    <span>📲</span> Soporte Humano por WhatsApp
+                  </div>
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                    ¿Tenés dudas o querés ayuda para cargar tus productos masivamente? Chateá directo con un asesor real.
+                  </p>
+                  <a 
+                    href={`https://wa.me/5491112345678?text=Hola%20Smart%20Caja!%20Acabo%20de%20registrarme%20y%20necesito%20ayuda%20para%20configurar%20mi%20negocio%20${encodeURIComponent(tenant?.name || '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-sm"
+                    style={{ background: '#25D366', color: '#fff', fontWeight: 700, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '4px' }}
+                  >
+                    <span>💬</span> Chatear con Soporte
+                  </a>
+                </div>
+              </div>
+              
+              {/* Checklist Steps */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 'var(--space-4)', marginTop: '24px', paddingTop: '20px', borderTop: '1px solid rgba(255,255,255,0.05)' }}>
+                {[
+                  {
+                    title: '1. Datos del Comercio',
+                    desc: 'Configurá dirección, moneda e impuestos.',
+                    link: '/settings',
+                    actionLabel: 'Ir a Configuración',
+                    completed: step1Completed
+                  },
+                  {
+                    title: '2. Cargar Productos',
+                    desc: 'Agregá artículos a tu catálogo con stock.',
+                    link: '/inventory',
+                    actionLabel: 'Cargar Producto',
+                    completed: step2Completed
+                  },
+                  {
+                    title: '3. Abrir Caja Registradora',
+                    desc: 'Iniciá un turno con tu efectivo inicial.',
+                    link: '/pos',
+                    actionLabel: 'Abrir Caja / Turno',
+                    completed: step3Completed
+                  },
+                  {
+                    title: '4. Registrar Primera Venta',
+                    desc: 'Realizá un cobro y emití tu primer ticket.',
+                    link: '/pos',
+                    actionLabel: 'Ir al Punto de Venta',
+                    completed: step4Completed
+                  }
+                ].map((step, idx) => (
+                  <div 
+                    key={idx} 
+                    style={{ 
+                      background: step.completed ? 'rgba(78, 222, 163, 0.03)' : 'rgba(255,255,255,0.01)',
+                      border: `1px solid ${step.completed ? 'rgba(78, 222, 163, 0.2)' : 'rgba(255,255,255,0.03)'}`,
+                      borderRadius: 'var(--radius-lg)',
+                      padding: '16px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      justifyContent: 'space-between',
+                      gap: '12px',
+                      transition: 'all 0.2s',
+                      opacity: step.completed ? 0.85 : 1
+                    }}
+                  >
+                    <div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px' }}>
+                        <div style={{
+                          width: '20px',
+                          height: '20px',
+                          borderRadius: '50%',
+                          background: step.completed ? 'var(--color-secondary)' : 'rgba(255,255,255,0.05)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.75rem',
+                          color: step.completed ? '#000' : 'var(--text-muted)',
+                          fontWeight: 700
+                        }}>
+                          {step.completed ? '✓' : idx + 1}
+                        </div>
+                        <span style={{ fontWeight: 700, fontSize: '0.875rem', color: step.completed ? 'var(--color-secondary)' : '#fff', textDecoration: step.completed ? 'line-through' : 'none' }}>
+                          {step.title}
+                        </span>
+                      </div>
+                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        {step.desc}
+                      </p>
+                    </div>
+                    
+                    {!step.completed && (
+                      <button 
+                        onClick={() => router.push(step.link)}
+                        className="btn btn-sm btn-ghost" 
+                        style={{ 
+                          width: '100%', 
+                          fontSize: '0.75rem', 
+                          padding: '6px', 
+                          background: 'rgba(124, 58, 237, 0.1)', 
+                          color: 'var(--color-primary)', 
+                          border: '1px solid rgba(124, 58, 237, 0.2)',
+                          justifyContent: 'center',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px'
+                        }}
+                      >
+                        {step.actionLabel} →
+                      </button>
+                    )}
+                    {step.completed && (
+                      <div style={{ fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center', padding: '6px 0' }}>
+                        <span>✨</span> Completado
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* KPI Cards */}
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-6)' }}>
             <div className="kpi-card" style={{ borderColor: 'rgba(139, 92, 246, 0.3)' }}>

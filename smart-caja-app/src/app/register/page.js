@@ -19,6 +19,7 @@ export default function RegisterPage() {
     // Step 2 - Owner info
     full_name: '',
     email: '',
+    phone: '',
     password: '',
     confirmPassword: '',
   })
@@ -51,6 +52,11 @@ export default function RegisterPage() {
     const errs = {}
     if (!form.full_name.trim()) errs.full_name = 'Ingresá tu nombre'
     if (!form.email.includes('@')) errs.email = 'Email inválido'
+    if (!form.phone.trim()) {
+      errs.phone = 'Ingresá tu WhatsApp o Celular'
+    } else if (!/^[0-9+\s-()]{7,25}$/.test(form.phone.trim())) {
+      errs.phone = 'Número no válido. Ej: +54 9 11 1234-5678'
+    }
     if (form.password.length < 6) errs.password = 'Mínimo 6 caracteres'
     if (form.password !== form.confirmPassword) errs.confirmPassword = 'Las contraseñas no coinciden'
     setErrors(errs)
@@ -95,6 +101,7 @@ export default function RegisterPage() {
           slug,
           business_type: form.business_type,
           email: form.email,
+          phone: form.phone,
         })
         .select()
         .single()
@@ -259,6 +266,18 @@ export default function RegisterPage() {
                     onChange={e => updateForm('email', e.target.value)}
                   />
                   {errors.email && <span className="form-error">{errors.email}</span>}
+                </div>
+
+                <div className="form-group">
+                  <label className="form-label required">WhatsApp / Celular (soporte y contacto)</label>
+                  <input
+                    className={`form-input ${errors.phone ? 'error' : ''}`}
+                    type="tel"
+                    placeholder="Ej: +54 9 11 1234-5678"
+                    value={form.phone}
+                    onChange={e => updateForm('phone', e.target.value)}
+                  />
+                  {errors.phone && <span className="form-error">{errors.phone}</span>}
                 </div>
 
                 <div className="form-group">
