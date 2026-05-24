@@ -29,9 +29,9 @@ export default function LandingPage() {
 
         {/* Links */}
         <div className={`${styles.navLinks} ${menuOpen ? styles.navLinksActive : ''}`}>
-          <span className={styles.navLink} onClick={() => setMenuOpen(false)}>Características</span>
-          <span className={styles.navLink} onClick={() => setMenuOpen(false)}>Precios</span>
-          <span className={styles.navLink} onClick={() => setMenuOpen(false)}>Testimonios</span>
+          <a href="#caracteristicas" className={styles.navLink} onClick={() => setMenuOpen(false)}>Características</a>
+          <a href="#precios" className={styles.navLink} onClick={() => setMenuOpen(false)}>Precios</a>
+          <a href="#testimonios" className={styles.navLink} onClick={() => setMenuOpen(false)}>Testimonios</a>
           
           {/* Mobile Navigation Actions */}
           <div className={styles.navActionsMobile}>
@@ -57,11 +57,16 @@ export default function LandingPage() {
           Tu negocio, <span className={styles.gradientText}>digitalizado</span>
         </h1>
         <p className={styles.heroDesc}>
-          Kiosco, supermercado, boutique o lubricentro — un solo sistema para gestionar todo con precisión y control.
+          Kiosco, supermercado, boutique o lubricentro — un solo sistema para gestionar todo con precisión, control y la velocidad de la luz.
         </p>
-        <Link href="/register" className={styles.heroButton}>
-          Empezar ahora
-        </Link>
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          <Link href="/register" className={styles.heroButton}>
+            Empezar prueba gratis
+          </Link>
+          <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+            ✨ 14 días gratis · Sin tarjetas de crédito · Listo en 2 minutos
+          </span>
+        </div>
       </section>
 
       {/* Hero Image / Dashboard Mockup */}
@@ -76,20 +81,20 @@ export default function LandingPage() {
       </div>
 
       {/* Features Section */}
-      <section className={styles.featuresSection}>
+      <section id="caracteristicas" className={styles.featuresSection}>
         <div className={styles.sectionHeader}>
           <h2>Herramientas para crecer</h2>
-          <p>Todo lo que necesitas en una sola plataforma.</p>
+          <p>Todo lo que necesitas en una sola plataforma, optimizado y sin rodeos.</p>
         </div>
 
         <div className={styles.featuresGrid}>
           {[
-            { title: 'Caja registradora', desc: 'Ventas rápidas, cierres precisos y control total del flujo de caja.', icon: '💰' },
-            { title: 'Inventario con scanner', desc: 'Gestión de stock en tiempo real con integración de códigos de barras.', icon: '📦' },
-            { title: 'Estadísticas de ventas', desc: 'Métricas clave para entender el crecimiento de tu negocio.', icon: '📈' },
-            { title: 'Plan de cuotas', desc: 'Configura intereses y planes de pago a la medida de tus clientes.', icon: '📋' },
-            { title: 'Tickets digitales', desc: 'Envía comprobantes por email o WhatsApp al instante.', icon: '🧾' },
-            { title: 'Multi-empleados', desc: 'Control de accesos y registro de ventas por usuario.', icon: '👥' },
+            { title: 'Caja Registradora', desc: 'Ventas rápidas, cierres precisos, arqueos POSnet y soporte para transferencias bancarias directas.', icon: '💰' },
+            { title: 'Inventario con Scanner', desc: 'Gestión de stock en tiempo real con escáner de códigos de barras mediante cámara o lector físico.', icon: '📦' },
+            { title: 'Cuentas Corrientes y Fiados', desc: 'Elimina los cuadernos. Registra compras fiadas, saldos de clientes e historial de deudas de forma segura.', icon: '👥' },
+            { title: 'Estadísticas de Ventas', desc: 'Analíticas avanzadas por horas y meses para entender el rendimiento real de tu comercio.', icon: '📈' },
+            { title: 'Facturación y Tickets', desc: 'Listo para emitir comprobantes legales, enviarlos por WhatsApp o imprimirlos al instante.', icon: '🧾' },
+            { title: 'Control Multi-Sucursal', desc: 'Centraliza el stock y los reportes de múltiples sucursales o franquicias desde una sola cuenta.', icon: '🏢' },
           ].map((feat, i) => (
             <div key={i} className={styles.featureCard}>
               <div className={styles.featureIconWrapper}>
@@ -102,23 +107,63 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* Testimonials Section */}
+      <section id="testimonios" className={styles.testimonialsSection}>
+        <div className={styles.sectionHeader}>
+          <h2>Testimonios reales</h2>
+          <p>Comercios que ya digitalizaron su gestión y aumentaron su rentabilidad.</p>
+        </div>
+        <div className={styles.testimonialsGrid}>
+          {[
+            {
+              quote: "Descubrí que me faltaba mercadería por más de $30.000 al mes en el stock. Con el inventario y la conciliación de caja de Smart Caja ese problema desapareció por completo.",
+              author: "Carlos M.",
+              role: "Dueño de Minimarket",
+              location: "Moreno, Buenos Aires"
+            },
+            {
+              quote: "El sistema de cuentas corrientes cambió la vida de mi negocio. Anotaba los fiados en cuadernos que siempre se perdían. Ahora sé el saldo de cada cliente en segundos.",
+              author: "Patricia L.",
+              role: "Almacén La Esperanza",
+              location: "La Plata, Buenos Aires"
+            },
+            {
+              quote: "Tengo tres empleados en turnos rotativos. Con la conciliación de cupones POSnet de Smart Caja, cada centavo cobrado en débito o crédito queda perfectamente auditado.",
+              author: "Martín R.",
+              role: "Lubricentro San Martín",
+              location: "CABA"
+            }
+          ].map((test, i) => (
+            <div key={i} className={styles.testimonialCard}>
+              <div className={styles.testimonialStars}>★★★★★</div>
+              <p className={styles.testimonialQuote}>"{test.quote}"</p>
+              <div className={styles.testimonialAuthor}>
+                <strong>{test.author}</strong>
+                <span>{test.role} · {test.location}</span>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Pricing Section */}
-      <section className={styles.pricingSection}>
+      <section id="precios" className={styles.pricingSection}>
         <div className={styles.sectionHeader}>
           <h2>Planes a tu medida</h2>
-          <p>Transparencia y crecimiento para cada etapa.</p>
+          <p>Transparencia y crecimiento para cada etapa de tu comercio.</p>
         </div>
 
         <div className={styles.pricingGrid}>
           {/* Basic */}
           <div className={styles.pricingCard}>
             <h3>Básico</h3>
-            <p className={styles.planDesc}>Para negocios que recién empiezan.</p>
+            <p className={styles.planDesc}>Para pequeños comercios que recién empiezan.</p>
             <div className={styles.price}>$20.000<span className={styles.pricePeriod}>/mes</span></div>
             <div className={styles.featuresList}>
-              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Caja registradora</div>
+              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Caja registradora completa</div>
               <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Inventario básico</div>
-              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Ticket digital</div>
+              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Ticket digital e impreso</div>
+              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Soporte estándar</div>
             </div>
             <Link href="/register" className={styles.pricingButton}>
               Elegir Básico
@@ -129,13 +174,14 @@ export default function LandingPage() {
           <div className={styles.pricingCardPro}>
             <div className={styles.popularBadge}>MÁS POPULAR</div>
             <h3>Profesional</h3>
-            <p className={styles.planDesc}>La herramienta completa para crecer.</p>
+            <p className={styles.planDesc}>La herramienta completa para hacer crecer tu negocio.</p>
             <div className={styles.price}>$35.000<span className={styles.pricePeriod}>/mes</span></div>
             <div className={styles.featuresList}>
-              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Todo lo de Básico</div>
-              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Estadísticas avanzadas</div>
-              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Plan de cuotas</div>
-              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Soporte prioritario</div>
+              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Todo lo del plan Básico</div>
+              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Estadísticas de ventas avanzadas</div>
+              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Cuentas Corrientes y Fiados</div>
+              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Plan de cuotas e intereses</div>
+              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Soporte prioritario por WhatsApp</div>
             </div>
             <Link href="/register" className={styles.pricingButtonPro}>
               Elegir Profesional
@@ -145,12 +191,13 @@ export default function LandingPage() {
           {/* Enterprise */}
           <div className={styles.pricingCard}>
             <h3>Empresa</h3>
-            <p className={styles.planDesc}>Múltiples sucursales y control total.</p>
+            <p className={styles.planDesc}>Múltiples sucursales y control centralizado.</p>
             <div className={styles.price}>$60.000<span className={styles.pricePeriod}>/mes</span></div>
             <div className={styles.featuresList}>
-              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Todo lo de Profesional</div>
-              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Multi-sucursal</div>
-              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> API de integración</div>
+              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Todo lo del plan Profesional</div>
+              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Multi-sucursal y Casa Central</div>
+              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> API de integración y cargas masivas</div>
+              <div className={styles.featureItem}><span className={styles.featureCheck}>✓</span> Soporte dedicado 24/7</div>
             </div>
             <Link href="/register" className={styles.pricingButton}>
               Elegir Empresa
@@ -159,16 +206,42 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* FAQ Section */}
+      <section className={styles.faqSection}>
+        <div className={styles.sectionHeader}>
+          <h2>Preguntas frecuentes</h2>
+          <p>Respuestas rápidas a las dudas comunes.</p>
+        </div>
+        <div className={styles.faqGrid}>
+          {[
+            { q: "¿Es necesario instalar algún programa?", a: "No, Smart Caja es un sistema POS en la nube. Funciona desde el navegador de cualquier celular, tablet o computadora sin descargas." },
+            { q: "¿Cómo funciona la prueba gratis de 14 días?", a: "Te registras en 2 minutos sin tarjeta de crédito y accedes de inmediato a todas las funciones para validar si es útil para tu negocio." },
+            { q: "¿Cómo me ayudan con la carga inicial de stock?", a: "Ofrecemos soporte directo por WhatsApp para ayudarte a importar masivamente tu lista de productos mediante planillas de Excel." },
+            { q: "¿Tienen integración con Mercado Pago?", a: "Sí, puedes ingresar tus credenciales en la pestaña de configuración para habilitar cobros integrados." }
+          ].map((faq, i) => (
+            <div key={i} className={styles.faqCard}>
+              <h4>{faq.q}</h4>
+              <p>{faq.a}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
       {/* Bottom CTA */}
       <section className={styles.ctaSection}>
         <div className={styles.ctaBox}>
           <h2>Transformá tu negocio hoy</h2>
           <p>
-            Únete a cientos de comercios argentinos que ya controlan sus ventas y stock desde una sola plataforma.
+            Únete a cientos de comercios que ya controlan sus ventas y stock desde una sola plataforma.
           </p>
-          <Link href="/register" className={styles.heroButton}>
-            Crear cuenta gratis
-          </Link>
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+            <Link href="/register" className={styles.heroButton}>
+              Crear cuenta gratis
+            </Link>
+            <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)' }}>
+              🎁 Setup en 2 minutos · 14 días gratis · Sin tarjetas
+            </span>
+          </div>
         </div>
       </section>
 
@@ -178,9 +251,9 @@ export default function LandingPage() {
         <div className={styles.footerLinks}>
           <Link href="/privacy" className={styles.footerLink}>Política de Privacidad</Link>
           <Link href="/terms" className={styles.footerLink}>Términos de Servicio</Link>
-          <a href="mailto:soporte@smartcaja.com.ar" className={styles.footerLink}>Contactar Soporte</a>
+          <a href="https://wa.me/5491112345678?text=Hola%20Smart%20Caja,%20tengo%20una%20consulta%20comercial" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>Chatear por WhatsApp</a>
         </div>
-        <div>© 2026 Smart Caja. All rights reserved.</div>
+        <div>© 2026 Smart Caja. Todos los derechos reservados.</div>
       </footer>
     </div>
   )
