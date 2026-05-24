@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { formatCurrency } from '@/lib/utils/formatters'
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts'
+import { Bell, Plus, Rocket, MessageSquare, Check, ShoppingCart, DollarSign, Unlock, Package } from 'lucide-react'
 
 export default function DashboardPage() {
   const { tenant, profile } = useAuth()
@@ -127,18 +128,18 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
         <div>
           <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '4px' }}>
-            Hola, {profile?.full_name?.split(' ')[0] || 'Admin'} 👋
+            Hola, {profile?.full_name?.split(' ')[0] || 'Admin'}
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>
             Aquí está el resumen de <strong style={{ color: '#fff' }}>{tenant?.name}</strong> al día de hoy.
           </p>
         </div>
         <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-          <button className="btn btn-ghost" style={{ borderRadius: 'var(--radius-full)' }}>
-            <span style={{ fontSize: '1.2rem' }}>🔔</span>
+          <button className="btn btn-ghost" style={{ borderRadius: 'var(--radius-full)', padding: '10px' }}>
+            <Bell size={20} />
           </button>
-          <button className="btn btn-primary" onClick={() => router.push('/pos')} style={{ padding: '0 24px' }}>
-            <span style={{ fontSize: '1.2rem', marginRight: '8px' }}>+</span> Nueva Venta
+          <button className="btn btn-primary" onClick={() => router.push('/pos')} style={{ padding: '0 24px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Plus size={18} /> Nueva Venta
           </button>
         </div>
       </div>
@@ -163,7 +164,7 @@ export default function DashboardPage() {
               <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 'var(--space-4)' }}>
                 <div style={{ flex: 1, minWidth: '280px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '8px' }}>
-                    <span style={{ fontSize: '1.5rem' }}>🚀</span>
+                    <Rocket size={24} style={{ color: 'var(--color-primary)' }} />
                     <h2 style={{ fontSize: '1.35rem', fontWeight: 800, fontFamily: 'var(--font-headline)', color: '#fff' }}>
                       ¡Bienvenido a tu Smart Caja! Guía de Inicio Rápido
                     </h2>
@@ -186,8 +187,8 @@ export default function DashboardPage() {
                 
                 {/* Support Box */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid rgba(255,255,255,0.05)', maxWidth: '320px' }}>
-                  <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                    <span>📲</span> Soporte Humano por WhatsApp
+                  <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    <MessageSquare size={16} style={{ color: 'var(--color-secondary)' }} /> Soporte Humano por WhatsApp
                   </div>
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
                     ¿Tenés dudas o querés ayuda para cargar tus productos masivamente? Chateá directo con un asesor real.
@@ -197,9 +198,9 @@ export default function DashboardPage() {
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn-sm"
-                    style={{ background: '#25D366', color: '#fff', fontWeight: 700, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', marginTop: '4px' }}
+                    style={{ background: '#25D366', color: '#fff', fontWeight: 700, border: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', marginTop: '4px' }}
                   >
-                    <span>💬</span> Chatear con Soporte
+                    <MessageSquare size={14} /> Chatear con Soporte
                   </a>
                 </div>
               </div>
@@ -265,7 +266,7 @@ export default function DashboardPage() {
                           color: step.completed ? '#000' : 'var(--text-muted)',
                           fontWeight: 700
                         }}>
-                          {step.completed ? '✓' : idx + 1}
+                          <Check size={12} />
                         </div>
                         <span style={{ fontWeight: 700, fontSize: '0.875rem', color: step.completed ? 'var(--color-secondary)' : '#fff', textDecoration: step.completed ? 'line-through' : 'none' }}>
                           {step.title}
@@ -298,7 +299,7 @@ export default function DashboardPage() {
                     )}
                     {step.completed && (
                       <div style={{ fontSize: '0.75rem', color: 'var(--color-secondary)', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center', padding: '6px 0' }}>
-                        <span>✨</span> Completado
+                        <Check size={14} /> Completado
                       </div>
                     )}
                   </div>
@@ -380,7 +381,7 @@ export default function DashboardPage() {
                       Abrir Caja →
                     </button>
                   </div>
-                  <div style={{ position: 'absolute', right: '-20px', bottom: '-20px', fontSize: '120px', opacity: 0.1, transform: 'rotate(-15deg)', zIndex: 1 }}>🛒</div>
+                  <ShoppingCart size={120} style={{ position: 'absolute', right: '-20px', bottom: '-20px', opacity: 0.05, transform: 'rotate(-15deg)', zIndex: 1, color: '#fff' }} />
                 </div>
               </div>
 
@@ -391,23 +392,30 @@ export default function DashboardPage() {
                 <div className="card-body" style={{ padding: '0 var(--space-6)' }}>
                   {/* Mock Activity List */}
                   {[
-                    { title: 'Venta #00042', time: 'Hace 5 min', val: '+$1,250', icon: '💰' },
-                    { title: 'Turno abierto', time: 'Hace 2 horas', val: 'Admin', icon: '🔓' },
-                    { title: 'Stock actualizado', time: 'Hace 4 horas', val: '+50 Coca Cola', icon: '📦' },
-                  ].map((item, i) => (
-                    <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-4) 0', borderBottom: i !== 2 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
-                      <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem' }}>
-                        {item.icon}
+                    { title: 'Venta #00042', time: 'Hace 5 min', val: '+$1,250', type: 'sale' },
+                    { title: 'Turno abierto', time: 'Hace 2 horas', val: 'Admin', type: 'shift' },
+                    { title: 'Stock actualizado', time: 'Hace 4 horas', val: '+50 Coca Cola', type: 'stock' },
+                  ].map((item, i) => {
+                    let activityIcon;
+                    if (item.type === 'sale') activityIcon = <DollarSign size={18} style={{ color: 'var(--color-secondary)' }} />;
+                    else if (item.type === 'shift') activityIcon = <Unlock size={18} style={{ color: 'var(--color-primary)' }} />;
+                    else activityIcon = <Package size={18} style={{ color: 'var(--color-primary)' }} />;
+                    
+                    return (
+                      <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-3)', padding: 'var(--space-4) 0', borderBottom: i !== 2 ? '1px solid rgba(255,255,255,0.05)' : 'none' }}>
+                        <div style={{ width: '40px', height: '40px', borderRadius: '50%', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {activityIcon}
+                        </div>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{item.title}</div>
+                          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{item.time}</div>
+                        </div>
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem', color: item.val.startsWith('+') ? 'var(--color-secondary)' : 'inherit' }}>
+                          {item.val}
+                        </div>
                       </div>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontWeight: 600, fontSize: '0.875rem' }}>{item.title}</div>
-                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{item.time}</div>
-                      </div>
-                      <div style={{ fontWeight: 600, fontSize: '0.875rem', color: item.val.startsWith('+') ? 'var(--color-secondary)' : 'inherit' }}>
-                        {item.val}
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             </div>

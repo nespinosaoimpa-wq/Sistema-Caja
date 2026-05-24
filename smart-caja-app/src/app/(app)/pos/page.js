@@ -7,7 +7,7 @@ import { useToast } from '@/lib/hooks/useToast'
 import { formatCurrency, formatDateTime } from '@/lib/utils/formatters'
 import { 
   Maximize, Minimize, Search, Zap, Edit, Banknote, CreditCard, Landmark, Split, Calendar, 
-  ShoppingCart, User, Clock, Trash2, Printer, Package, ArrowLeftRight
+  ShoppingCart, User, Clock, Trash2, Printer, Package, ArrowLeftRight, CheckCircle
 } from 'lucide-react'
 
 export default function POSPage() {
@@ -1048,7 +1048,9 @@ export default function POSPage() {
               display: 'flex', alignItems: 'center', justifyContent: 'space-between'
             }}>
               <div>
-                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff' }}>✅ Venta Completada</h3>
+                <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <CheckCircle size={20} style={{ color: 'var(--color-secondary)' }} /> Venta Completada
+                </h3>
                 <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '2px' }}>
                   Ticket #{receiptData.ticket_number}
                 </p>
@@ -1259,7 +1261,9 @@ export default function POSPage() {
 
               {posnetStep === 3 && (
                 <>
-                  <div style={{ fontSize: '3.5rem', color: 'var(--color-secondary)' }}>✅</div>
+                  <div style={{ display: 'flex', justifyContent: 'center', color: 'var(--color-secondary)', margin: '12px 0' }}>
+                    <CheckCircle size={56} strokeWidth={2.5} />
+                  </div>
                   <div>
                     <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-secondary)', marginBottom: '4px' }}>
                       Pago Aprobado

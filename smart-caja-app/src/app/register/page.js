@@ -26,13 +26,13 @@ export default function RegisterPage() {
   const [errors, setErrors] = useState({})
 
   const businessTypes = [
-    { value: 'general', label: '🏪 General / Kiosco', desc: 'Almacén, kiosco, minimarket' },
-    { value: 'supermercado', label: '🛒 Supermercado', desc: 'Cadena o comercio grande' },
-    { value: 'ropa', label: '👗 Ropa / Indumentaria', desc: 'Tienda de ropa y calzado' },
-    { value: 'lubricentro', label: '🔧 Lubricentro', desc: 'Productos para vehículos' },
-    { value: 'farmacia', label: '💊 Farmacia', desc: 'Medicamentos y salud' },
-    { value: 'ferreteria', label: '🔨 Ferretería', desc: 'Herramientas y materiales' },
-    { value: 'otro', label: '📦 Otro', desc: 'Cualquier otro rubro' },
+    { value: 'general', label: 'General / Kiosco', desc: 'Almacén, kiosco, minimarket' },
+    { value: 'supermercado', label: 'Supermercado', desc: 'Cadena o comercio grande' },
+    { value: 'ropa', label: 'Ropa / Indumentaria', desc: 'Tienda de ropa y calzado' },
+    { value: 'lubricentro', label: 'Lubricentro', desc: 'Productos para vehículos' },
+    { value: 'farmacia', label: 'Farmacia', desc: 'Medicamentos y salud' },
+    { value: 'ferreteria', label: 'Ferretería', desc: 'Herramientas y materiales' },
+    { value: 'otro', label: 'Otro', desc: 'Cualquier otro rubro' },
   ]
 
   const updateForm = (key, value) => {
@@ -129,7 +129,7 @@ export default function RegisterPage() {
         color: '#7C3AED',
       })
 
-      toast.success('¡Cuenta creada! Bienvenido a Smart Caja 🎉')
+      toast.success('¡Cuenta creada! Bienvenido a Smart Caja')
       router.push('/dashboard')
     } catch (err) {
       toast.error(err.message || 'Error al registrarse')
@@ -330,7 +330,7 @@ export default function RegisterPage() {
               </div>
 
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 'var(--space-4)' }}>
-                Al registrarte aceptás nuestros términos de uso. 14 días gratis, sin tarjeta.
+                Al registrarte aceptás nuestros términos de uso. 5 días gratis, sin tarjeta.
               </p>
             </>
           )}

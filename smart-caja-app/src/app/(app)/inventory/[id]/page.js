@@ -5,6 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
+import { Trash2, Save, Camera, Package, Plus, Minus, Check, AlertTriangle } from 'lucide-react'
 
 const UNIT_LABELS = {
   unit: [{ value: 'un', label: 'Unidad (un)' }],
@@ -323,7 +324,9 @@ export default function EditProductPage() {
             minHeight: '300px', color: 'var(--text-muted)'
           }}>
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '2rem', marginBottom: 'var(--space-3)', animation: 'pulse 1.5s infinite' }}>📦</div>
+              <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 'var(--space-3)', color: 'var(--color-primary)' }}>
+                <Package size={36} style={{ animation: 'pulse 1.5s infinite' }} />
+              </div>
               <p>Cargando producto...</p>
             </div>
           </div>
@@ -349,17 +352,17 @@ export default function EditProductPage() {
             <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{form.name}</span>
           </div>
         </div>
-        <div className="flex items-center gap-3" style={{ marginLeft: 'auto' }}>
+        <div className="flex items-center gap-3" style={{ marginLeft: 'auto', display: 'flex', gap: '12px' }}>
           <button
             className="btn btn-ghost"
             onClick={() => setShowDeleteConfirm(true)}
-            style={{ color: 'var(--color-danger, #ef4444)' }}
+            style={{ color: 'var(--color-danger, #ef4444)', display: 'flex', alignItems: 'center', gap: '6px' }}
           >
-            🗑 Eliminar
+            <Trash2 size={16} /> Eliminar
           </button>
           <button className="btn btn-ghost" onClick={() => router.push('/inventory')}>Cancelar</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={saving}>
-            {saving ? 'Guardando...' : '💾 Guardar Cambios'}
+          <button className="btn btn-primary" onClick={handleSave} disabled={saving} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Save size={16} /> {saving ? 'Guardando...' : 'Guardar Cambios'}
           </button>
         </div>
       </div>
@@ -568,13 +571,13 @@ export default function EditProductPage() {
                     <span>Código de Barras</span>
                     <button
                       className="btn btn-ghost btn-sm"
-                      style={{ padding: '2px 8px', fontSize: '0.6875rem' }}
+                      style={{ padding: '2px 8px', fontSize: '0.6875rem', display: 'flex', alignItems: 'center', gap: '4px' }}
                       onClick={() => {
                         toast.info('Poné el cursor en el campo y escaneá')
                         barcodeInputRef.current?.focus()
                       }}
                     >
-                      📷 Escanear
+                      <Camera size={12} /> Escanear
                     </button>
                   </label>
                   <input
@@ -601,8 +604,10 @@ export default function EditProductPage() {
 
           {/* Stock Adjustment */}
           <div className="card">
-            <div className="card-header">
-              <span className="card-title">📦 Ajuste de Stock</span>
+            <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Package size={18} /> Ajuste de Stock
+              </span>
               <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                 Stock actual: <strong style={{ color: 'var(--color-secondary)' }}>
                   {form.stock_quantity} {form.unit_label}
@@ -616,17 +621,17 @@ export default function EditProductPage() {
                   <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
                     <button
                       className={`btn ${stockAdjustment.type === 'add' ? 'btn-primary' : 'btn-ghost'}`}
-                      style={{ flex: 1 }}
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
                       onClick={() => setStockAdjustment(prev => ({ ...prev, type: 'add' }))}
                     >
-                      ➕ Entrada
+                      <Plus size={14} /> Entrada
                     </button>
                     <button
                       className={`btn ${stockAdjustment.type === 'subtract' ? 'btn-primary' : 'btn-ghost'}`}
-                      style={{ flex: 1, ...(stockAdjustment.type === 'subtract' ? { background: 'var(--color-danger, #ef4444)' } : {}) }}
+                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', ...(stockAdjustment.type === 'subtract' ? { background: 'var(--color-danger, #ef4444)' } : {}) }}
                       onClick={() => setStockAdjustment(prev => ({ ...prev, type: 'subtract' }))}
                     >
-                      ➖ Salida
+                      <Minus size={14} /> Salida
                     </button>
                   </div>
                 </div>
@@ -656,9 +661,9 @@ export default function EditProductPage() {
                 className="btn btn-primary"
                 onClick={handleStockAdjustment}
                 disabled={adjustingStock}
-                style={{ alignSelf: 'flex-start' }}
+                style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px' }}
               >
-                {adjustingStock ? 'Ajustando...' : '✅ Aplicar Ajuste'}
+                <Check size={16} /> {adjustingStock ? 'Ajustando...' : 'Aplicar Ajuste'}
               </button>
             </div>
           </div>
@@ -676,7 +681,9 @@ export default function EditProductPage() {
         }}>
           <div className="card" style={{ width: '100%', maxWidth: '420px', background: 'var(--bg-card)' }}>
             <div className="card-header">
-              <span className="card-title">⚠️ Confirmar Eliminación</span>
+              <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <AlertTriangle size={18} style={{ color: 'var(--color-error)' }} /> Confirmar Eliminación
+              </span>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowDeleteConfirm(false)}>✕</button>
             </div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
@@ -690,11 +697,11 @@ export default function EditProductPage() {
                 </button>
                 <button
                   className="btn btn-primary"
-                  style={{ background: 'var(--color-danger, #ef4444)' }}
+                  style={{ background: 'var(--color-danger, #ef4444)', display: 'flex', alignItems: 'center', gap: '6px' }}
                   onClick={handleDelete}
                   disabled={deleting}
                 >
-                  {deleting ? 'Eliminando...' : '🗑 Sí, Eliminar'}
+                  <Trash2 size={16} /> {deleting ? 'Eliminando...' : 'Sí, Eliminar'}
                 </button>
               </div>
             </div>
@@ -712,7 +719,9 @@ export default function EditProductPage() {
         }}>
           <div className="card" style={{ width: '100%', maxWidth: '400px', background: 'var(--bg-card)' }}>
             <div className="card-header">
-              <span className="card-title">✨ Nueva Categoría</span>
+              <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Plus size={18} style={{ color: 'var(--color-primary)' }} /> Nueva Categoría
+              </span>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowCategoryModal(false)}>✕</button>
             </div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>

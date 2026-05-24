@@ -179,13 +179,13 @@ export default function AppLayout({ children }) {
                 value={setupForm.business_type}
                 onChange={e => setSetupForm(prev => ({ ...prev, business_type: e.target.value }))}
               >
-                <option value="general">🏪 General / Kiosco</option>
-                <option value="supermercado">🛒 Supermercado</option>
-                <option value="ropa">👗 Ropa / Indumentaria</option>
-                <option value="lubricentro">🔧 Lubricentro</option>
-                <option value="farmacia">💊 Farmacia</option>
-                <option value="ferreteria">🔨 Ferretería</option>
-                <option value="otro">📦 Otro</option>
+                <option value="general">General / Kiosco</option>
+                <option value="supermercado">Supermercado</option>
+                <option value="ropa">Ropa / Indumentaria</option>
+                <option value="lubricentro">Lubricentro</option>
+                <option value="farmacia">Farmacia</option>
+                <option value="ferreteria">Ferretería</option>
+                <option value="otro">Otro</option>
               </select>
             </div>
 

@@ -2,6 +2,8 @@
 
 import { createContext, useContext, useState, useCallback } from 'react'
 
+import { CheckCircle, AlertCircle, AlertTriangle, Info } from 'lucide-react'
+
 const ToastContext = createContext({})
 
 export function ToastProvider({ children }) {
@@ -9,7 +11,12 @@ export function ToastProvider({ children }) {
 
   const addToast = useCallback(({ message, type = 'info', duration = 3500 }) => {
     const id = Date.now()
-    const icons = { success: '✅', error: '❌', warning: '⚠️', info: 'ℹ️' }
+    const icons = { 
+      success: <CheckCircle size={16} style={{ color: 'var(--color-secondary)' }} />, 
+      error: <AlertCircle size={16} style={{ color: 'var(--color-error)' }} />, 
+      warning: <AlertTriangle size={16} style={{ color: '#f59e0b' }} />, 
+      info: <Info size={16} style={{ color: 'var(--color-primary)' }} /> 
+    }
 
     setToasts(prev => [...prev, { id, message, type, icon: icons[type] }])
 

@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
 import { formatCurrency, formatDateTime } from '@/lib/utils/formatters'
+import { Package, Upload, Tag, AlertTriangle, DollarSign, FileText } from 'lucide-react'
 
 export default function InventoryPage() {
   const { tenant } = useAuth()
@@ -207,19 +208,19 @@ export default function InventoryPage() {
       {/* Header */}
       <div className="app-header">
         <div>
-          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.25rem', fontWeight: 700 }}>
-            📦 Inventario
+          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Package size={20} style={{ color: 'var(--color-primary)' }} /> Inventario
           </h1>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
             Gestioná tus productos, precios y stock
           </p>
         </div>
-        <div className="flex items-center gap-3" style={{ marginLeft: 'auto' }}>
-          <button className="btn btn-ghost" onClick={() => setShowImportModal(true)} style={{ border: '1px solid var(--border-color)' }}>
-            ⬆️ Importar CSV
+        <div className="flex items-center gap-3" style={{ marginLeft: 'auto', display: 'flex', gap: '12px' }}>
+          <button className="btn btn-ghost" onClick={() => setShowImportModal(true)} style={{ border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Upload size={16} /> Importar CSV
           </button>
-          <button className="btn btn-ghost" onClick={() => setShowCategoryModal(true)} style={{ border: '1px solid var(--border-color)' }}>
-            🏷️ Categorías
+          <button className="btn btn-ghost" onClick={() => setShowCategoryModal(true)} style={{ border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
+            <Tag size={16} /> Categorías
           </button>
           <button className="btn btn-primary" onClick={() => router.push('/inventory/new')}>
             + Nuevo Producto
@@ -231,8 +232,8 @@ export default function InventoryPage() {
         {/* Stats Row */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', gap: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
           <div className="card" style={{ padding: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-lg)', background: 'var(--color-primary-light)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
-              📦
+            <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-lg)', background: 'var(--color-primary-light)', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <Package size={22} />
             </div>
             <div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Total Productos</div>
@@ -241,8 +242,8 @@ export default function InventoryPage() {
           </div>
           
           <div className="card" style={{ padding: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-4)', borderColor: lowStockItems > 0 ? 'var(--color-error)' : 'var(--glass-border)' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-lg)', background: lowStockItems > 0 ? 'var(--color-error-light)' : 'var(--color-secondary-light)', color: lowStockItems > 0 ? 'var(--color-error)' : 'var(--color-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
-              ⚠️
+            <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-lg)', background: lowStockItems > 0 ? 'var(--color-error-light)' : 'var(--color-secondary-light)', color: lowStockItems > 0 ? 'var(--color-error)' : 'var(--color-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <AlertTriangle size={22} />
             </div>
             <div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Alertas de Stock</div>
@@ -253,8 +254,8 @@ export default function InventoryPage() {
           </div>
 
           <div className="card" style={{ padding: 'var(--space-4)', display: 'flex', alignItems: 'center', gap: 'var(--space-4)' }}>
-            <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-lg)', background: 'var(--glass-bg)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}>
-              💰
+            <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-lg)', background: 'var(--glass-bg)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-secondary)' }}>
+              <DollarSign size={22} />
             </div>
             <div>
               <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Valor del Inventario</div>
@@ -407,7 +408,9 @@ export default function InventoryPage() {
         }}>
           <div className="card" style={{ width: '100%', maxWidth: '400px', background: 'var(--bg-card)' }}>
             <div className="card-header">
-              <span className="card-title">🏷️ Gestión de Categorías</span>
+              <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Tag size={18} /> Gestión de Categorías
+              </span>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowCategoryModal(false)}>✕</button>
             </div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
@@ -450,7 +453,9 @@ export default function InventoryPage() {
         }}>
           <div className="card" style={{ width: '100%', maxWidth: '500px', background: 'var(--bg-card)' }}>
             <div className="card-header">
-              <span className="card-title">⬆️ Importar CSV</span>
+              <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Upload size={18} /> Importar CSV
+              </span>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowImportModal(false)}>✕</button>
             </div>
             <div className="card-body">
@@ -463,7 +468,9 @@ export default function InventoryPage() {
               </div>
 
               <div style={{ border: '2px dashed var(--border-color)', padding: 'var(--space-8)', textAlign: 'center', borderRadius: 'var(--radius-md)', cursor: 'pointer' }} onClick={() => document.getElementById('csv-upload').click()}>
-                <div style={{ fontSize: '2rem', marginBottom: '8px' }}>📄</div>
+                <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '8px', color: 'var(--color-primary)' }}>
+                  <FileText size={32} />
+                </div>
                 <div style={{ fontWeight: 600 }}>{importingFile ? 'Procesando...' : 'Hacé clic para elegir un archivo'}</div>
                 <input type="file" id="csv-upload" accept=".csv" style={{ display: 'none' }} onChange={handleImportCSV} disabled={importingFile} />
               </div>

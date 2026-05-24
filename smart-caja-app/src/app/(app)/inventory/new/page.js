@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
+import { Save, Camera, Plus } from 'lucide-react'
 
 export default function NewProductPage() {
   const { tenant, profile } = useAuth()
@@ -197,8 +198,8 @@ export default function NewProductPage() {
         </div>
         <div className="flex items-center gap-3" style={{ marginLeft: 'auto' }}>
           <button className="btn btn-ghost" onClick={() => router.push('/inventory')}>Cancelar</button>
-          <button className="btn btn-primary" onClick={handleSave} disabled={loading}>
-            {loading ? 'Guardando...' : '💾 Guardar Producto'}
+          <button className="btn btn-primary" onClick={handleSave} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Save size={16} /> {loading ? 'Guardando...' : 'Guardar Producto'}
           </button>
         </div>
       </div>
@@ -419,7 +420,7 @@ export default function NewProductPage() {
                         barcodeInputRef.current?.focus()
                       }}
                     >
-                      📷 Escanear
+                      <Camera size={14} style={{ marginRight: '6px' }} /> Escanear
                     </button>
                   </label>
                   <input 
@@ -456,7 +457,9 @@ export default function NewProductPage() {
         }}>
           <div className="card" style={{ width: '100%', maxWidth: '400px', background: 'var(--bg-card)' }}>
             <div className="card-header">
-              <span className="card-title">✨ Nueva Categoría</span>
+              <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <Plus size={18} style={{ color: 'var(--color-primary)' }} /> Nueva Categoría
+              </span>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowCategoryModal(false)}>✕</button>
             </div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
