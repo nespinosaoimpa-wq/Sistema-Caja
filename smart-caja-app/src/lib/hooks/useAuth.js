@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true)
   const [profileLoaded, setProfileLoaded] = useState(false)
   const [profileError, setProfileError] = useState(null)
-  const supabase = createClient()
+  const [supabase] = useState(() => createClient())
 
   const loadProfile = useCallback(async (userId) => {
     setProfileLoaded(false)
@@ -75,46 +75,64 @@ export function AuthProvider({ children }) {
   }, [supabase])
 
   useEffect(() => {
-    const getSession = async () => {
-      try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser()
-        setUser(currentUser)
-        if (currentUser) {
-          await loadProfile(currentUser.id)
-        } else {
-          setProfileLoaded(true) // No user, so profile check is complete
+    let isMounted = true
+    let activeUserId = null
+
+    const syncProfile = async (currentUser) => {
+      if (!isMounted) return
+
+      if (currentUser) {
+        if (activeUserId === currentUser.id) {
+          // Already synchronized or synchronization in progress for this user
+          return
         }
-      } catch (err) {
-        console.error('Exception inside getSession:', err)
-      } finally {
-        setLoading(false)
+        activeUserId = currentUser.id
+        setUser(currentUser)
+        try {
+          await loadProfile(currentUser.id)
+        } catch (err) {
+          console.error('[useAuth] syncProfile loadProfile failed:', err)
+        } finally {
+          if (isMounted) setLoading(false)
+        }
+      } else {
+        activeUserId = null
+        setUser(null)
+        setProfile(null)
+        setTenant(null)
+        setProfileLoaded(true)
+        setProfileError(null)
+        if (isMounted) setLoading(false)
       }
     }
 
-    getSession()
+    const initialize = async () => {
+      try {
+        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        if (isMounted) {
+          await syncProfile(currentUser)
+        }
+      } catch (err) {
+        console.error('[useAuth] initialize getSession failed:', err)
+        if (isMounted) setLoading(false)
+      }
+    }
+
+    initialize()
 
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        const currentUser = session?.user ?? null
-        setUser(currentUser)
-        try {
-          if (currentUser) {
-            await loadProfile(currentUser.id)
-          } else {
-            setProfile(null)
-            setTenant(null)
-            setProfileLoaded(true)
-            setProfileError(null)
-          }
-        } catch (err) {
-          console.error('Exception inside onAuthStateChange handler:', err)
-        } finally {
-          setLoading(false)
+        if (isMounted) {
+          const currentUser = session?.user ?? null
+          await syncProfile(currentUser)
         }
       }
     )
 
-    return () => subscription.unsubscribe()
+    return () => {
+      isMounted = false
+      subscription.unsubscribe()
+    }
   }, [supabase, loadProfile])
 
   const signOut = async () => {

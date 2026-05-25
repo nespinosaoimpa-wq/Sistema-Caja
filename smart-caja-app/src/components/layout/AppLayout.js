@@ -53,12 +53,33 @@ export default function AppLayout({ children }) {
   const [setupLoading, setSetupLoading] = useState(false)
   const [setupError, setSetupError] = useState(null)
   const [verifyTimeout, setVerifyTimeout] = useState(false)
+  const [loadingTimeout, setLoadingTimeout] = useState(false)
+  
+  const [logoUrl, setLogoUrl] = useState(tenant?.logo_url)
   const [logoError, setLogoError] = useState(false)
   const retryCountRef = useRef(0)
 
-  useEffect(() => {
+  if (tenant?.logo_url !== logoUrl) {
+    setLogoUrl(tenant?.logo_url)
     setLogoError(false)
-  }, [tenant?.logo_url])
+  }
+
+  // Safety net: if initial auth loading stays true for more than 8 seconds, show timeout options
+  useEffect(() => {
+    if (!loading) {
+      setLoadingTimeout(false)
+      return
+    }
+
+    const timer = setTimeout(() => {
+      if (loading) {
+        console.warn('[AppLayout] Initial authentication loading timed out after 8s')
+        setLoadingTimeout(true)
+      }
+    }, 8000)
+
+    return () => clearTimeout(timer)
+  }, [loading])
 
   // Safety net: if profileLoaded stays false too long after loading, force retry or show error
   useEffect(() => {
@@ -83,6 +104,40 @@ export default function AppLayout({ children }) {
   }, [loading, user, profileLoaded, profileError, reloadProfile])
 
   if (loading) {
+    if (loadingTimeout) {
+      return (
+        <div style={{
+          minHeight: '100vh',
+          background: 'var(--bg-base)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: 'var(--space-4)',
+        }}>
+          <div className="card" style={{ maxWidth: '480px', width: '100%', padding: 'var(--space-8)', textAlign: 'center' }}>
+            <span style={{ fontSize: '3rem' }}>⏱️</span>
+            <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginTop: '12px', color: '#fff' }}>
+              Inicio lento detectado
+            </h1>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '8px', marginBottom: '24px', lineHeight: 1.6 }}>
+              La aplicación está demorando en conectar con el servidor. Esto puede deberse a una red inestable o un retraso temporal en la base de datos.
+            </p>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button className="btn btn-ghost" style={{ flex: 1 }} onClick={() => signOut()}>
+                Cerrar Sesión
+              </button>
+              <button className="btn btn-primary" style={{ flex: 1 }} onClick={() => {
+                setLoadingTimeout(false)
+                window.location.reload()
+              }}>
+                Recargar Página
+              </button>
+            </div>
+          </div>
+        </div>
+      )
+    }
+
     return (
       <div style={{
         minHeight: '100vh',
