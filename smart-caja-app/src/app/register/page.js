@@ -1,15 +1,22 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { generateSlug } from '@/lib/utils/formatters'
 import { useToast } from '@/lib/hooks/useToast'
 
-export default function RegisterPage() {
+function RegisterContent() {
   const router = useRouter()
   const toast = useToast()
+  const searchParams = useSearchParams()
+
+  const inviteTenant = searchParams.get('invite_tenant')
+  const inviteRole = searchParams.get('invite_role') || 'cashier'
+  const inviteEmail = searchParams.get('invite_email') || ''
+  const inviteName = searchParams.get('invite_name') || ''
+
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
@@ -24,6 +31,18 @@ export default function RegisterPage() {
     confirmPassword: '',
   })
   const [errors, setErrors] = useState({})
+
+  // Si está invitado, saltamos al paso 2 y precargamos datos
+  useEffect(() => {
+    if (inviteTenant) {
+      setStep(2)
+      setForm(prev => ({
+        ...prev,
+        email: inviteEmail,
+        full_name: inviteName,
+      }))
+    }
+  }, [inviteTenant, inviteEmail, inviteName])
 
   const businessTypes = [
     { value: 'general', label: 'General / Kiosco', desc: 'Almacén, kiosco, minimarket' },
@@ -52,11 +71,16 @@ export default function RegisterPage() {
     const errs = {}
     if (!form.full_name.trim()) errs.full_name = 'Ingresá tu nombre'
     if (!form.email.includes('@')) errs.email = 'Email inválido'
-    if (!form.phone.trim()) {
-      errs.phone = 'Ingresá tu WhatsApp o Celular'
-    } else if (!/^[0-9+\s-()]{7,25}$/.test(form.phone.trim())) {
-      errs.phone = 'Número no válido. Ej: +54 9 11 1234-5678'
+    
+    // Solo validar teléfono si es un registro de nuevo negocio
+    if (!inviteTenant) {
+      if (!form.phone.trim()) {
+        errs.phone = 'Ingresá tu WhatsApp o Celular'
+      } else if (!/^[0-9+\s-()]{7,25}$/.test(form.phone.trim())) {
+        errs.phone = 'Número no válido. Ej: +54 9 11 1234-5678'
+      }
     }
+    
     if (form.password.length < 6) errs.password = 'Mínimo 6 caracteres'
     if (form.password !== form.confirmPassword) errs.confirmPassword = 'Las contraseñas no coinciden'
     setErrors(errs)
@@ -70,7 +94,7 @@ export default function RegisterPage() {
     const supabase = createClient()
 
     try {
-      // 1. Create auth user
+      // 1. Crear usuario en Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: form.email,
         password: form.password,
@@ -92,44 +116,64 @@ export default function RegisterPage() {
       const userId = authData.user?.id
       if (!userId) throw new Error('Error al crear usuario')
 
-      // 2. Create tenant
-      const slug = generateSlug(form.business_name) + '-' + Math.random().toString(36).slice(2, 6)
-      const { data: tenantData, error: tenantError } = await supabase
-        .from('tenants')
-        .insert({
-          name: form.business_name,
-          slug,
-          business_type: form.business_type,
-          email: form.email,
-          phone: form.phone,
-        })
-        .select()
-        .single()
+      if (inviteTenant) {
+        // --- REGISTRO DE COLABORADOR INVITADO ---
+        // 2. Insertar perfil vinculado al tenant de la invitación
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            tenant_id: inviteTenant,
+            full_name: form.full_name,
+            email: form.email,
+            role: inviteRole,
+          })
 
-      if (tenantError) throw tenantError
+        if (profileError) throw profileError
 
-      // 3. Create profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .insert({
-          id: userId,
+        toast.success('¡Registro completado! Te has unido al comercio.')
+      } else {
+        // --- REGISTRO DE NUEVO PROPIETARIO ---
+        // 2. Crear tenant/negocio
+        const slug = generateSlug(form.business_name) + '-' + Math.random().toString(36).slice(2, 6)
+        const { data: tenantData, error: tenantError } = await supabase
+          .from('tenants')
+          .insert({
+            name: form.business_name,
+            slug,
+            business_type: form.business_type,
+            email: form.email,
+            phone: form.phone,
+          })
+          .select()
+          .single()
+
+        if (tenantError) throw tenantError
+
+        // 3. Crear perfil de dueño
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .insert({
+            id: userId,
+            tenant_id: tenantData.id,
+            full_name: form.full_name,
+            email: form.email,
+            role: 'owner',
+          })
+
+        if (profileError) throw profileError
+
+        // 4. Crear categoría inicial por defecto
+        await supabase.from('categories').insert({
           tenant_id: tenantData.id,
-          full_name: form.full_name,
-          email: form.email,
-          role: 'owner',
+          name: 'General',
+          icon: '📦',
+          color: '#7C3AED',
         })
 
-      if (profileError) throw profileError
+        toast.success('¡Cuenta creada! Bienvenido a Smart Caja')
+      }
 
-      // 4. Create default category
-      await supabase.from('categories').insert({
-        tenant_id: tenantData.id,
-        name: 'General',
-        icon: '📦',
-        color: '#7C3AED',
-      })
-
-      toast.success('¡Cuenta creada! Bienvenido a Smart Caja')
       router.push('/dashboard')
     } catch (err) {
       toast.error(err.message || 'Error al registrarse')
@@ -162,27 +206,29 @@ export default function RegisterPage() {
         </div>
 
         <div className="card" style={{ padding: 'var(--space-8)' }}>
-          {/* Step indicator */}
-          <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-6)' }}>
-            {[1, 2].map(s => (
-              <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <div style={{
-                  width: '28px', height: '28px', borderRadius: '50%',
-                  background: s <= step ? 'var(--gradient-primary)' : 'var(--bg-input)',
-                  border: s <= step ? 'none' : '1px solid var(--border-color)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '0.8125rem', fontWeight: 700,
-                  color: s <= step ? 'white' : 'var(--text-muted)',
-                  transition: 'all 0.3s',
-                }}>
-                  {s < step ? '✓' : s}
+          {/* Indicador de pasos - Solo si no está invitado */}
+          {!inviteTenant && (
+            <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-6)' }}>
+              {[1, 2].map(s => (
+                <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <div style={{
+                    width: '28px', height: '28px', borderRadius: '50%',
+                    background: s <= step ? 'var(--gradient-primary)' : 'var(--bg-input)',
+                    border: s <= step ? 'none' : '1px solid var(--border-color)',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '0.8125rem', fontWeight: 700,
+                    color: s <= step ? 'white' : 'var(--text-muted)',
+                    transition: 'all 0.3s',
+                  }}>
+                    {s < step ? '✓' : s}
+                  </div>
+                  {s < 2 && <div style={{ width: '60px', height: '2px', background: step > s ? 'var(--color-primary)' : 'var(--border-color)', transition: 'all 0.3s', borderRadius: '2px' }} />}
                 </div>
-                {s < 2 && <div style={{ width: '60px', height: '2px', background: step > s ? 'var(--color-primary)' : 'var(--border-color)', transition: 'all 0.3s', borderRadius: '2px' }} />}
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
 
-          {step === 1 ? (
+          {step === 1 && !inviteTenant ? (
             <>
               <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '6px' }}>
                 ¿Qué tipo de negocio tenés?
@@ -237,10 +283,10 @@ export default function RegisterPage() {
           ) : (
             <>
               <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '6px' }}>
-                Creá tu cuenta
+                {inviteTenant ? 'Registro de Colaborador' : 'Creá tu cuenta'}
               </h1>
               <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 'var(--space-6)' }}>
-                Para <strong style={{ color: 'var(--text-primary)' }}>{form.business_name}</strong>
+                {inviteTenant ? 'Unite al equipo de tu comercio en Smart Caja' : `Para ${form.business_name}`}
               </p>
 
               <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
@@ -264,21 +310,25 @@ export default function RegisterPage() {
                     placeholder="juan@comercio.com"
                     value={form.email}
                     onChange={e => updateForm('email', e.target.value)}
+                    disabled={!!inviteTenant && !!inviteEmail}
                   />
                   {errors.email && <span className="form-error">{errors.email}</span>}
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label required">WhatsApp / Celular (soporte y contacto)</label>
-                  <input
-                    className={`form-input ${errors.phone ? 'error' : ''}`}
-                    type="tel"
-                    placeholder="Ej: +54 9 11 1234-5678"
-                    value={form.phone}
-                    onChange={e => updateForm('phone', e.target.value)}
-                  />
-                  {errors.phone && <span className="form-error">{errors.phone}</span>}
-                </div>
+                {/* Ocultar campo de teléfono si es un colaborador invitado */}
+                {!inviteTenant && (
+                  <div className="form-group">
+                    <label className="form-label required">WhatsApp / Celular (soporte y contacto)</label>
+                    <input
+                      className={`form-input ${errors.phone ? 'error' : ''}`}
+                      type="tel"
+                      placeholder="Ej: +54 9 11 1234-5678"
+                      value={form.phone}
+                      onChange={e => updateForm('phone', e.target.value)}
+                    />
+                    {errors.phone && <span className="form-error">{errors.phone}</span>}
+                  </div>
+                )}
 
                 <div className="form-group">
                   <label className="form-label required">Contraseña</label>
@@ -307,13 +357,15 @@ export default function RegisterPage() {
               </div>
 
               <div style={{ marginTop: 'var(--space-6)', display: 'flex', gap: 'var(--space-3)' }}>
-                <button
-                  className="btn btn-ghost"
-                  style={{ flex: '0 0 auto' }}
-                  onClick={() => setStep(1)}
-                >
-                  ← Atrás
-                </button>
+                {!inviteTenant && (
+                  <button
+                    className="btn btn-ghost"
+                    style={{ flex: '0 0 auto' }}
+                    onClick={() => setStep(1)}
+                  >
+                    ← Atrás
+                  </button>
+                )}
                 <button
                   className="btn btn-primary btn-lg"
                   style={{ flex: 1, justifyContent: 'center' }}
@@ -323,14 +375,14 @@ export default function RegisterPage() {
                   {loading ? (
                     <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                      Creando cuenta...
+                      Procesando...
                     </span>
-                  ) : 'Crear cuenta gratis 🎉'}
+                  ) : inviteTenant ? 'Unirse al Equipo 🚀' : 'Crear cuenta gratis 🎉'}
                 </button>
               </div>
 
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 'var(--space-4)' }}>
-                Al registrarte aceptás nuestros términos de uso. 5 días gratis, sin tarjeta.
+                {inviteTenant ? 'Al registrarte te unís al comercio respectivo.' : 'Al registrarte aceptás nuestros términos de uso. 5 días gratis, sin tarjeta.'}
               </p>
             </>
           )}
@@ -348,5 +400,24 @@ export default function RegisterPage() {
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
     </div>
+  )
+}
+
+export default function RegisterPage() {
+  return (
+    <Suspense fallback={
+      <div style={{
+        minHeight: '100vh',
+        background: 'var(--bg-base)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        color: 'var(--text-secondary)'
+      }}>
+        Cargando registro...
+      </div>
+    }>
+      <RegisterContent />
+    </Suspense>
   )
 }

@@ -195,26 +195,34 @@ export default function SettingsPage() {
     }
     setInviting(true)
     try {
-      const dummyId = crypto.randomUUID()
-      const { error } = await supabase
-        .from('profiles')
-        .insert({
-          id: dummyId,
-          tenant_id: tenant.id,
-          full_name: inviteForm.full_name,
+      const res = await fetch('/api/invite-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
           email: inviteForm.email,
+          full_name: inviteForm.full_name,
           role: inviteForm.role
         })
-      
-      if (error) throw error
-      
-      toast.success(`¡Colaborador ${inviteForm.full_name} registrado correctamente!`)
+      })
+
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data.error || 'Error al enviar invitación')
+      }
+
+      if (data.method === 'admin_invite') {
+        toast.success(`¡Invitación enviada por email a ${inviteForm.full_name}!`)
+      } else if (data.method === 'fallback_link') {
+        // Copiar el enlace al portapapeles
+        await navigator.clipboard.writeText(data.inviteLink)
+        toast.success(`¡Invitación generada! Enlace copiado al portapapeles para enviar manualmente.`)
+      }
+
       setInviteForm({ full_name: '', email: '', role: 'cashier' })
       fetchTeamMembers()
     } catch (err) {
       console.error(err)
-      // If RLS limits it, show detailed instruction
-      toast.error('No se pudo registrar colaborador. Asegúrate de tener políticas RLS activas en Supabase.')
+      toast.error('No se pudo invitar al colaborador: ' + err.message)
     } finally {
       setInviting(false)
     }
