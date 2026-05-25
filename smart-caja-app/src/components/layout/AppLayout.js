@@ -17,7 +17,8 @@ import {
   LogOut,
   Lock,
   ListTodo,
-  Store
+  Store,
+  MessageSquare
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -545,6 +546,18 @@ export default function AppLayout({ children }) {
              </span>
              Configuración
           </Link>
+          <a 
+            href={`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '543425162372'}?text=Hola%20Smart%20Caja!%20Necesito%20asistencia%20en%20mi%20cuenta%20de%20negocio%20${encodeURIComponent(tenant?.name || '')}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="sidebar-nav-item"
+            style={{ width: '100%', textAlign: 'left', marginTop: '8px', color: '#25D366' }}
+          >
+             <span className="icon" style={{ opacity: 0.8, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <MessageSquare size={18} />
+             </span>
+             Soporte WhatsApp
+          </a>
           <button onClick={() => { signOut(); router.push('/login'); }} className="sidebar-nav-item" style={{ width: '100%', textAlign: 'left', marginTop: '8px' }}>
              <span className="icon" style={{ opacity: 0.6, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                <LogOut size={18} />
