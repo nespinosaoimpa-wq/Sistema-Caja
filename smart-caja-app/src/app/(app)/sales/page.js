@@ -102,6 +102,36 @@ export default function SalesPage() {
       </tr>`
     }).join('')
 
+    let paymentInfo = ''
+    const paymentMethod = sale.payment_method
+    if (paymentMethod === 'cash') {
+      paymentInfo = `
+        <div style="display:flex;justify-content:space-between;"><span>Recibido:</span><span>${formatCurrency(sale.cash_received || sale.total)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-weight:bold;"><span>Vuelto:</span><span>${formatCurrency(sale.cash_change || 0)}</span></div>
+      `
+    } else if (paymentMethod === 'debit' || paymentMethod === 'credit') {
+      const details = sale.payment_details || {}
+      paymentInfo = `
+        <div style="display:flex;justify-content:space-between;"><span>Tarjeta:</span><span>${details.card_brand || 'N/A'}</span></div>
+        <div style="display:flex;justify-content:space-between;"><span>Cupón:</span><span>#${details.voucher_number || 'N/A'}</span></div>
+      `
+    } else if (paymentMethod === 'combined') {
+      const details = sale.payment_details || {}
+      const splits = details.splits || []
+      const splitsHTML = splits.map(s => {
+        const label = { cash: 'Efectivo', debit: 'Débito', credit: 'Crédito', transfer: 'Transferencia' }[s.method] || s.method
+        return `<div style="display:flex;justify-content:space-between;font-size:11px;color:#555;"><span>- ${label}:</span><span>${formatCurrency(s.amount)}</span></div>`
+      }).join('')
+      paymentInfo = `
+        <div style="margin-top:2px;">
+          <div style="font-weight:bold;font-size:11px;">Desglose Pago Mixto:</div>
+          ${splitsHTML}
+        </div>
+      `
+    }
+
+    const payMethodLabel = { cash: 'Efectivo', debit: 'Débito', credit: 'Crédito', transfer: 'Transferencia', combined: 'Mixto', installment: 'Cuotas' }[paymentMethod] || paymentMethod
+
     const receiptHTML = `
       <div style="font-family:'Courier New',Courier,monospace;width:72mm;padding:4mm;font-size:12px;color:#000;background:#fff;">
         <div style="text-align:center;margin-bottom:8px;">
@@ -130,6 +160,11 @@ export default function SalesPage() {
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
         <div style="font-size:12px;">
           <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin:4px 0;"><span>TOTAL:</span><span>${formatCurrency(sale.total)}</span></div>
+        </div>
+        <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+        <div style="font-size:11px;">
+          <div style="display:flex;justify-content:space-between;"><span>Método de pago:</span><span>${payMethodLabel}</span></div>
+          ${paymentInfo}
         </div>
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
         <div style="text-align:center;font-size:10px;color:#555;margin-top:8px;">
@@ -181,7 +216,7 @@ export default function SalesPage() {
       ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(','))
     ].join('\n')
 
-    const blob = new Blob(['\uFEFF' + csvContent], { type: 'text/csv;charset=utf-8;' })
+    const blob = new Blob([String.fromCharCode(0xFEFF) + csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
     const link = document.createElement('a')
     link.href = url
@@ -360,6 +395,51 @@ export default function SalesPage() {
                 <span>TOTAL:</span>
                 <span>{formatCurrency(selectedSale.total)}</span>
               </div>
+            </div>
+
+            <div style={{ fontSize: '11px', marginBottom: 'var(--space-6)', borderTop: '1px dashed #ccc', paddingTop: 'var(--space-4)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                <span style={{ color: '#666' }}>Método de pago:</span>
+                <span style={{ fontWeight: 600 }}>{{ cash: 'Efectivo', debit: 'Débito', credit: 'Crédito', transfer: 'Transferencia', combined: 'Mixto', installment: 'Cuotas' }[selectedSale.payment_method] || selectedSale.payment_method}</span>
+              </div>
+              {selectedSale.payment_method === 'cash' && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
+                    <span>Recibido:</span>
+                    <span>{formatCurrency(selectedSale.cash_received || selectedSale.total)}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px' }}>
+                    <span>Vuelto:</span>
+                    <span>{formatCurrency(selectedSale.cash_change || 0)}</span>
+                  </div>
+                </>
+              )}
+              {(selectedSale.payment_method === 'debit' || selectedSale.payment_method === 'credit') && (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '2px' }}>
+                    <span>Tarjeta:</span>
+                    <span>{selectedSale.payment_details?.card_brand || 'N/A'}</span>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', marginTop: '2px' }}>
+                    <span>Cupón:</span>
+                    <span>#{selectedSale.payment_details?.voucher_number || 'N/A'}</span>
+                  </div>
+                </>
+              )}
+              {selectedSale.payment_method === 'combined' && (
+                <div style={{ marginTop: '4px' }}>
+                  <div style={{ fontWeight: 'bold', fontSize: '10px', color: '#666' }}>Desglose Pago Mixto:</div>
+                  {(selectedSale.payment_details?.splits || []).map((s, idx) => {
+                    const label = { cash: 'Efectivo', debit: 'Débito', credit: 'Crédito', transfer: 'Transferencia' }[s.method] || s.method
+                    return (
+                      <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', color: '#555', paddingLeft: '8px', marginTop: '2px' }}>
+                        <span>- {label}:</span>
+                        <span>{formatCurrency(s.amount)}</span>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             <div style={{ textAlign: 'center', fontSize: '10px', color: '#666', marginBottom: '8px' }}>
