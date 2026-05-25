@@ -56,6 +56,21 @@ export default function InstallmentsPage() {
 
       if (error) throw error
 
+      // Log payment history in installment_payments
+      const { error: payError } = await supabase
+        .from('installment_payments')
+        .insert({
+          installment_plan_id: planId,
+          tenant_id: tenant.id,
+          amount: amount,
+          payment_method: 'cash',
+          notes: `Pago de cuota ${newPaidInstallments} de ${plan.total_installments}`
+        })
+
+      if (payError) {
+        console.error('Error logging installment payment:', payError)
+      }
+
       toast.success('Pago de cuota registrado exitosamente')
       loadPlans()
     } catch (err) {

@@ -44,6 +44,23 @@ export default function POSPage() {
   const [posnetVoucher, setPosnetVoucher] = useState('')
   const [manualVoucher, setManualVoucher] = useState('')
 
+  // Installment/Accounts Receivable states
+  const [showInstallmentModal, setShowInstallmentModal] = useState(false)
+  const [installmentForm, setInstallmentForm] = useState({ customer_name: '', customer_phone: '', total_installments: 1 })
+
+  const confirmInstallmentSale = async () => {
+    if (!installmentForm.customer_name.trim()) {
+      toast.error('Por favor ingresá el nombre del cliente')
+      return
+    }
+    setShowInstallmentModal(false)
+    await executeSaveSale(null, null, {
+      customer_name: installmentForm.customer_name,
+      customer_phone: installmentForm.customer_phone,
+      total_installments: parseInt(installmentForm.total_installments) || 1
+    })
+  }
+
   const posContainerRef = useRef(null)
 
   useEffect(() => {
@@ -416,7 +433,7 @@ export default function POSPage() {
     }, 1000)
   }
 
-  const executeSaveSale = async (voucher, brand) => {
+  const executeSaveSale = async (voucher, brand, installmentDetails = null) => {
     setIsProcessing(true)
     try {
       // eslint-disable-next-line react-hooks/purity
@@ -486,6 +503,34 @@ export default function POSPage() {
 
       const { error: itemsError } = await supabase.from('sale_items').insert(itemsToInsert)
       if (itemsError) throw itemsError
+
+      // Insert into installment_plans if paymentMethod === 'installment'
+      if (paymentMethod === 'installment' && installmentDetails) {
+        const totalAmount = cartTotal
+        const totalInstallments = installmentDetails.total_installments
+        const installmentAmount = totalAmount / totalInstallments
+
+        const { error: instError } = await supabase
+          .from('installment_plans')
+          .insert({
+            tenant_id: tenant.id,
+            sale_id: saleData.id,
+            customer_name: installmentDetails.customer_name,
+            customer_phone: installmentDetails.customer_phone,
+            total_amount: totalAmount,
+            paid_amount: 0,
+            remaining_amount: totalAmount,
+            total_installments: totalInstallments,
+            paid_installments: 0,
+            installment_amount: installmentAmount,
+            status: 'active'
+          })
+
+        if (instError) {
+          console.error('[POS] Error inserting installment plan:', instError)
+          toast.error('Venta registrada pero hubo un error al crear el plan de cuotas.')
+        }
+      }
 
       // Deduct stock for each cart item
       for (const item of cart) {
@@ -568,7 +613,10 @@ export default function POSPage() {
     }
 
     // Direct checkout or POSnet triggers
-    if (paymentMethod === 'debit' || paymentMethod === 'credit' || (paymentMethod === 'combined' && (Number(splitDebit || 0) > 0 || Number(splitCredit || 0) > 0))) {
+    if (paymentMethod === 'installment') {
+      setInstallmentForm({ customer_name: '', customer_phone: '', total_installments: 1 })
+      setShowInstallmentModal(true)
+    } else if (paymentMethod === 'debit' || paymentMethod === 'credit' || (paymentMethod === 'combined' && (Number(splitDebit || 0) > 0 || Number(splitCredit || 0) > 0))) {
       if (posnetMode === 'integrated') {
         startPosnetSimulation()
       } else {
@@ -1371,6 +1419,79 @@ export default function POSPage() {
                 }}
               >
                 Confirmar Pago
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {showInstallmentModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: 'var(--space-4)'
+        }}>
+          <div className="card" style={{ maxWidth: '440px', width: '100%', padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+            <h2 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.25rem', fontWeight: 700, marginBottom: 'var(--space-4)', color: '#fff' }}>
+              📋 Registrar Plan de Cuotas (Fiado)
+            </h2>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
+              Completa los datos del cliente para crear el saldo pendiente en Cuentas Corrientes.
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: 'var(--space-6)' }}>
+              <div className="form-group">
+                <label className="form-label required">Nombre del Cliente</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Ej: Juan Pérez"
+                  value={installmentForm.customer_name}
+                  onChange={e => setInstallmentForm(prev => ({ ...prev, customer_name: e.target.value }))}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Teléfono (opcional)</label>
+                <input 
+                  type="text" 
+                  className="form-input" 
+                  placeholder="Ej: 3424123456"
+                  value={installmentForm.customer_phone}
+                  onChange={e => setInstallmentForm(prev => ({ ...prev, customer_phone: e.target.value }))}
+                />
+              </div>
+              <div className="form-group">
+                <label className="form-label">Cantidad de Cuotas</label>
+                <select 
+                  className="form-select"
+                  value={installmentForm.total_installments}
+                  onChange={e => setInstallmentForm(prev => ({ ...prev, total_installments: parseInt(e.target.value) || 1 }))}
+                >
+                  <option value={1}>1 Pago (Al Fiado)</option>
+                  <option value={2}>2 Cuotas</option>
+                  <option value={3}>3 Cuotas</option>
+                  <option value={6}>6 Cuotas</option>
+                  <option value={12}>12 Cuotas</option>
+                </select>
+              </div>
+            </div>
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button 
+                className="btn btn-ghost" 
+                style={{ flex: 1 }}
+                onClick={() => {
+                  setShowInstallmentModal(false)
+                  setPaymentMethod('cash')
+                }}
+              >
+                Cancelar
+              </button>
+              <button 
+                className="btn btn-primary" 
+                style={{ flex: 1 }}
+                onClick={confirmInstallmentSale}
+              >
+                Confirmar
               </button>
             </div>
           </div>
