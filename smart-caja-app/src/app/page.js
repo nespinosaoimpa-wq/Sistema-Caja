@@ -502,7 +502,7 @@ export default function LandingPage() {
         <div className={styles.footerLinks}>
           <Link href="/privacy" className={styles.footerLink}>Política de Privacidad</Link>
           <Link href="/terms" className={styles.footerLink}>Términos de Servicio</Link>
-          <a href="https://wa.me/5491112345678?text=Hola%20Smart%20Caja,%20tengo%20una%20consulta" target="_blank" rel="noopener noreferrer" className={styles.footerLink}>Chatear por WhatsApp</a>
+          <a href={`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '543425162372'}?text=Hola%20Smart%20Caja,%20tengo%20una%20consulta`} target="_blank" rel="noopener noreferrer" className={styles.footerLink}>Chatear por WhatsApp</a>
         </div>
         <div>© 2026 Smart Caja. Todos los derechos reservados.</div>
       </footer>

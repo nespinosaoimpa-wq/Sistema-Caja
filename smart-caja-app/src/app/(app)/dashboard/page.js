@@ -237,7 +237,7 @@ export default function DashboardPage() {
                     ¿Tenés dudas o querés ayuda para cargar tus productos masivamente? Chateá directo con un asesor real.
                   </p>
                   <a 
-                    href={`https://wa.me/5491112345678?text=Hola%20Smart%20Caja!%20Acabo%20de%20registrarme%20y%20necesito%20ayuda%20para%20configurar%20mi%20negocio%20${encodeURIComponent(tenant?.name || '')}`}
+                    href={`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '543425162372'}?text=Hola%20Smart%20Caja!%20Acabo%20de%20registrarme%20y%20necesito%20ayuda%20para%20configurar%20mi%20negocio%20${encodeURIComponent(tenant?.name || '')}`}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="btn btn-sm"
