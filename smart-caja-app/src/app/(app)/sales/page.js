@@ -89,6 +89,80 @@ export default function SalesPage() {
     setSelectedSale(sale)
   }
 
+  const handlePrintReceipt = (sale) => {
+    if (!sale) return
+    const now = new Date(sale.created_at)
+    const dateStr = formatDateTime(now)
+    const itemsHTML = (sale.sale_items || []).map(item => {
+      return `<tr>
+        <td style="text-align:left;padding:2px 0;">${item.product_name}</td>
+        <td style="text-align:center;padding:2px 0;">${item.quantity} u</td>
+        <td style="text-align:right;padding:2px 0;">${formatCurrency(item.unit_price)}</td>
+        <td style="text-align:right;padding:2px 0;">${formatCurrency(item.subtotal)}</td>
+      </tr>`
+    }).join('')
+
+    const receiptHTML = `
+      <div style="font-family:'Courier New',Courier,monospace;width:72mm;padding:4mm;font-size:12px;color:#000;background:#fff;">
+        <div style="text-align:center;margin-bottom:8px;">
+          <div style="font-size:16px;font-weight:bold;">${tenant?.name || 'Mi Negocio'}</div>
+          <div style="font-size:10px;color:#555;margin-bottom:4px;">Ticket de Venta</div>
+          <div style="font-size:10px;font-weight:bold;color:#ff3b30;border:1px solid #ff3b30;padding:2px 4px;display:inline-block;border-radius:3px;">TICKET NO FISCAL</div>
+        </div>
+        <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+        <div style="font-size:11px;margin-bottom:6px;">
+          <div>Fecha: ${dateStr}</div>
+          <div>Ticket: #${sale.ticket_number}</div>
+          <div>Cajero: ${sale.profiles?.full_name || 'N/A'}</div>
+        </div>
+        <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+        <table style="width:100%;border-collapse:collapse;font-size:11px;">
+          <thead>
+            <tr style="border-bottom:1px solid #000;">
+              <th style="text-align:left;padding:2px 0;">Prod</th>
+              <th style="text-align:center;padding:2px 0;">Cant</th>
+              <th style="text-align:right;padding:2px 0;">P.U.</th>
+              <th style="text-align:right;padding:2px 0;">Subt</th>
+            </tr>
+          </thead>
+          <tbody>${itemsHTML}</tbody>
+        </table>
+        <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+        <div style="font-size:12px;">
+          <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin:4px 0;"><span>TOTAL:</span><span>${formatCurrency(sale.total)}</span></div>
+        </div>
+        <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+        <div style="text-align:center;font-size:10px;color:#555;margin-top:8px;">
+          ¡Gracias por su compra!
+        </div>
+        <div style="text-align:center;font-size:9px;color:#777;margin-top:6px;font-weight:bold;">
+          TICKET NO FISCAL<br/>DOCUMENTO NO VÁLIDO COMO FACTURA
+        </div>
+      </div>
+    `
+
+    const printWindow = window.open('', '_blank', 'width=300,height=600')
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Ticket #${sale.ticket_number}</title>
+          <style>
+            @media print {
+              body { margin: 0; padding: 0; }
+              @page { size: 80mm auto; margin: 0; }
+            }
+            body { margin: 0; padding: 0; background: #fff; }
+          </style>
+        </head>
+        <body>
+          ${receiptHTML}
+          <script>window.onload = function() { window.print(); window.close(); }</script>
+        </body>
+      </html>
+    `)
+    printWindow.document.close()
+  }
+
   const exportCSV = () => {
     if (filteredSales.length === 0) return
 
@@ -262,10 +336,14 @@ export default function SalesPage() {
             position: 'relative'
           }} onClick={e => e.stopPropagation()}>
             <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)', borderBottom: '1px dashed #ccc', paddingBottom: 'var(--space-4)' }}>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '8px' }}>{tenant?.name || 'Comercio'}</div>
-              <div style={{ fontSize: '0.875rem', color: '#666' }}>Comprobante de Venta</div>
-              <div style={{ fontSize: '0.875rem', color: '#666' }}>Nro: {selectedSale.ticket_number}</div>
-              <div style={{ fontSize: '0.875rem', color: '#666' }}>{formatDateTime(selectedSale.created_at)}</div>
+              <div style={{ fontSize: '1.5rem', fontWeight: 800, textTransform: 'uppercase', marginBottom: '4px' }}>{tenant?.name || 'Comercio'}</div>
+              <div style={{ fontSize: '0.8125rem', color: '#666', marginBottom: '6px' }}>Ticket de Venta</div>
+              <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#ff3b30', border: '1px solid #ff3b30', padding: '2px 4px', display: 'inline-block', borderRadius: '3px', marginBottom: '8px' }}>TICKET NO FISCAL</div>
+              <div style={{ fontSize: '0.8125rem', color: '#666' }}>Nro: {selectedSale.ticket_number}</div>
+              <div style={{ fontSize: '0.8125rem', color: '#666' }}>{formatDateTime(selectedSale.created_at)}</div>
+              {selectedSale.profiles?.full_name && (
+                <div style={{ fontSize: '0.8125rem', color: '#666' }}>Cajero: {selectedSale.profiles.full_name}</div>
+              )}
             </div>
 
             <div style={{ marginBottom: 'var(--space-6)', minHeight: '150px' }}>
@@ -282,17 +360,20 @@ export default function SalesPage() {
                 <span>TOTAL:</span>
                 <span>{formatCurrency(selectedSale.total)}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', marginTop: '8px', color: '#666' }}>
-                <span>Pago con:</span>
-                <span>{getPaymentMethodLabel(selectedSale)}</span>
-              </div>
+            </div>
+
+            <div style={{ textAlign: 'center', fontSize: '10px', color: '#666', marginBottom: '8px' }}>
+              ¡Gracias por su compra!
+            </div>
+            <div style={{ textAlign: 'center', fontSize: '9px', color: '#777', marginBottom: 'var(--space-6)', fontWeight: 'bold' }}>
+              TICKET NO FISCAL<br/>DOCUMENTO NO VÁLIDO COMO FACTURA
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
               <button onClick={() => setSelectedSale(null)} style={{ flex: 1, padding: '10px', background: '#f0f0f0', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>
                 Cerrar
               </button>
-              <button onClick={() => window.print()} style={{ flex: 1, padding: '10px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>
+              <button onClick={() => handlePrintReceipt(selectedSale)} style={{ flex: 1, padding: '10px', background: 'var(--color-primary)', color: '#fff', border: 'none', borderRadius: '4px', fontWeight: 600, cursor: 'pointer' }}>
                 Imprimir
               </button>
             </div>

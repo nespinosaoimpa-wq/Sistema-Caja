@@ -375,22 +375,6 @@ export default function POSPage() {
       </tr>`
     }).join('')
 
-    let paymentInfo = ''
-    if (paymentMethod === 'cash') {
-      paymentInfo = `
-        <div style="display:flex;justify-content:space-between;"><span>Recibido:</span><span>${formatCurrency(cashReceivedNum)}</span></div>
-        <div style="display:flex;justify-content:space-between;font-weight:bold;"><span>Vuelto:</span><span>${formatCurrency(cashChange)}</span></div>
-      `
-    } else if (paymentMethod === 'debit' || paymentMethod === 'credit') {
-      const details = saleData?.payment_details || {}
-      paymentInfo = `
-        <div style="display:flex;justify-content:space-between;"><span>Tarjeta:</span><span>${details.card_brand || 'N/A'}</span></div>
-        <div style="display:flex;justify-content:space-between;"><span>Cupón:</span><span>#${details.voucher_number || 'N/A'}</span></div>
-      `
-    }
-
-    const payMethodLabel = { cash: 'Efectivo', debit: 'Débito', credit: 'Crédito' }[paymentMethod] || paymentMethod
-
     // Calculate tax breakdown
     const taxRate = tenant?.theme_config?.tax_rate !== undefined ? Number(tenant.theme_config.tax_rate) : 0
     const taxName = tenant?.theme_config?.tax_name || 'IVA'
@@ -405,7 +389,8 @@ export default function POSPage() {
       <div style="font-family:'Courier New',Courier,monospace;width:72mm;padding:4mm;font-size:12px;color:#000;background:#fff;">
         <div style="text-align:center;margin-bottom:8px;">
           <div style="font-size:16px;font-weight:bold;">${tenant?.name || 'Mi Negocio'}</div>
-          <div style="font-size:10px;color:#555;">Ticket de Venta</div>
+          <div style="font-size:10px;color:#555;margin-bottom:4px;">Ticket de Venta</div>
+          <div style="font-size:10px;font-weight:bold;color:#ff3b30;border:1px solid #ff3b30;padding:2px 4px;display:inline-block;border-radius:3px;">TICKET NO FISCAL</div>
         </div>
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
         <div style="font-size:11px;margin-bottom:6px;">
@@ -433,13 +418,11 @@ export default function POSPage() {
           <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin:4px 0;"><span>TOTAL:</span><span>${formatCurrency(cartTotal)}</span></div>
         </div>
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
-        <div style="font-size:11px;">
-          <div style="display:flex;justify-content:space-between;"><span>Método de pago:</span><span>${payMethodLabel}</span></div>
-          ${paymentInfo}
-        </div>
-        <div style="border-top:1px dashed #000;margin:6px 0;"></div>
         <div style="text-align:center;font-size:10px;color:#555;margin-top:8px;">
           ¡Gracias por su compra!
+        </div>
+        <div style="text-align:center;font-size:9px;color:#777;margin-top:6px;font-weight:bold;">
+          TICKET NO FISCAL<br/>DOCUMENTO NO VÁLIDO COMO FACTURA
         </div>
       </div>
     `
@@ -1184,7 +1167,8 @@ export default function POSPage() {
               }}>
                 <div style={{ textAlign: 'center', marginBottom: '12px' }}>
                   <div style={{ fontSize: '16px', fontWeight: 'bold' }}>{tenant?.name || 'Mi Negocio'}</div>
-                  <div style={{ fontSize: '10px', color: '#666' }}>Ticket de Venta</div>
+                  <div style={{ fontSize: '10px', color: '#666', marginBottom: '4px' }}>Ticket de Venta</div>
+                  <div style={{ fontSize: '10px', fontWeight: 'bold', color: '#ff3b30', border: '1px solid #ff3b30', padding: '2px 4px', display: 'inline-block', borderRadius: '3px' }}>TICKET NO FISCAL</div>
                 </div>
                 <div style={{ borderTop: '1px dashed #999', margin: '8px 0' }} />
                 <div style={{ fontSize: '11px', marginBottom: '8px' }}>
@@ -1227,40 +1211,11 @@ export default function POSPage() {
                 </div>
                 <div style={{ borderTop: '1px dashed #999', margin: '8px 0' }} />
 
-                <div style={{ fontSize: '11px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Método de pago:</span>
-                    <span>{{ cash: 'Efectivo', debit: 'Débito', credit: 'Crédito', transfer: 'Transferencia', combined: 'Mixto', installment: 'Cuotas' }[receiptData.paymentMethod] || receiptData.paymentMethod}</span>
-                  </div>
-                  {receiptData.paymentMethod === 'cash' && (
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Recibido:</span>
-                        <span>{formatCurrency(receiptData.cashReceived)}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                        <span>Vuelto:</span>
-                        <span>{formatCurrency(receiptData.cashChange)}</span>
-                      </div>
-                    </>
-                  )}
-                  {(receiptData.paymentMethod === 'debit' || receiptData.paymentMethod === 'credit') && (
-                    <>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Tarjeta:</span>
-                        <span>{receiptData.saleData?.payment_details?.card_brand || 'N/A'}</span>
-                      </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                        <span>Cupón:</span>
-                        <span>#{receiptData.saleData?.payment_details?.voucher_number || 'N/A'}</span>
-                      </div>
-                    </>
-                  )}
-                </div>
-
-                <div style={{ borderTop: '1px dashed #999', margin: '8px 0' }} />
                 <div style={{ textAlign: 'center', fontSize: '10px', color: '#666' }}>
                   ¡Gracias por su compra!
+                </div>
+                <div style={{ textAlign: 'center', fontSize: '9px', color: '#777', marginTop: '6px', fontWeight: 'bold' }}>
+                  TICKET NO FISCAL<br/>DOCUMENTO NO VÁLIDO COMO FACTURA
                 </div>
               </div>
             </div>
