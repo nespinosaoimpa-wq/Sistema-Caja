@@ -5,6 +5,14 @@ import { createClient } from '@/lib/supabase/client'
 
 const AuthContext = createContext({})
 
+// Helper to race a promise against a timeout
+const withTimeout = (promise, ms, timeoutError = new Error('Timeout exceeded')) => {
+  return Promise.race([
+    promise,
+    new Promise((_, reject) => setTimeout(() => reject(timeoutError), ms))
+  ])
+}
+
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -18,14 +26,18 @@ export function AuthProvider({ children }) {
     setProfileLoaded(false)
     setProfileError(null)
     try {
-      const { data: profileData, error } = await supabase
-        .from('profiles')
-        .select(`
-          *,
-          tenants (*)
-        `)
-        .eq('id', userId)
-        .single()
+      const { data: profileData, error } = await withTimeout(
+        supabase
+          .from('profiles')
+          .select(`
+            *,
+            tenants (*)
+          `)
+          .eq('id', userId)
+          .single(),
+        6000,
+        new Error('Tiempo de espera agotado al conectar con la base de datos')
+      )
 
       if (error) {
         if (error.code === 'PGRST116') {
@@ -108,12 +120,16 @@ export function AuthProvider({ children }) {
 
     const initialize = async () => {
       try {
-        const { data: { user: currentUser } } = await supabase.auth.getUser()
+        const { data: { user: currentUser } } = await withTimeout(
+          supabase.auth.getUser(),
+          8000,
+          new Error('Error de conexión con el servidor de autenticación (timeout)')
+        )
         if (isMounted) {
           await syncProfile(currentUser)
         }
       } catch (err) {
-        console.error('[useAuth] initialize getSession failed:', err)
+        console.error('[useAuth] initialize getUser failed:', err)
         if (isMounted) setLoading(false)
       }
     }
