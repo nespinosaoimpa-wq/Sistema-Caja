@@ -48,6 +48,11 @@ export default function POSPage() {
   const [showInstallmentModal, setShowInstallmentModal] = useState(false)
   const [installmentForm, setInstallmentForm] = useState({ customer_name: '', customer_phone: '', total_installments: 1 })
 
+  // Order (Pedido) modal state
+  const [showOrderModal, setShowOrderModal] = useState(false)
+  const [orderForm, setOrderForm] = useState({ customer_name: '', customer_phone: '', delivery_date: '', advance_payment: '' })
+  const [savingOrder, setSavingOrder] = useState(false)
+
   const confirmInstallmentSale = async () => {
     if (!installmentForm.customer_name.trim()) {
       toast.error('Por favor ingresá el nombre del cliente')
@@ -59,6 +64,64 @@ export default function POSPage() {
       customer_phone: installmentForm.customer_phone,
       total_installments: parseInt(installmentForm.total_installments) || 1
     })
+  }
+
+  const handleSaveAsOrder = async () => {
+    if (!orderForm.customer_name.trim()) {
+      toast.error('Ingresá el nombre del cliente')
+      return
+    }
+    if (cart.length === 0) return
+    setSavingOrder(true)
+    try {
+      const total = cartTotal
+      const advance = parseFloat(orderForm.advance_payment) || 0
+
+      const { data: orderData, error: orderError } = await supabase
+        .from('orders')
+        .insert({
+          tenant_id: tenant.id,
+          user_id: profile.id,
+          customer_name: orderForm.customer_name.trim(),
+          customer_phone: orderForm.customer_phone.trim() || null,
+          delivery_date: orderForm.delivery_date || null,
+          advance_payment: advance,
+          total: total,
+          status: 'pending',
+          notes: `Pedido creado desde Caja. Saldo pendiente: ${formatCurrency(total - advance)}`
+        })
+        .select()
+        .single()
+
+      if (orderError) throw orderError
+
+      // Insert order items
+      const orderItems = cart.map(item => ({
+        order_id: orderData.id,
+        tenant_id: tenant.id,
+        product_id: item.id,
+        product_name: item.name,
+        quantity: item.qty,
+        unit_price: item.sale_price,
+        subtotal: item.subtotal
+      }))
+
+      const { error: itemsError } = await supabase
+        .from('order_items')
+        .insert(orderItems)
+
+      if (itemsError) throw itemsError
+
+      toast.success(`¡Pedido de ${orderForm.customer_name} guardado! Seña: ${formatCurrency(advance)}`)
+      setShowOrderModal(false)
+      setOrderForm({ customer_name: '', customer_phone: '', delivery_date: '', advance_payment: '' })
+      setCart([])
+    } catch (err) {
+      console.error('[handleSaveAsOrder]', err)
+      toast.error('Error al guardar el pedido: ' + err.message)
+    } finally {
+      setSavingOrder(false)
+    }
   }
 
   const posContainerRef = useRef(null)
@@ -1063,7 +1126,7 @@ export default function POSPage() {
                   pointerEvents: cart.length === 0 ? 'none' : 'auto',
                   transition: 'var(--transition)'
                 }}
-                onClick={() => alert('Próximamente: Se abrirá modal para ingresar fecha de entrega y seña.')}
+                onClick={() => setShowOrderModal(true)}
                 disabled={isProcessing || cart.length === 0}
               >
                 📝 Guardar como Pedido
@@ -1492,6 +1555,126 @@ export default function POSPage() {
                 onClick={confirmInstallmentSale}
               >
                 Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* ========== ORDER (PEDIDO) MODAL ========== */}
+      {showOrderModal && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, padding: '16px'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowOrderModal(false) } }}
+        >
+          <div style={{
+            background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-xl)', padding: '32px',
+            width: '100%', maxWidth: '460px',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.6)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '50%',
+                background: 'rgba(59,130,246,0.1)', border: '2px solid rgba(59,130,246,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.75rem', margin: '0 auto 12px'
+              }}>📋</div>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', marginBottom: '4px' }}>
+                Guardar como Pedido
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem' }}>
+                {cart.length} producto{cart.length !== 1 ? 's' : ''} · Total: <strong style={{ color: 'var(--color-primary)' }}>{formatCurrency(cartTotal)}</strong>
+              </p>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: '24px' }}>
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Nombre del cliente *
+                </label>
+                <input
+                  className="form-input"
+                  placeholder="Ej: Juan Pérez"
+                  value={orderForm.customer_name}
+                  onChange={e => setOrderForm(prev => ({ ...prev, customer_name: e.target.value }))}
+                  autoFocus
+                />
+              </div>
+
+              <div>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                  Teléfono (opcional)
+                </label>
+                <input
+                  className="form-input"
+                  placeholder="Ej: 3424123456"
+                  value={orderForm.customer_phone}
+                  onChange={e => setOrderForm(prev => ({ ...prev, customer_phone: e.target.value }))}
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    Fecha de entrega
+                  </label>
+                  <input
+                    className="form-input"
+                    type="date"
+                    value={orderForm.delivery_date}
+                    onChange={e => setOrderForm(prev => ({ ...prev, delivery_date: e.target.value }))}
+                  />
+                </div>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '6px' }}>
+                    Seña / Anticipo ($)
+                  </label>
+                  <input
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={orderForm.advance_payment}
+                    onChange={e => setOrderForm(prev => ({ ...prev, advance_payment: e.target.value }))}
+                  />
+                </div>
+              </div>
+
+              {orderForm.advance_payment && parseFloat(orderForm.advance_payment) > 0 && (
+                <div style={{
+                  background: 'rgba(239,68,68,0.05)', border: '1px solid rgba(239,68,68,0.15)',
+                  borderRadius: 'var(--radius-md)', padding: '12px 16px',
+                  display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem'
+                }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Saldo pendiente:</span>
+                  <span style={{ fontWeight: 700, color: 'var(--color-error)' }}>
+                    {formatCurrency(cartTotal - (parseFloat(orderForm.advance_payment) || 0))}
+                  </span>
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="btn btn-ghost"
+                style={{ flex: 1 }}
+                onClick={() => { setShowOrderModal(false); setOrderForm({ customer_name: '', customer_phone: '', delivery_date: '', advance_payment: '' }) }}
+                disabled={savingOrder}
+              >
+                Cancelar
+              </button>
+              <button
+                className="btn btn-primary"
+                style={{ flex: 2, fontWeight: 700 }}
+                onClick={handleSaveAsOrder}
+                disabled={savingOrder || !orderForm.customer_name.trim()}
+              >
+                {savingOrder ? '⏳ Guardando...' : '📋 Confirmar Pedido'}
               </button>
             </div>
           </div>

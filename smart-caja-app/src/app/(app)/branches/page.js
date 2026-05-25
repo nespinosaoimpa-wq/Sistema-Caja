@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { useRouter } from 'next/navigation'
 import UpgradePrompt from '@/components/ui/UpgradePrompt'
 import { formatCurrency, formatDateTime } from '@/lib/utils/formatters'
 
 export default function BranchesPage() {
   const { tenant } = useAuth()
   const supabase = createClient()
+  const router = useRouter()
   
   const [branches, setBranches] = useState([])
   const [loading, setLoading] = useState(true)
@@ -57,7 +59,7 @@ export default function BranchesPage() {
           </p>
         </div>
         <div style={{ marginLeft: 'auto' }}>
-          <button className="btn btn-primary" onClick={() => alert('Próximamente modal de creación')}>
+          <button className="btn btn-primary" onClick={() => router.push('/settings?tab=branches')}>
             + Nueva Sucursal
           </button>
         </div>

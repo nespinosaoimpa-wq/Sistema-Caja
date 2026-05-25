@@ -1918,14 +1918,7 @@ export default function SettingsPage() {
                           className="btn btn-sm"
                           style={{ background: '#25D366', color: '#000', marginTop: '8px', width: '100%', fontWeight: 700 }}
                           onClick={() => {
-                            toast.info('Simulación enviada')
-                            setTimeout(() => {
-                              alert(`[ALERTAS BOT MOCK]
-De: Smart Caja Alertas 🤖
-Para: Administrador de ${tenant?.name || 'Comercio'}
-
-Tu período de prueba vence pronto. Configura tu facturación para evitar el bloqueo del punto de venta.`)
-                            }, 400)
+                            toast.info(`📲 [Simulación Bot] De: Smart Caja Alertas 🤖 → Para: ${tenant?.name || 'Comercio'} — "Tu período de prueba vence pronto. Configurá tu facturación para continuar usando Smart Caja."`)
                           }}
                         >
                           📲 Probar Mensaje Bot
