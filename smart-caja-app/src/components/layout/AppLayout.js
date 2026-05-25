@@ -49,6 +49,22 @@ export default function AppLayout({ children }) {
     }
   }, [loading, user, router])
 
+  // Redirigir automáticamente si la suscripción está vencida o suspendida
+  useEffect(() => {
+    if (loading || !user || !profileLoaded || !tenant) return
+
+    const subscriptionStatus = tenant.subscription_status || 'trial'
+    const trialEndsAt = tenant.trial_ends_at ? new Date(tenant.trial_ends_at) : null
+    const now = new Date()
+    
+    const isTrialExpired = subscriptionStatus === 'trial' && trialEndsAt && now > trialEndsAt
+    const isSuspended = subscriptionStatus === 'suspended' || subscriptionStatus === 'cancelled' || isTrialExpired
+
+    if (isSuspended && pathname !== '/settings') {
+      router.replace('/settings?tab=billing')
+    }
+  }, [loading, user, profileLoaded, tenant, pathname, router])
+
   const [setupForm, setSetupForm] = useState({ business_name: '', business_type: 'general' })
   const [setupLoading, setSetupLoading] = useState(false)
   const [setupError, setSetupError] = useState(null)

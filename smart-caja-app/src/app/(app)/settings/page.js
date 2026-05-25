@@ -91,6 +91,23 @@ export default function SettingsPage() {
     }
   }, [tenant])
 
+  // Handle tab and suspension sync
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const tabParam = params.get('tab')
+      
+      const isSuspended = tenant?.subscription_status === 'suspended' || 
+        (tenant?.subscription_status === 'trial' && tenant?.trial_ends_at && new Date() > new Date(tenant.trial_ends_at))
+      
+      if (isSuspended) {
+        setActiveTab('billing')
+      } else if (tabParam) {
+        setActiveTab(tabParam)
+      }
+    }
+  }, [tenant])
+
   // Fetch Team Members
   const fetchTeamMembers = useCallback(async () => {
     if (!tenant?.id) return
@@ -389,7 +406,12 @@ export default function SettingsPage() {
     )
   }
 
-  const TABS = [
+  const isSuspended = tenant?.subscription_status === 'suspended' || 
+    (tenant?.subscription_status === 'trial' && tenant?.trial_ends_at && new Date() > new Date(tenant.trial_ends_at))
+
+  const TABS = isSuspended ? [
+    { id: 'billing', label: 'Suscripción', desc: 'Planes y facturación', icon: Receipt },
+  ] : [
     { id: 'general', label: 'General', desc: 'Identificación y formatos', icon: Store },
     { id: 'appearance', label: 'Apariencia', desc: 'Logos, temas y preview', icon: Palette },
     { id: 'users', label: 'Equipo', desc: 'Colaboradores y roles', icon: Users },
