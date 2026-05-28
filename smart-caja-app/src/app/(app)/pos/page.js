@@ -34,8 +34,6 @@ export default function POSPage() {
   // Custom states for premium billing
   const [customers, setCustomers] = useState([])
   const [selectedCustomerId, setSelectedCustomerId] = useState('')
-  const [discountType, setDiscountType] = useState(null) // 'percentage' | 'fixed' | null
-  const [discountValue, setDiscountValue] = useState('')
   const [mixedCash, setMixedCash] = useState('')
   const [mixedCard, setMixedCard] = useState('')
   const [mixedMP, setMixedMP] = useState('')
@@ -388,15 +386,16 @@ export default function POSPage() {
 
   const calculateDiscountAmount = () => {
     const val = parseFloat(discountValue) || 0
-    if (discountType === 'percentage') return (cartTotal * val) / 100
+    if (discountType === 'percentage') return (cartSubtotal * val) / 100
     if (discountType === 'fixed') return val
     return 0
   }
   const discountAmount = calculateDiscountAmount()
-  const finalTotal = Math.max(0, cartTotal - discountAmount)
+  const cartTotal = Math.max(0, cartSubtotal - discountAmount)
+  const finalTotal = cartTotal
 
   const cashReceivedNum = parseFloat(cashReceived) || 0
-  const cashChange = cashReceivedNum - finalTotal
+  const cashChange = cashReceivedNum - cartTotal
 
   // Build receipt HTML for thermal printer (80mm)
   const buildReceiptHTML = (saleData, items) => {
@@ -536,51 +535,38 @@ export default function POSPage() {
     printWindow.document.close()
   }
 
-  const handleCheckout = async () => {
-    if (cart.length === 0) return
-    if (!activeShift) return toast.error('Debes abrir un turno de caja primero')
+  const startPosnetSimulation = () => {
+    setIsProcessing(true)
+    setPosnetStep(0)
+    setShowPosnetSimulator(true)
+    
+    setTimeout(() => {
+      setPosnetStep(1) // Swipe card
+      setTimeout(() => {
+        setPosnetStep(2) // Processing
+        setTimeout(() => {
+          const brands = ['VISA', 'MASTERCARD', 'MAESTRO', 'CABAL']
+          const selectedBrand = brands[Math.floor(Math.random() * brands.length)]
+          const voucher = Math.floor(100000 + Math.random() * 900000).toString()
+          
+          setPosnetCardBrand(selectedBrand)
+          setPosnetVoucher(voucher)
+          setPosnetStep(3) // Approved
+          
+          setTimeout(() => {
+            setShowPosnetSimulator(false)
+            executeSaveSale(voucher, selectedBrand)
+          }, 1500)
+        }, 1500)
+      }, 1500)
+    }, 1000)
+  }
 
-    // 1b. Stock validation before checkout
-    const outOfStock = cart.filter(item => item.qty > item.stock_quantity)
-    if (outOfStock.length > 0) {
-      const names = outOfStock.map(i => `"${i.name}" (pedido: ${i.qty}, stock: ${i.stock_quantity})`).join(', ')
-      toast.error(`Stock insuficiente para: ${names}`)
-      return
-    }
-
-    // 1c. Cash validation
-    if (paymentMethod === 'cash') {
-      if (cashReceivedNum < finalTotal) {
-        toast.error('El monto recibido es menor al total')
-        return
-      }
-    }
-
-    // Mixed/Combined validation
-    if (paymentMethod === 'mixed') {
-      const c = parseFloat(mixedCash) || 0
-      const d = parseFloat(mixedCard) || 0
-      const m = parseFloat(mixedMP) || 0
-      const totalPaid = c + d + m
-      if (Math.abs(totalPaid - finalTotal) > 0.01 && totalPaid < finalTotal) {
-        toast.error(`El pago mixto ingresado (${formatCurrency(totalPaid)}) no cubre el total de la venta (${formatCurrency(finalTotal)})`)
-        return
-      }
-    }
-
-    // Installment/Fiado validation
-    if (paymentMethod === 'installment') {
-      if (!selectedCustomerId) {
-        toast.error('Debes seleccionar un cliente para realizar una venta al fiado (cuotas)')
-        return
-      }
-    }
-
+  const executeSaveSale = async (voucher = null, brand = null, installmentDetails = null) => {
     setIsProcessing(true)
     try {
       // eslint-disable-next-line react-hooks/purity
       const ticketNumber = Date.now().toString().slice(-8)
-      
       const dbPaymentMethod = paymentMethod === 'mixed' ? 'combined' : paymentMethod
       
       let paymentDetails = {}
@@ -589,6 +575,20 @@ export default function POSPage() {
           cash: parseFloat(mixedCash) || 0,
           card: parseFloat(mixedCard) || 0,
           mp: parseFloat(mixedMP) || 0
+        }
+      } else if (paymentMethod === 'debit' || paymentMethod === 'credit') {
+        paymentDetails = {
+          card_brand: brand || 'N/A',
+          voucher_number: voucher || 'N/A',
+          integrated: posnetMode === 'integrated',
+          terminal_id: 'POSNET-4819'
+        }
+      } else if (paymentMethod === 'transfer') {
+        paymentDetails = {
+          card_brand: 'Transferencia',
+          voucher_number: 'N/A',
+          integrated: false,
+          is_transfer: true
         }
       }
 
@@ -608,7 +608,6 @@ export default function POSPage() {
         payment_details: paymentDetails
       }
 
-      // Store cash info
       if (paymentMethod === 'cash') {
         salePayload.cash_received = cashReceivedNum
         salePayload.cash_change = cashChange
@@ -620,48 +619,23 @@ export default function POSPage() {
         salePayload.cash_change = Math.max(0, (c + d + m) - finalTotal)
       }
 
-      // Store card info if card payment
-      if (paymentMethod === 'debit' || paymentMethod === 'credit') {
-        salePayload.payment_details = {
-          card_brand: brand || 'N/A',
-          voucher_number: voucher || 'N/A',
-          integrated: posnetMode === 'integrated',
-          terminal_id: 'POSNET-4819'
-        }
-      }
-
-      // Store transfer info if transfer payment
-      if (paymentMethod === 'transfer') {
-        salePayload.payment_details = {
-          card_brand: 'Transferencia',
-          voucher_number: 'N/A',
-          integrated: false,
-          is_transfer: true
-        }
-      }
-
-      // Store splits if combined
-      if (paymentMethod === 'combined') {
-        salePayload.payment_details = {
-          splits: [
-            { method: 'cash', amount: Number(splitCash || 0) },
-            { method: 'debit', amount: Number(splitDebit || 0) },
-            { method: 'credit', amount: Number(splitCredit || 0) }
-          ].filter(s => s.amount > 0),
-          card_brand: brand || 'N/A',
-          voucher_number: voucher || 'N/A'
-        }
-      }
-
       const { data: saleData, error: saleError } = await supabase
         .from('sales')
-        .insert(salePayload).select().single()
+        .insert(salePayload)
+        .select()
+        .single()
 
       if (saleError) throw saleError
 
       const itemsToInsert = cart.map(item => ({
-        sale_id: saleData.id, tenant_id: tenant.id, product_id: item.id, product_name: item.name,
-        quantity: item.qty, unit_price: item.sale_price, cost_price: item.cost_price, subtotal: item.subtotal
+        sale_id: saleData.id, 
+        tenant_id: tenant.id, 
+        product_id: item.id, 
+        product_name: item.name,
+        quantity: item.qty, 
+        unit_price: item.sale_price, 
+        cost_price: item.cost_price, 
+        subtotal: item.subtotal
       }))
 
       const { error: itemsError } = await supabase.from('sale_items').insert(itemsToInsert)
@@ -669,7 +643,7 @@ export default function POSPage() {
 
       // Insert into installment_plans if paymentMethod === 'installment'
       if (paymentMethod === 'installment' && installmentDetails) {
-        const totalAmount = cartTotal
+        const totalAmount = finalTotal
         const totalInstallments = installmentDetails.total_installments
         const installmentAmount = totalAmount / totalInstallments
 
@@ -724,7 +698,7 @@ export default function POSPage() {
         }
       }
 
-      // 1e & 1f. Build receipt and store ticket
+      // Build receipt and store ticket
       const receiptHTML = buildReceiptHTML(saleData, cart)
       
       // Insert into tickets table
@@ -781,27 +755,41 @@ export default function POSPage() {
       return
     }
 
-    if (paymentMethod === 'combined') {
-      const sum = Number(splitCash || 0) + Number(splitDebit || 0) + Number(splitCredit || 0)
-      if (Math.abs(sum - cartTotal) > 0.01) {
-        toast.error(`La suma de pagos (${formatCurrency(sum)}) no coincide con el total.`)
-        return
-      }
-    }
-
     // 1c. Cash validation
     if (paymentMethod === 'cash') {
-      if (cashReceived && cashReceivedNum < cartTotal) {
+      if (cashReceivedNum < finalTotal) {
         toast.error('El monto recibido es menor al total')
         return
       }
     }
 
-    // Direct checkout or POSnet triggers
+    // Mixed/Combined validation
+    if (paymentMethod === 'mixed') {
+      const c = parseFloat(mixedCash) || 0
+      const d = parseFloat(mixedCard) || 0
+      const m = parseFloat(mixedMP) || 0
+      const totalPaid = c + d + m
+      if (Math.abs(totalPaid - finalTotal) > 0.01 && totalPaid < finalTotal) {
+        toast.error(`El pago mixto ingresado (${formatCurrency(totalPaid)}) no cubre el total de la venta (${formatCurrency(finalTotal)})`)
+        return
+      }
+    }
+
+    // Installment/Fiado validation
     if (paymentMethod === 'installment') {
-      setInstallmentForm({ customer_name: '', customer_phone: '', total_installments: 1 })
+      if (!selectedCustomerId) {
+        toast.error('Debes seleccionar un cliente para realizar una venta al fiado (cuotas)')
+        return
+      }
+      
+      const selectedCustomer = customers.find(c => c.id === selectedCustomerId)
+      setInstallmentForm({ 
+        customer_name: selectedCustomer ? selectedCustomer.name : '', 
+        customer_phone: selectedCustomer ? (selectedCustomer.phone || '') : '', 
+        total_installments: 1 
+      })
       setShowInstallmentModal(true)
-    } else if (paymentMethod === 'debit' || paymentMethod === 'credit' || (paymentMethod === 'combined' && (Number(splitDebit || 0) > 0 || Number(splitCredit || 0) > 0))) {
+    } else if (paymentMethod === 'debit' || paymentMethod === 'credit') {
       if (posnetMode === 'integrated') {
         startPosnetSimulation()
       } else {

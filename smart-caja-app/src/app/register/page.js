@@ -121,26 +121,63 @@ function RegisterContent() {
         // 2. Insertar perfil vinculado al tenant de la invitación
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
+          .upsert({
             id: userId,
             tenant_id: inviteTenant,
             full_name: form.full_name,
             email: form.email,
             role: inviteRole,
+            is_active: true
           })
 
         if (profileError) throw profileError
 
-      // 3. Create or update profile
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: userId,
-          tenant_id: tenantData.id,
-          name: 'General',
-          icon: '📦',
-          color: '#7C3AED',
-        })
+        toast.success('¡Registro completado! Te has unido al comercio.')
+      } else {
+        // --- REGISTRO DE NUEVO PROPIETARIO ---
+        // 2. Crear tenant/negocio
+        const slug = generateSlug(form.business_name) + '-' + Math.random().toString(36).slice(2, 6)
+        const { data: tenantData, error: tenantError } = await supabase
+          .from('tenants')
+          .insert({
+            name: form.business_name,
+            slug,
+            business_type: form.business_type,
+            email: form.email,
+            phone: form.phone,
+          })
+          .select()
+          .single()
+
+        if (tenantError) throw tenantError
+
+        // 3. Crear perfil de dueño
+        const { error: profileError } = await supabase
+          .from('profiles')
+          .upsert({
+            id: userId,
+            tenant_id: tenantData.id,
+            full_name: form.full_name,
+            email: form.email,
+            role: 'owner',
+            is_active: true
+          })
+
+        if (profileError) throw profileError
+
+        // 4. Crear categoría inicial por defecto
+        const { error: catError } = await supabase
+          .from('categories')
+          .insert({
+            tenant_id: tenantData.id,
+            name: 'General',
+            icon: '📦',
+            color: '#7C3AED',
+          })
+
+        if (catError) {
+          console.error('[Register] Error creating default category:', catError)
+        }
 
         toast.success('¡Cuenta creada! Bienvenido a Smart Caja')
       }
