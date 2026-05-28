@@ -31,6 +31,15 @@ export default function POSPage() {
   const [discountType, setDiscountType] = useState(null)
   const [discountValue, setDiscountValue] = useState('')
   
+  // Custom states for premium billing
+  const [customers, setCustomers] = useState([])
+  const [selectedCustomerId, setSelectedCustomerId] = useState('')
+  const [discountType, setDiscountType] = useState(null) // 'percentage' | 'fixed' | null
+  const [discountValue, setDiscountValue] = useState('')
+  const [mixedCash, setMixedCash] = useState('')
+  const [mixedCard, setMixedCard] = useState('')
+  const [mixedMP, setMixedMP] = useState('')
+
   // Receipt modal state
   const [receiptData, setReceiptData] = useState(null)
   const [showReceipt, setShowReceipt] = useState(false)
@@ -231,10 +240,39 @@ export default function POSPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id])
 
-  const stateRef = useRef({ showReceipt })
-  useEffect(() => {
-    stateRef.current = { showReceipt }
-  }, [showReceipt])
+  async function loadData() {
+    setLoading(true)
+    const { data: shiftData } = await supabase
+      .from('shifts')
+      .select('*')
+      .eq('tenant_id', tenant.id)
+      .eq('status', 'open')
+      .eq('user_id', profile.id)
+      .single()
+      
+    if (shiftData) setActiveShift(shiftData)
+
+    const { data: prods } = await supabase
+      .from('products')
+      .select('*, categories(name, icon)')
+      .eq('tenant_id', tenant.id)
+      .eq('is_active', true)
+      .order('name')
+      
+    if (prods) setProducts(prods)
+
+    // Fetch active customers
+    const { data: custs } = await supabase
+      .from('customers')
+      .select('*')
+      .eq('tenant_id', tenant.id)
+      .eq('is_active', true)
+      .order('name')
+      
+    if (custs) setCustomers(custs)
+
+    setLoading(false)
+  }
 
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -348,17 +386,17 @@ export default function POSPage() {
   const cartSubtotal = cart.reduce((sum, item) => sum + item.subtotal, 0)
   const cartItemsCount = cart.reduce((sum, item) => sum + item.qty, 0)
 
-  let discountAmount = 0
-  if (discountType === 'percentage' && discountValue) {
-    discountAmount = cartSubtotal * (Number(discountValue) / 100)
-  } else if (discountType === 'fixed' && discountValue) {
-    discountAmount = Number(discountValue)
+  const calculateDiscountAmount = () => {
+    const val = parseFloat(discountValue) || 0
+    if (discountType === 'percentage') return (cartTotal * val) / 100
+    if (discountType === 'fixed') return val
+    return 0
   }
-  
-  const cartTotal = Math.max(0, cartSubtotal - discountAmount)
+  const discountAmount = calculateDiscountAmount()
+  const finalTotal = Math.max(0, cartTotal - discountAmount)
 
-  const cashReceivedNum = cashReceived ? parseFloat(cashReceived) : cartTotal
-  const cashChange = cashReceivedNum - cartTotal
+  const cashReceivedNum = parseFloat(cashReceived) || 0
+  const cashChange = cashReceivedNum - finalTotal
 
   // Build receipt HTML for thermal printer (80mm)
   const buildReceiptHTML = (saleData, items) => {
@@ -375,21 +413,34 @@ export default function POSPage() {
       </tr>`
     }).join('')
 
-    // Calculate tax breakdown
-    const taxRate = tenant?.theme_config?.tax_rate !== undefined ? Number(tenant.theme_config.tax_rate) : 0
-    const taxName = tenant?.theme_config?.tax_name || 'IVA'
-    const taxAmount = taxRate > 0 ? (cartTotal * taxRate) / (100 + taxRate) : 0
-    
-    const taxHTML = taxRate > 0 ? `
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:#666;margin-top:2px;"><span>Neto sin imp.:</span><span>${formatCurrency(cartTotal - taxAmount)}</span></div>
-      <div style="display:flex;justify-content:space-between;font-size:10px;color:#666;margin-top:2px;"><span>${taxName} (${taxRate}%):</span><span>${formatCurrency(taxAmount)}</span></div>
-    ` : ''
+    let discountHTML = ''
+    if (saleData.discount_amount > 0) {
+      const discValLabel = saleData.discount_type === 'percentage' ? `${saleData.discount_value}%` : formatCurrency(saleData.discount_value)
+      discountHTML = `<div style="display:flex;justify-content:space-between;color:#555;"><span>Descuento (${discValLabel}):</span><span>-${formatCurrency(saleData.discount_amount)}</span></div>`
+    }
 
     let paymentInfo = ''
     if (paymentMethod === 'cash') {
       paymentInfo = `
-        <div style="display:flex;justify-content:space-between;"><span>Recibido:</span><span>${formatCurrency(cashReceivedNum)}</span></div>
-        <div style="display:flex;justify-content:space-between;font-weight:bold;"><span>Vuelto:</span><span>${formatCurrency(cashChange)}</span></div>
+        <div style="display:flex;justify-content:space-between;"><span>Recibido:</span><span>${formatCurrency(saleData.cash_received || 0)}</span></div>
+        <div style="display:flex;justify-content:space-between;font-weight:bold;"><span>Vuelto:</span><span>${formatCurrency(saleData.cash_change || 0)}</span></div>
+      `
+    } else if (paymentMethod === 'mixed') {
+      const details = saleData.payment_details || {}
+      paymentInfo = `
+        <div style="margin-left:8px;font-size:10px;color:#555;">
+          <div style="display:flex;justify-content:space-between;"><span>- Efectivo:</span><span>${formatCurrency(details.cash || 0)}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>- Tarjeta:</span><span>${formatCurrency(details.card || 0)}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>- Mercado Pago:</span><span>${formatCurrency(details.mp || 0)}</span></div>
+        </div>
+      `
+    } else if (paymentMethod === 'installment') {
+      const client = customers.find(c => c.id === selectedCustomerId)
+      paymentInfo = `
+        <div style="margin-top:4px;border-top:1px solid #000;padding-top:4px;">
+          <div>Cliente: ${client ? client.name : 'Cliente Registrado'}</div>
+          <div style="font-weight:bold;">Nuevo Saldo Deudor: ${formatCurrency(client ? (parseFloat(client.balance) || 0) + saleData.total : saleData.total)}</div>
+        </div>
       `
     } else if (paymentMethod === 'debit' || paymentMethod === 'credit') {
       const details = saleData?.payment_details || {}
@@ -412,7 +463,7 @@ export default function POSPage() {
       `
     }
 
-    const payMethodLabel = { cash: 'Efectivo', debit: 'Débito', credit: 'Crédito', transfer: 'Transferencia', combined: 'Mixto', installment: 'Cuotas' }[paymentMethod] || paymentMethod
+    const payMethodLabel = { cash: 'Efectivo', debit: 'Débito', credit: 'Crédito', mixed: 'Mixto', installment: 'Fiado (Cta. Cte.)' }[paymentMethod] || paymentMethod
 
     return `
       <div style="font-family:'Courier New',Courier,monospace;width:72mm;padding:4mm;font-size:12px;color:#000;background:#fff;">
@@ -441,10 +492,9 @@ export default function POSPage() {
         </table>
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
         <div style="font-size:12px;">
-          <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>${formatCurrency(cartSubtotal)}</span></div>
-          ${discountAmount > 0 ? `<div style="display:flex;justify-content:space-between;color:#d00;"><span>Descuento:</span><span>-${formatCurrency(discountAmount)}</span></div>` : ''}
-          ${taxHTML}
-          <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin:4px 0;"><span>TOTAL:</span><span>${formatCurrency(cartTotal)}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>${formatCurrency(cartTotal)}</span></div>
+          ${discountHTML}
+          <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin:4px 0;"><span>TOTAL:</span><span>${formatCurrency(saleData.total)}</span></div>
         </div>
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
         <div style="font-size:11px;">
@@ -486,55 +536,88 @@ export default function POSPage() {
     printWindow.document.close()
   }
 
-  const startPosnetSimulation = () => {
-    setIsProcessing(true)
-    setPosnetStep(0)
-    setShowPosnetSimulator(true)
-    
-    setTimeout(() => {
-      setPosnetStep(1) // Swipe card
-      setTimeout(() => {
-        setPosnetStep(2) // Processing
-        setTimeout(() => {
-          const brands = ['VISA', 'MASTERCARD', 'MAESTRO', 'CABAL']
-          const selectedBrand = brands[Math.floor(Math.random() * brands.length)]
-          const voucher = Math.floor(100000 + Math.random() * 900000).toString()
-          
-          setPosnetCardBrand(selectedBrand)
-          setPosnetVoucher(voucher)
-          setPosnetStep(3) // Approved
-          
-          setTimeout(() => {
-            setShowPosnetSimulator(false)
-            executeSaveSale(voucher, selectedBrand)
-          }, 1500)
-        }, 1500)
-      }, 1500)
-    }, 1000)
-  }
+  const handleCheckout = async () => {
+    if (cart.length === 0) return
+    if (!activeShift) return toast.error('Debes abrir un turno de caja primero')
 
-  const executeSaveSale = async (voucher, brand, installmentDetails = null) => {
+    // 1b. Stock validation before checkout
+    const outOfStock = cart.filter(item => item.qty > item.stock_quantity)
+    if (outOfStock.length > 0) {
+      const names = outOfStock.map(i => `"${i.name}" (pedido: ${i.qty}, stock: ${i.stock_quantity})`).join(', ')
+      toast.error(`Stock insuficiente para: ${names}`)
+      return
+    }
+
+    // 1c. Cash validation
+    if (paymentMethod === 'cash') {
+      if (cashReceivedNum < finalTotal) {
+        toast.error('El monto recibido es menor al total')
+        return
+      }
+    }
+
+    // Mixed/Combined validation
+    if (paymentMethod === 'mixed') {
+      const c = parseFloat(mixedCash) || 0
+      const d = parseFloat(mixedCard) || 0
+      const m = parseFloat(mixedMP) || 0
+      const totalPaid = c + d + m
+      if (Math.abs(totalPaid - finalTotal) > 0.01 && totalPaid < finalTotal) {
+        toast.error(`El pago mixto ingresado (${formatCurrency(totalPaid)}) no cubre el total de la venta (${formatCurrency(finalTotal)})`)
+        return
+      }
+    }
+
+    // Installment/Fiado validation
+    if (paymentMethod === 'installment') {
+      if (!selectedCustomerId) {
+        toast.error('Debes seleccionar un cliente para realizar una venta al fiado (cuotas)')
+        return
+      }
+    }
+
     setIsProcessing(true)
     try {
       // eslint-disable-next-line react-hooks/purity
       const ticketNumber = Date.now().toString().slice(-8)
       
-      const salePayload = {
-        tenant_id: tenant.id, user_id: profile.id, shift_id: activeShift.id,
-        ticket_number: ticketNumber,
-        subtotal: cartSubtotal, 
-        discount_type: discountType,
-        discount_value: discountValue ? Number(discountValue) : 0,
-        discount_amount: discountAmount,
-        total: cartTotal, 
-        payment_method: paymentMethod === 'transfer' ? 'debit' : paymentMethod, 
-        status: 'completed'
+      const dbPaymentMethod = paymentMethod === 'mixed' ? 'combined' : paymentMethod
+      
+      let paymentDetails = {}
+      if (paymentMethod === 'mixed') {
+        paymentDetails = {
+          cash: parseFloat(mixedCash) || 0,
+          card: parseFloat(mixedCard) || 0,
+          mp: parseFloat(mixedMP) || 0
+        }
       }
 
-      // Store cash info if cash payment
+      const salePayload = {
+        tenant_id: tenant.id, 
+        user_id: profile.id, 
+        shift_id: activeShift.id,
+        ticket_number: ticketNumber,
+        subtotal: cartTotal, 
+        discount_type: discountType || null,
+        discount_value: parseFloat(discountValue) || 0,
+        discount_amount: discountAmount,
+        total: finalTotal, 
+        payment_method: dbPaymentMethod, 
+        status: 'completed',
+        customer_id: selectedCustomerId || null,
+        payment_details: paymentDetails
+      }
+
+      // Store cash info
       if (paymentMethod === 'cash') {
         salePayload.cash_received = cashReceivedNum
         salePayload.cash_change = cashChange
+      } else if (paymentMethod === 'mixed') {
+        const c = parseFloat(mixedCash) || 0
+        const d = parseFloat(mixedCard) || 0
+        const m = parseFloat(mixedMP) || 0
+        salePayload.cash_received = c
+        salePayload.cash_change = Math.max(0, (c + d + m) - finalTotal)
       }
 
       // Store card info if card payment
@@ -625,7 +708,23 @@ export default function POSPage() {
         }
       }
 
-      // Build receipt and store ticket
+      // Update customer balance if installment
+      if (paymentMethod === 'installment') {
+        const selectedCustomer = customers.find(c => c.id === selectedCustomerId)
+        if (selectedCustomer) {
+          const newBalance = (parseFloat(selectedCustomer.balance) || 0) + finalTotal
+          const { error: customerError } = await supabase
+            .from('customers')
+            .update({ 
+              balance: newBalance,
+              last_purchase_at: new Date().toISOString()
+            })
+            .eq('id', selectedCustomerId)
+          if (customerError) throw customerError
+        }
+      }
+
+      // 1e & 1f. Build receipt and store ticket
       const receiptHTML = buildReceiptHTML(saleData, cart)
       
       // Insert into tickets table
@@ -641,10 +740,10 @@ export default function POSPage() {
         ticket_number: ticketNumber,
         saleData,
         items: [...cart],
-        total: cartTotal,
+        total: finalTotal,
         paymentMethod,
-        cashReceived: cashReceivedNum,
-        cashChange,
+        cashReceived: paymentMethod === 'cash' ? cashReceivedNum : (paymentMethod === 'mixed' ? (parseFloat(mixedCash) || 0) : 0),
+        cashChange: paymentMethod === 'cash' ? cashChange : (paymentMethod === 'mixed' ? Math.max(0, ((parseFloat(mixedCash) || 0) + (parseFloat(mixedCard) || 0) + (parseFloat(mixedMP) || 0)) - finalTotal) : 0),
         receiptHTML,
         date: new Date()
       })
@@ -654,6 +753,12 @@ export default function POSPage() {
       setCart([])
       setSearchTerm('')
       setCashReceived('')
+      setDiscountType(null)
+      setDiscountValue('')
+      setMixedCash('')
+      setMixedCard('')
+      setMixedMP('')
+      setSelectedCustomerId('')
       
       // Reload products to refresh stock quantities
       loadData()
@@ -972,33 +1077,72 @@ export default function POSPage() {
               <span>Subtotal</span>
               <span>{formatCurrency(cartSubtotal)}</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '24px', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            
+            {/* Discounts Section */}
+            <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
                 <span>Descuento</span>
-                <div style={{ display: 'flex', gap: '8px' }}>
+                <div style={{ display: 'flex', gap: '6px' }}>
                   <button 
-                    onClick={() => { setDiscountType(discountType === 'percentage' ? null : 'percentage'); setDiscountValue('') }}
-                    style={{ border: `1px solid ${discountType === 'percentage' ? 'var(--color-primary)' : 'var(--border-color)'}`, background: discountType === 'percentage' ? 'var(--color-primary-light)' : 'transparent', color: discountType === 'percentage' ? 'var(--color-primary)' : 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>
-                    Aplicar %
+                    onClick={() => { setDiscountType(discountType === 'percentage' ? null : 'percentage'); setDiscountValue(''); }}
+                    style={{ 
+                      border: '1px solid var(--border-color)', 
+                      padding: '4px 10px', 
+                      borderRadius: '6px', 
+                      fontSize: '0.75rem',
+                      background: discountType === 'percentage' ? 'rgba(124, 58, 237, 0.15)' : 'transparent',
+                      color: discountType === 'percentage' ? 'var(--color-primary)' : 'var(--text-secondary)',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Porcentaje (%)
                   </button>
                   <button 
-                    onClick={() => { setDiscountType(discountType === 'fixed' ? null : 'fixed'); setDiscountValue('') }}
-                    style={{ border: `1px solid ${discountType === 'fixed' ? 'var(--color-primary)' : 'var(--border-color)'}`, background: discountType === 'fixed' ? 'var(--color-primary-light)' : 'transparent', color: discountType === 'fixed' ? 'var(--color-primary)' : 'var(--text-secondary)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>
-                    Monto Fijo
+                    onClick={() => { setDiscountType(discountType === 'fixed' ? null : 'fixed'); setDiscountValue(''); }}
+                    style={{ 
+                      border: '1px solid var(--border-color)', 
+                      padding: '4px 10px', 
+                      borderRadius: '6px', 
+                      fontSize: '0.75rem',
+                      background: discountType === 'fixed' ? 'rgba(124, 58, 237, 0.15)' : 'transparent',
+                      color: discountType === 'fixed' ? 'var(--color-primary)' : 'var(--text-secondary)',
+                      fontWeight: 600,
+                      cursor: 'pointer'
+                    }}
+                  >
+                    Monto Fijo ($)
                   </button>
                 </div>
               </div>
+              
               {discountType && (
-                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--bg-surface)', padding: '6px 12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                  <span style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>
+                    {discountType === 'percentage' ? 'Porcentaje %:' : 'Monto $:'}
+                  </span>
                   <input
                     type="number"
-                    placeholder={discountType === 'percentage' ? "Ej: 10 (%)" : "Ej: 500 ($)"}
+                    min="0"
+                    max={discountType === 'percentage' ? '100' : undefined}
+                    placeholder={discountType === 'percentage' ? '10' : '500'}
                     value={discountValue}
                     onChange={(e) => setDiscountValue(e.target.value)}
-                    className="form-input"
-                    style={{ width: '120px', padding: '4px 8px', fontSize: '0.875rem' }}
-                    min="0"
+                    style={{
+                      flex: 1,
+                      background: 'transparent',
+                      border: 'none',
+                      color: '#fff',
+                      fontSize: '0.875rem',
+                      outline: 'none',
+                      fontWeight: 600
+                    }}
                   />
+                  {discountValue && (
+                    <span style={{ fontSize: '0.8125rem', color: 'var(--color-tertiary)', fontWeight: 600 }}>
+                      - {formatCurrency(discountAmount)}
+                    </span>
+                  )}
                 </div>
               )}
             </div>
@@ -1013,11 +1157,107 @@ export default function POSPage() {
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
               <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', fontFamily: 'var(--font-headline)' }}>TOTAL</span>
               <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-secondary)' }}>
-                {formatCurrency(cartTotal)}
+                {formatCurrency(finalTotal)}
               </span>
             </div>
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '8px', marginBottom: 'var(--space-6)' }}>
+            {/* Installment Customer Selector */}
+            {paymentMethod === 'installment' && (
+              <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Asociar Cliente (Cuenta Corriente)</div>
+                
+                <select
+                  value={selectedCustomerId}
+                  onChange={(e) => setSelectedCustomerId(e.target.value)}
+                  style={{
+                    width: '100%',
+                    background: 'var(--bg-card)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: '6px',
+                    padding: '8px 12px',
+                    color: '#fff',
+                    fontSize: '0.875rem',
+                    fontWeight: 600,
+                    outline: 'none'
+                  }}
+                >
+                  <option value="">-- Seleccionar Cliente --</option>
+                  {customers.map(c => (
+                    <option key={c.id} value={c.id}>
+                      {c.name} (Saldo: {formatCurrency(parseFloat(c.balance) || 0)})
+                    </option>
+                  ))}
+                </select>
+
+                {selectedCustomerId && (() => {
+                  const client = customers.find(c => c.id === selectedCustomerId)
+                  if (!client) return null
+                  return (
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
+                      <div>📱 Teléfono: {client.phone || 'N/A'}</div>
+                      <div>DNI: {client.dni || 'N/A'}</div>
+                      <div style={{ fontWeight: 600 }}>Saldo Deudor Actual: <span style={{ color: (parseFloat(client.balance) || 0) > 0 ? 'var(--color-tertiary)' : 'var(--color-secondary)' }}>{formatCurrency(parseFloat(client.balance) || 0)}</span></div>
+                      <div style={{ fontWeight: 700, color: '#fff', marginTop: '4px' }}>Nuevo Saldo: {formatCurrency((parseFloat(client.balance) || 0) + finalTotal)}</div>
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
+
+            {/* Mixed Payment Details Inputs */}
+            {paymentMethod === 'mixed' && (
+              <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+                <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Desglose de Pago Mixto</div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.875rem', width: '90px', color: 'var(--text-secondary)' }}>💵 Efectivo:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0.00"
+                    value={mixedCash}
+                    onChange={(e) => setMixedCash(e.target.value)}
+                    style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '6px 10px', color: '#fff', fontSize: '0.875rem', fontWeight: 600 }}
+                  />
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.875rem', width: '90px', color: 'var(--text-secondary)' }}>💳 Tarjeta:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0.00"
+                    value={mixedCard}
+                    onChange={(e) => setMixedCard(e.target.value)}
+                    style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '6px 10px', color: '#fff', fontSize: '0.875rem', fontWeight: 600 }}
+                  />
+                </div>
+                
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ fontSize: '0.875rem', width: '90px', color: 'var(--text-secondary)' }}>📱 MP / QR:</span>
+                  <input
+                    type="number"
+                    min="0"
+                    placeholder="0.00"
+                    value={mixedMP}
+                    onChange={(e) => setMixedMP(e.target.value)}
+                    style={{ flex: 1, background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '6px 10px', color: '#fff', fontSize: '0.875rem', fontWeight: 600 }}
+                  />
+                </div>
+
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', marginTop: '4px', borderTop: '1px solid var(--border-color)', paddingTop: '8px' }}>
+                  <span style={{ color: 'var(--text-secondary)' }}>Ingresado: {formatCurrency((parseFloat(mixedCash) || 0) + (parseFloat(mixedCard) || 0) + (parseFloat(mixedMP) || 0))}</span>
+                  <span style={{ 
+                    fontWeight: 700, 
+                    color: Math.abs(((parseFloat(mixedCash) || 0) + (parseFloat(mixedCard) || 0) + (parseFloat(mixedMP) || 0)) - finalTotal) < 0.01 ? 'var(--color-secondary)' : 'var(--color-tertiary)' 
+                  }}>
+                    Resta: {formatCurrency(Math.max(0, finalTotal - ((parseFloat(mixedCash) || 0) + (parseFloat(mixedCard) || 0) + (parseFloat(mixedMP) || 0))))}
+                  </span>
+                </div>
+              </div>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: 'var(--space-6)' }}>
               {[
                 { id: 'cash', label: 'Efectivo (F2)', icon: <Banknote size={20} /> },
                 { id: 'debit', label: 'Débito (F3)', icon: <CreditCard size={20} /> },
@@ -1239,6 +1479,16 @@ export default function POSPage() {
                 </table>
 
                 <div style={{ borderTop: '1px dashed #999', margin: '8px 0' }} />
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', margin: '2px 0' }}>
+                  <span>Subtotal:</span>
+                  <span>{formatCurrency(receiptData.items.reduce((sum, item) => sum + item.subtotal, 0))}</span>
+                </div>
+                {receiptData.saleData?.discount_amount > 0 && (
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#555', margin: '2px 0' }}>
+                    <span>Descuento ({receiptData.saleData?.discount_type === 'percentage' ? `${receiptData.saleData?.discount_value}%` : formatCurrency(receiptData.saleData?.discount_value)}):</span>
+                    <span>-{formatCurrency(receiptData.saleData?.discount_amount)}</span>
+                  </div>
+                )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', margin: '4px 0' }}>
                   <span>TOTAL:</span>
                   <span>{formatCurrency(receiptData.total)}</span>
@@ -1247,8 +1497,8 @@ export default function POSPage() {
 
                 <div style={{ fontSize: '11px' }}>
                   <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                    <span style={{ color: 'var(--text-secondary)' }}>Método de pago:</span>
-                    <span>{{ cash: 'Efectivo', debit: 'Débito', credit: 'Crédito', transfer: 'Transferencia', combined: 'Mixto', installment: 'Cuotas' }[receiptData.paymentMethod] || receiptData.paymentMethod}</span>
+                    <span>Método:</span>
+                    <span>{{ cash: 'Efectivo', debit: 'Débito', credit: 'Crédito', mixed: 'Mixto', installment: 'Fiado (Cta. Cte.)' }[receiptData.paymentMethod] || receiptData.paymentMethod}</span>
                   </div>
                   {receiptData.paymentMethod === 'cash' && (
                     <>
@@ -1262,30 +1512,32 @@ export default function POSPage() {
                       </div>
                     </>
                   )}
-                  {(receiptData.paymentMethod === 'debit' || receiptData.paymentMethod === 'credit') && (
-                    <>
+                  {receiptData.paymentMethod === 'mixed' && (
+                    <div style={{ marginLeft: '8px', color: '#555', fontSize: '10px' }}>
                       <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <span>Tarjeta:</span>
-                        <span>{receiptData.saleData?.payment_details?.card_brand || 'N/A'}</span>
+                        <span>- Efectivo:</span>
+                        <span>{formatCurrency(receiptData.saleData?.payment_details?.cash || 0)}</span>
                       </div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold' }}>
-                        <span>Cupón:</span>
-                        <span>#{receiptData.saleData?.payment_details?.voucher_number || 'N/A'}</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>- Tarjeta:</span>
+                        <span>{formatCurrency(receiptData.saleData?.payment_details?.card || 0)}</span>
                       </div>
-                    </>
+                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
+                        <span>- Mercado Pago:</span>
+                        <span>{formatCurrency(receiptData.saleData?.payment_details?.mp || 0)}</span>
+                      </div>
+                      {receiptData.cashChange > 0 && (
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontWeight: 'bold', color: '#000', fontSize: '11px', marginTop: '2px' }}>
+                          <span>Vuelto (Efectivo):</span>
+                          <span>{formatCurrency(receiptData.cashChange)}</span>
+                        </div>
+                      )}
+                    </div>
                   )}
-                  {receiptData.paymentMethod === 'combined' && (
-                    <div style={{ marginTop: '4px' }}>
-                      <div style={{ fontWeight: 'bold', fontSize: '10px', color: '#666' }}>Desglose Pago Mixto:</div>
-                      {(receiptData.saleData?.payment_details?.splits || []).map((s, idx) => {
-                        const label = { cash: 'Efectivo', debit: 'Débito', credit: 'Crédito', transfer: 'Transferencia' }[s.method] || s.method
-                        return (
-                          <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', color: '#555', paddingLeft: '8px' }}>
-                            <span>- {label}:</span>
-                            <span>{formatCurrency(s.amount)}</span>
-                          </div>
-                        )
-                      })}
+                  {receiptData.paymentMethod === 'installment' && (
+                    <div style={{ marginTop: '4px', paddingTop: '4px', borderTop: '1px solid #ccc' }}>
+                      <div>Cliente: {customers.find(c => c.id === selectedCustomerId)?.name || 'Cliente Registrado'}</div>
+                      <div style={{ fontWeight: 'bold' }}>Nuevo Saldo: {formatCurrency(receiptData.total + (parseFloat(customers.find(c => c.id === selectedCustomerId)?.balance) || 0))}</div>
                     </div>
                   )}
                 </div>

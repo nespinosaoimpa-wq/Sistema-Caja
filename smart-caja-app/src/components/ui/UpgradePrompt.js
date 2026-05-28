@@ -1,8 +1,6 @@
 'use client'
 
-import { useState } from 'react'
-import { useAuth } from '@/lib/hooks/useAuth'
-import { useToast } from '@/lib/hooks/useToast'
+import Link from 'next/link'
 
 export default function UpgradePrompt({ title, description, requiredPlan }) {
   const { tenant } = useAuth()
@@ -82,7 +80,8 @@ export default function UpgradePrompt({ title, description, requiredPlan }) {
           </div>
         </div>
 
-        <button style={{
+        <Link href="/settings?tab=billing" style={{
+          display: 'block',
           background: 'linear-gradient(135deg, #A855F7, #9333EA)',
           color: '#fff',
           border: 'none',
@@ -91,16 +90,17 @@ export default function UpgradePrompt({ title, description, requiredPlan }) {
           fontWeight: 600,
           cursor: loading ? 'not-allowed' : 'pointer',
           width: '100%',
-          opacity: loading ? 0.7 : 1,
-          transition: 'opacity 0.2s'
+          textDecoration: 'none',
+          transition: 'opacity 0.2s',
+          textAlign: 'center'
         }}
         onClick={handleUpgrade}
         disabled={loading}
         onMouseEnter={(e) => { if(!loading) e.currentTarget.style.opacity = '0.9' }}
         onMouseLeave={(e) => { if(!loading) e.currentTarget.style.opacity = '1' }}
         >
-          {loading ? 'Generando pago...' : 'Mejorar Plan'}
-        </button>
+          Mejorar Plan
+        </Link>
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
@@ -34,10 +35,42 @@ export default function SettingsPage() {
   const { tenant, profile, reloadProfile } = useAuth()
   const supabase = createClient()
   const toast = useToast()
+  const router = useRouter()
   
   const [saving, setSaving] = useState(false)      // for Save button
   const [upgrading, setUpgrading] = useState(false) // for Upgrade button
   const [activeTab, setActiveTab] = useState('general')
+  const [subscribingPlan, setSubscribingPlan] = useState(null)
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search)
+      const tab = params.get('tab')
+      if (tab) {
+        setActiveTab(tab)
+      }
+
+      const paymentStatus = params.get('payment_status')
+      if (paymentStatus === 'success') {
+        toast.success('¡Suscripción procesada con éxito! Tu plan ya está activo.')
+        window.history.replaceState({}, '', '/settings?tab=billing')
+        reloadProfile()
+      } else if (paymentStatus === 'failure') {
+        toast.error('El pago no se pudo completar. Por favor, intentá nuevamente.')
+        window.history.replaceState({}, '', '/settings?tab=billing')
+      }
+    }
+  }, [reloadProfile, toast])
+
+  const handleSubscribe = (planId) => {
+    if (!tenant || !profile) return
+    
+    setSubscribingPlan(planId)
+    const planNames = { basic: 'Básico', professional: 'Profesional', enterprise: 'Empresa' }
+    const prices = { basic: 20000, professional: 35000, enterprise: 60000 }
+    
+    router.push(`/billing/checkout?planId=${planId}&planName=${planNames[planId]}&price=${prices[planId]}`)
+  }
   
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [form, setForm] = useState({
@@ -923,11 +956,42 @@ export default function SettingsPage() {
 
               </div>
 
-              {/* Sticky Mockup Live Preview Col */}
-              <div>
-                <div style={{
-                  background: 'rgba(255,255,255,0.01)',
-                  border: '1px solid var(--border-color)',
+            {activeTab === 'payments' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.125rem', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <span style={{ color: '#009EE3' }}>Mercado Pago</span> Integración
+                </h3>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 'var(--space-4)' }}>
+                  Vinculá tu cuenta de Mercado Pago para permitir cobros con QR y tarjetas directo desde el sistema.
+                </p>
+                
+                <div className="form-group">
+                  <label className="form-label">Access Token (Producción)</label>
+                  <input className="form-input" type="password" value={form.mp_access_token} onChange={e => updateForm('mp_access_token', e.target.value)} placeholder="APP_USR-..." />
+                </div>
+                
+                <div className="form-group">
+                  <label className="form-label">Public Key (Producción)</label>
+                  <input className="form-input" value={form.mp_public_key} onChange={e => updateForm('mp_public_key', e.target.value)} placeholder="APP_USR-..." />
+                </div>
+                
+                <div style={{ padding: 'var(--space-4)', background: 'rgba(0, 158, 227, 0.1)', border: '1px solid rgba(0, 158, 227, 0.2)', borderRadius: 'var(--radius-md)', marginTop: 'var(--space-4)' }}>
+                  <div style={{ fontSize: '0.875rem', color: '#009EE3' }}>
+                    <strong>¿Dónde encuentro estas credenciales?</strong><br/>
+                    Ingresá a tu cuenta de Mercado Pago Developers {'>'} Tus integraciones {'>'} Credenciales de producción.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeTab === 'billing' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.125rem' }}>Estado de Suscripción</h3>
+                
+                <div style={{ 
+                  padding: 'var(--space-6)', 
+                  background: tenant?.subscription_status === 'trial' ? 'var(--color-tertiary-light)' : 'var(--color-secondary-light)', 
+                  border: `1px solid ${tenant?.subscription_status === 'trial' ? 'var(--color-tertiary)' : 'var(--color-secondary)'}`, 
                   borderRadius: 'var(--radius-xl)',
                   padding: '24px',
                   display: 'flex',
@@ -941,174 +1005,22 @@ export default function SettingsPage() {
                   backdropFilter: 'blur(8px)',
                   WebkitBackdropFilter: 'blur(8px)',
                 }}>
-                  <div style={{ width: '100%' }}>
-                    <h4 style={{ fontSize: '0.9375rem', fontWeight: 700, marginBottom: '2px', color: '#fff', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <Palette size={16} style={{ color: 'var(--color-primary)' }} />
-                      Vista Previa de Marca
-                    </h4>
-                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                      Los cambios se verán en tu panel principal así:
-                    </p>
-                  </div>
-
-                  {/* App Frame Container */}
-                  <div style={{
-                    width: '100%',
-                    height: '330px',
-                    borderRadius: '12px',
-                    border: '4px solid #1e293b',
-                    background: 
-                      form.background_preset === 'cosmic' ? '#0c081e' : 
-                      form.background_preset === 'ocean' ? '#020d1a' : 
-                      form.background_preset === 'midnight' ? '#000000' : '#060e20',
-                    display: 'flex',
-                    overflow: 'hidden',
-                    boxShadow: '0 12px 24px rgba(0,0,0,0.5)',
-                    position: 'relative',
-                    transition: 'all 0.3s ease'
-                  }}>
-                    {/* Simulated Mini Sidebar */}
-                    <div style={{
-                      width: '75px',
-                      borderRight: '1px solid rgba(255,255,255,0.08)',
-                      background: 
-                        form.background_preset === 'cosmic' ? '#0c081e' : 
-                        form.background_preset === 'ocean' ? '#020d1a' : 
-                        form.background_preset === 'midnight' ? '#000000' : '#060e20',
-                      padding: '8px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '12px'
-                    }}>
-                      {/* Logo and name preview */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                        {form.logo_url ? (
-                          <img 
-                            src={form.logo_url} 
-                            alt="Preview" 
-                            style={{ width: '14px', height: '14px', borderRadius: '2px', objectFit: 'cover' }} 
-                            onError={(e) => { e.target.style.display = 'none' }}
-                          />
-                        ) : (
-                          <div style={{
-                            width: '14px',
-                            height: '14px',
-                            borderRadius: '2px',
-                            background: `linear-gradient(135deg, ${form.primary_color}, ${form.secondary_color})`,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '8px',
-                            fontWeight: 800,
-                            color: '#fff'
-                          }}>
-                            {form.name ? form.name.substring(0, 1).toUpperCase() : 'S'}
-                          </div>
-                        )}
-                        <span style={{ fontSize: '7px', fontWeight: 800, color: '#fff', overflow: 'hidden', whiteSpace: 'nowrap', textOverflow: 'ellipsis', width: '45px' }}>
-                          {form.name || 'Smart Flow'}
-                        </span>
-                      </div>
-
-                      {/* Mini sidebar nav list */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '3px' }}>
-                        {[
-                          { label: 'Dashboard', active: true },
-                          { label: 'Caja', active: false },
-                          { label: 'Inventario', active: false }
-                        ].map((item, i) => (
-                          <div 
-                            key={i} 
-                            style={{
-                              padding: '3px 4px',
-                              borderRadius: '3px',
-                              fontSize: '6px',
-                              fontWeight: item.active ? 700 : 500,
-                              background: item.active ? 'rgba(255,255,255,0.06)' : 'transparent',
-                              color: item.active ? '#fff' : 'rgba(255,255,255,0.4)',
-                              display: 'flex',
-                              alignItems: 'center',
-                              gap: '4px',
-                              position: 'relative'
-                            }}
-                          >
-                            {item.active && (
-                              <div style={{
-                                position: 'absolute',
-                                left: '-8px',
-                                top: '50%',
-                                transform: 'translateY(-50%)',
-                                width: '2px',
-                                height: '100%',
-                                background: form.primary_color,
-                                borderRadius: '0 2px 2px 0',
-                                boxShadow: `0 0 6px ${form.primary_color}`
-                              }} />
-                            )}
-                            <div style={{ width: '3px', height: '3px', borderRadius: '50%', background: item.active ? form.primary_color : 'rgba(255,255,255,0.2)' }} />
-                            {item.label}
-                          </div>
-                        ))}
-                      </div>
+                  <div>
+                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: tenant?.subscription_status === 'trial' ? 'var(--color-tertiary)' : 'var(--color-secondary)', marginBottom: '4px' }}>
+                      {tenant?.subscription_status === 'trial' ? 'Período de Prueba (Gratis)' : 
+                       tenant?.subscription_status === 'active' ? 'Suscripción Activa' :
+                       tenant?.subscription_status === 'suspended' ? 'Suscripción Suspendida' : 'Suscripción Cancelada'}
                     </div>
-
-                    {/* Simulated Content Area */}
-                    <div style={{
-                      flex: 1,
-                      background: 
-                        form.background_preset === 'cosmic' ? '#140e30' : 
-                        form.background_preset === 'ocean' ? '#04172e' : 
-                        form.background_preset === 'midnight' ? '#09090b' : '#0b1326',
-                      padding: '10px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      gap: '8px',
-                      transition: 'all 0.3s ease'
-                    }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                        <div style={{ height: '4px', width: '25px', background: '#fff', borderRadius: '1px' }} />
-                        <div style={{ height: '4px', width: '10px', background: 'rgba(255,255,255,0.2)', borderRadius: '1px' }} />
-                      </div>
-
-                      <div style={{ display: 'flex', gap: '4px' }}>
-                        <div style={{
-                          flex: 1, height: '24px', borderRadius: '4px', padding: '3px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '2px',
-                          background: form.background_preset === 'cosmic' ? '#1d1542' : form.background_preset === 'ocean' ? '#062242' : form.background_preset === 'midnight' ? '#18181b' : '#131b2e',
-                          border: '1px solid rgba(255,255,255,0.04)'
-                        }}>
-                          <div style={{ height: '2px', width: '8px', background: 'rgba(255,255,255,0.2)' }} />
-                          <div style={{ height: '4px', width: '15px', background: form.secondary_color }} />
-                        </div>
-                        <div style={{
-                          flex: 1, height: '24px', borderRadius: '4px', padding: '3px', display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '2px',
-                          background: form.background_preset === 'cosmic' ? '#1d1542' : form.background_preset === 'ocean' ? '#062242' : form.background_preset === 'midnight' ? '#18181b' : '#131b2e',
-                          border: '1px solid rgba(255,255,255,0.04)'
-                        }}>
-                          <div style={{ height: '2px', width: '10px', background: 'rgba(255,255,255,0.2)' }} />
-                          <div style={{ height: '4px', width: '12px', background: '#fff' }} />
-                        </div>
-                      </div>
-
-                      <div style={{
-                        flex: 1, borderRadius: '4px', padding: '6px', display: 'flex', flexDirection: 'column', gap: '4px',
-                        background: form.background_preset === 'cosmic' ? '#1d1542' : form.background_preset === 'ocean' ? '#062242' : form.background_preset === 'midnight' ? '#18181b' : '#131b2e',
-                        border: '1px solid rgba(255,255,255,0.04)'
-                      }}>
-                        <div style={{ height: '2px', width: '20px', background: 'rgba(255,255,255,0.2)' }} />
-                        <div style={{ flex: 1, display: 'flex', alignItems: 'flex-end', gap: '3px', paddingBottom: '2px' }}>
-                          <div style={{ width: '4px', height: '40%', background: 'rgba(255,255,255,0.1)', borderRadius: '1px' }} />
-                          <div style={{ width: '4px', height: '75%', background: form.primary_color, borderRadius: '1px' }} />
-                          <div style={{ width: '4px', height: '50%', background: form.primary_color, borderRadius: '1px', opacity: 0.6 }} />
-                          <div style={{ width: '4px', height: '90%', background: form.secondary_color, borderRadius: '1px' }} />
-                        </div>
-                      </div>
-
-                      <div style={{
-                        width: '100%', padding: '4px', borderRadius: '3px', textAlign: 'center', color: '#000', fontSize: '5px', fontWeight: 800,
-                        background: `linear-gradient(135deg, ${form.primary_color}, ${form.primary_color}dd)`
-                      }}>
-                        Ajustar Stock
-                      </div>
+                    <div style={{ color: 'var(--text-primary)' }}>
+                      Plan Actual: <strong style={{ textTransform: 'capitalize' }}>
+                        {tenant?.subscription_plan === 'basic' ? 'Básico' : 
+                         tenant?.subscription_plan === 'professional' ? 'Profesional' : 
+                         tenant?.subscription_plan === 'enterprise' ? 'Empresa' : tenant?.subscription_plan}
+                      </strong> ({
+                        tenant?.subscription_plan === 'basic' ? '$20.000' : 
+                        tenant?.subscription_plan === 'professional' ? '$35.000' : 
+                        tenant?.subscription_plan === 'enterprise' ? '$60.000' : '$0'
+                      } ARS / mes)
                     </div>
                   </div>
                 </div>
@@ -1131,828 +1043,152 @@ export default function SettingsPage() {
                 </div>
                 <div className="card-body" style={{ padding: '0', paddingTop: '10px' }}>
                   
-                  <div style={{ overflowX: 'auto' }}>
-                    <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                      <thead>
-                        <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>Usuario</th>
-                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>Rol</th>
-                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>Email</th>
-                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>Ingreso</th>
-                          <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Acciones</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {loadingTeam ? (
-                          <tr>
-                            <td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                              Cargando equipo...
-                            </td>
-                          </tr>
-                        ) : teamMembers.length === 0 ? (
-                          <tr>
-                            <td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                              No hay otros colaboradores registrados.
-                            </td>
-                          </tr>
-                        ) : (
-                          teamMembers.map((member) => (
-                            <tr key={member.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.875rem' }}>
-                              <td style={{ padding: '16px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                  <div style={{
-                                    width: '28px',
-                                    height: '28px',
-                                    borderRadius: '50%',
-                                    background: 'rgba(255,255,255,0.05)',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    justifyContent: 'center',
-                                    fontWeight: 600,
-                                    fontSize: '0.8125rem',
-                                    color: 'var(--color-primary)'
-                                  }}>
-                                    {member.full_name ? member.full_name.substring(0, 2).toUpperCase() : 'U'}
-                                  </div>
-                                  <div style={{ fontWeight: 600, color: '#fff' }}>{member.full_name}</div>
-                                </div>
-                              </td>
-                              <td style={{ padding: '16px' }}>
-                                <span style={{
-                                  display: 'inline-flex',
-                                  alignItems: 'center',
-                                  gap: '4px',
-                                  padding: '4px 8px',
-                                  borderRadius: '9999px',
-                                  fontSize: '0.75rem',
-                                  fontWeight: 600,
-                                  background: member.role === 'owner' ? 'var(--color-primary-light)' : member.role === 'admin' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(255,255,255,0.05)',
-                                  color: member.role === 'owner' ? 'var(--color-primary)' : member.role === 'admin' ? '#A855F7' : 'var(--text-secondary)'
-                                }}>
-                                  <Shield size={12} />
-                                  {member.role === 'owner' ? 'Dueño' : member.role === 'admin' ? 'Admin' : 'Cajero'}
-                                </span>
-                              </td>
-                              <td style={{ padding: '16px', color: 'var(--text-muted)' }}>{member.email}</td>
-                              <td style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-                                {member.created_at ? new Date(member.created_at).toLocaleDateString() : 'N/A'}
-                              </td>
-                              <td style={{ padding: '16px', textAlign: 'right' }}>
-                                <button 
-                                  onClick={() => handleDeleteMember(member.id, member.full_name)}
-                                  style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: 'var(--color-error)',
-                                    cursor: 'pointer',
-                                    opacity: 0.6,
-                                    transition: 'opacity 0.2s'
-                                  }}
-                                  onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                                  onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
-                                  disabled={member.id === profile?.id}
-                                  title={member.id === profile?.id ? "No puedes eliminarte" : "Eliminar"}
-                                >
-                                  <Trash2 size={16} />
-                                </button>
-                              </td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
-                  </div>
-
-                </div>
-              </div>
-
-              {/* Add/Invite Collaborator Form */}
-              <div className="card">
-                <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <Plus size={18} style={{ color: 'var(--color-secondary)' }} />
-                    <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Invitar Nuevo Colaborador</h3>
-                  </div>
-                </div>
-                <div className="card-body" style={{ paddingTop: '20px' }}>
-                  <form onSubmit={handleInviteUser} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                      <div className="form-group">
-                        <label className="form-label required" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Nombre Completo</label>
-                        <input
-                          className="form-input"
-                          placeholder="Ej: Juan Pérez"
-                          value={inviteForm.full_name}
-                          onChange={e => setInviteForm(prev => ({ ...prev, full_name: e.target.value }))}
-                          required
-                          style={{ marginTop: '6px' }}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label className="form-label required" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Correo Electrónico</label>
-                        <input
-                          className="form-input"
-                          type="email"
-                          placeholder="Ej: juan.perez@email.com"
-                          value={inviteForm.email}
-                          onChange={e => setInviteForm(prev => ({ ...prev, email: e.target.value }))}
-                          required
-                          style={{ marginTop: '6px' }}
-                        />
-                      </div>
-                    </div>
-                    
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                      <div className="form-group" style={{ minWidth: '200px' }}>
-                        <label className="form-label required" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Rol Asignado</label>
-                        <select
-                          className="form-select form-input"
-                          value={inviteForm.role}
-                          onChange={e => setInviteForm(prev => ({ ...prev, role: e.target.value }))}
-                          style={{ marginTop: '6px' }}
-                        >
-                          <option value="cashier">Cajero (Solo acceso a terminal de caja)</option>
-                          <option value="admin">Administrador (Acceso total excepto facturas)</option>
-                          <option value="owner">Dueño (Acceso y control total del comercio)</option>
-                        </select>
-                      </div>
-                      
-                      <button
-                        type="submit"
-                        className="btn btn-secondary"
-                        disabled={inviting}
-                        style={{ alignSelf: 'flex-end', height: '46px', padding: '0 24px', fontWeight: 700 }}
+                  {tenant?.subscription_status === 'trial' && (
+                    <div style={{ display: 'flex', gap: '8px' }}>
+                      <button 
+                        className="btn btn-primary btn-lg" 
+                        disabled={subscribingPlan !== null}
+                        onClick={() => handleSubscribe(tenant?.subscription_plan || 'basic')}
                       >
-                        {inviting ? 'Procesando...' : '📨 Enviar Invitación'}
+                        {subscribingPlan ? 'Conectando...' : 'Suscribirse ahora'}
                       </button>
                     </div>
-                  </form>
-                </div>
-              </div>
 
-            </div>
-          )}
-
-          {/* TAB SUCURSALES */}
-          {activeTab === 'branches' && (
-            <div style={{ minHeight: '400px' }}>
-              {tenant?.subscription_plan !== 'enterprise' ? (
-                <UpgradePrompt 
-                  title="Gestión de Múltiples Sucursales" 
-                  description="Administra diferentes locales físicos centralizando el control del stock o manteniendo inventarios independientes. Visualiza reportes financieros para cada punto de venta de forma unificada."
-                  requiredPlan="enterprise"
-                />
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                  
-                  {/* Branches Table List */}
-                  <div className="card">
-                    <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <Building size={18} style={{ color: 'var(--color-primary)' }} />
-                        <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Sucursales Configuradas</h3>
-                      </div>
-                      {!showAddBranch && (
-                        <button 
-                          className="btn btn-primary btn-sm"
-                          onClick={() => setShowAddBranch(true)}
-                          style={{ color: '#000', fontWeight: 700 }}
-                        >
-                          <Plus size={14} /> Nueva Sucursal
-                        </button>
-                      )}
-                    </div>
-                    <div className="card-body" style={{ padding: '0', paddingTop: '10px' }}>
-                      
-                      <div style={{ overflowX: 'auto' }}>
-                        <table style={{ width: '100%', borderCollapse: 'collapse', textAlign: 'left' }}>
-                          <thead>
-                            <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
-                              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Sucursal</th>
-                              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Dirección</th>
-                              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Teléfono</th>
-                              <th style={{ padding: '12px 16px', fontWeight: 600 }}>Estado</th>
-                              <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Acciones</th>
-                            </tr>
-                          </thead>
-                          <tbody>
-                            {loadingBranches ? (
-                              <tr>
-                                <td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                  Cargando sucursales...
-                                </td>
-                              </tr>
-                            ) : branches.length === 0 ? (
-                              <tr>
-                                <td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                                  No hay sucursales registradas. Crea una nueva sucursal.
-                                </td>
-                              </tr>
-                            ) : (
-                              branches.map((branch) => (
-                                <tr key={branch.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.03)', fontSize: '0.875rem' }}>
-                                  <td style={{ padding: '16px' }}>
-                                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                                      <div style={{
-                                        width: '28px',
-                                        height: '28px',
-                                        borderRadius: '50%',
-                                        background: 'rgba(255,255,255,0.05)',
-                                        display: 'flex',
-                                        alignItems: 'center',
-                                        justifyContent: 'center',
-                                        fontWeight: 600,
-                                        fontSize: '0.8125rem',
-                                        color: 'var(--color-secondary)'
-                                      }}>
-                                        <Building size={14} />
-                                      </div>
-                                      <div style={{ fontWeight: 600, color: '#fff' }}>{branch.name}</div>
-                                    </div>
-                                  </td>
-                                  <td style={{ padding: '16px', color: 'var(--text-muted)' }}>{branch.address || 'Sin dirección registrada'}</td>
-                                  <td style={{ padding: '16px', color: 'var(--text-muted)' }}>{branch.phone || 'Sin teléfono'}</td>
-                                  <td style={{ padding: '16px' }}>
-                                    <span style={{
-                                      display: 'inline-flex',
-                                      alignItems: 'center',
-                                      gap: '4px',
-                                      padding: '4px 8px',
-                                      borderRadius: '9999px',
-                                      fontSize: '0.75rem',
-                                      fontWeight: 600,
-                                      background: 'var(--color-secondary-light)',
-                                      color: 'var(--color-secondary)'
-                                    }}>
-                                      Activa
-                                    </span>
-                                  </td>
-                                  <td style={{ padding: '16px', textAlign: 'right' }}>
-                                    <button 
-                                      onClick={async () => {
-                                        if (!confirm(`¿Deseas eliminar la sucursal ${branch.name}?`)) return
-                                        try {
-                                          const { error } = await supabase
-                                            .from('branches')
-                                            .delete()
-                                            .eq('id', branch.id)
-                                          if (error) throw error
-                                          toast.success('Sucursal eliminada')
-                                          fetchBranches()
-                                        } catch (err) {
-                                          toast.error('Error al eliminar sucursal: ' + err.message)
-                                        }
-                                      }}
-                                      style={{
-                                        background: 'transparent',
-                                        border: 'none',
-                                        color: 'var(--color-error)',
-                                        cursor: 'pointer',
-                                        opacity: 0.6,
-                                        transition: 'opacity 0.2s'
-                                      }}
-                                      onMouseEnter={(e) => e.currentTarget.style.opacity = '1'}
-                                      onMouseLeave={(e) => e.currentTarget.style.opacity = '0.6'}
-                                    >
-                                      <Trash2 size={16} />
-                                    </button>
-                                  </td>
-                                </tr>
-                              ))
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-
-                    </div>
-                  </div>
-
-                  {/* Add Branch Card */}
-                  {showAddBranch && (
-                    <div className="card">
-                      <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-                        <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Agregar Nueva Sucursal</h3>
-                      </div>
-                      <div className="card-body" style={{ paddingTop: '20px' }}>
-                        <form onSubmit={handleCreateBranch} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-                            <div className="form-group">
-                              <label className="form-label required" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Nombre de Sucursal</label>
-                              <input 
-                                className="form-input"
-                                placeholder="Ej: Sucursal Norte"
-                                value={newBranch.name}
-                                onChange={e => setNewBranch(prev => ({ ...prev, name: e.target.value }))}
-                                required
-                                style={{ marginTop: '6px' }}
-                              />
-                            </div>
-                            <div className="form-group">
-                              <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Teléfono</label>
-                              <input 
-                                className="form-input"
-                                placeholder="Ej: +54 9 341 444-4444"
-                                value={newBranch.phone}
-                                onChange={e => setNewBranch(prev => ({ ...prev, phone: e.target.value }))}
-                                style={{ marginTop: '6px' }}
-                              />
-                            </div>
-                          </div>
-
-                          <div className="form-group">
-                            <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Dirección Física</label>
-                            <input 
-                              className="form-input"
-                              placeholder="Ej: Av. Alberdi 456, Rosario"
-                              value={newBranch.address}
-                              onChange={e => setNewBranch(prev => ({ ...prev, address: e.target.value }))}
-                              style={{ marginTop: '6px' }}
-                            />
-                          </div>
-
-                          <div style={{ display: 'flex', gap: '12px', justifyContent: 'flex-end', marginTop: '8px' }}>
-                            <button 
-                              type="button" 
-                              className="btn btn-ghost" 
-                              onClick={() => setShowAddBranch(false)}
-                            >
-                              Cancelar
-                            </button>
-                            <button 
-                              type="submit" 
-                              className="btn btn-secondary"
-                              disabled={creatingBranch}
-                            >
-                              {creatingBranch ? 'Creando...' : 'Crear Sucursal'}
-                            </button>
-                          </div>
-                        </form>
-                      </div>
-                    </div>
-                  )}
-
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* TAB MERCADO PAGO */}
-          {activeTab === 'payments' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              
-              {/* Integration Credentials Card */}
-              <div className="card">
-                <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                      <CreditCard size={18} style={{ color: '#009EE3' }} />
-                      <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Credenciales de Mercado Pago</h3>
-                    </div>
-                    {form.mp_access_token ? (
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', background: 'rgba(16, 185, 129, 0.12)', color: 'var(--color-secondary)', borderRadius: '9999px' }}>
-                        Conectado
-                      </span>
-                    ) : (
-                      <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '4px 10px', background: 'rgba(239, 68, 68, 0.12)', color: 'var(--color-error)', borderRadius: '9999px' }}>
-                        Desconectado
-                      </span>
-                    )}
-                  </div>
-                </div>
-                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '20px' }}>
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                    Vincula tus credenciales oficiales para procesar cobros de ventas utilizando códigos QR generados directamente en la pantalla de la Caja.
-                  </p>
-
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Access Token (Producción)</label>
-                    <input 
-                      className="form-input text-xs" 
-                      type="password" 
-                      value={form.mp_access_token} 
-                      onChange={e => updateForm('mp_access_token', e.target.value)} 
-                      placeholder="Ej: APP_USR-87654321..." 
-                      style={{ marginTop: '6px', fontFamily: 'monospace' }}
-                    />
-                  </div>
-                  
-                  <div className="form-group">
-                    <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Public Key (Producción)</label>
-                    <input 
-                      className="form-input text-xs" 
-                      value={form.mp_public_key} 
-                      onChange={e => updateForm('mp_public_key', e.target.value)} 
-                      placeholder="Ej: APP_USR-12345678..." 
-                      style={{ marginTop: '6px', fontFamily: 'monospace' }}
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Documentation Helper Box */}
-              <div style={{ 
-                padding: '20px', 
-                background: 'rgba(0, 158, 227, 0.04)', 
-                border: '1px solid rgba(0, 158, 227, 0.15)', 
-                borderRadius: 'var(--radius-xl)', 
-                display: 'flex', 
-                gap: '16px',
-                alignItems: 'flex-start'
-              }}>
-                <Info size={20} style={{ color: '#009EE3', flexShrink: 0, marginTop: '2px' }} />
-                <div>
-                  <h4 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#fff', marginBottom: '6px' }}>¿Cómo obtener tus credenciales?</h4>
-                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.5, marginBottom: '12px' }}>
-                    Ingresa con tu cuenta comercial en Mercado Pago Developers. Ve a &quot;Tus integraciones&quot;, selecciona tu aplicación y entra a &quot;Credenciales de producción&quot; para copiar el Access Token y la Public Key.
-                  </p>
-                  <a 
-                    href="https://www.mercadopago.com.ar/developers" 
-                    target="_blank" 
-                    rel="noreferrer"
-                    style={{ 
-                      display: 'inline-flex', 
-                      alignItems: 'center', 
-                      gap: '4px', 
-                      fontSize: '0.8125rem', 
-                      fontWeight: 700, 
-                      color: '#009EE3' 
-                    }}
-                  >
-                    Ir a Mercado Pago Developers <ExternalLink size={12} />
-                  </a>
-                </div>
-              </div>
-
-            </div>
-          )}
-
-          {/* TAB FACTURACION (MI SUSCRIPCION) */}
-          {activeTab === 'billing' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              
-              {/* Premium billing card wrapper */}
-              <div style={{
-                padding: '24px',
-                background: 
-                  tenant?.subscription_status === 'suspended' ? 'rgba(239, 68, 68, 0.05)' :
-                  tenant?.subscription_status === 'trial' ? 'rgba(245, 158, 11, 0.05)' : 'rgba(16, 185, 129, 0.05)',
-                border: `1px solid ${
-                  tenant?.subscription_status === 'suspended' ? 'rgba(239, 68, 68, 0.2)' :
-                  tenant?.subscription_status === 'trial' ? 'rgba(245, 158, 11, 0.2)' : 'rgba(16, 185, 129, 0.2)'
-                }`,
-                borderRadius: 'var(--radius-xl)',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                flexWrap: 'wrap',
-                gap: '24px'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                  {/* Pulsing indicator */}
-                  <div style={{ position: 'relative', display: 'flex', width: '12px', height: '12px' }}>
-                    <span style={{
-                      position: 'absolute',
-                      display: 'inline-flex',
-                      height: '100%',
-                      width: '100%',
-                      borderRadius: '50%',
-                      background: 
-                        tenant?.subscription_status === 'suspended' ? 'var(--color-error)' :
-                        tenant?.subscription_status === 'trial' ? '#F59E0B' : 'var(--color-secondary)',
-                      opacity: 0.75,
-                      animation: 'ping 1.5s cubic-bezier(0, 0, 0.2, 1) infinite'
-                    }} />
-                    <span style={{
-                      position: 'relative',
-                      display: 'inline-flex',
-                      borderRadius: '50%',
-                      height: '12px',
-                      width: '12px',
-                      background: 
-                        tenant?.subscription_status === 'suspended' ? 'var(--color-error)' :
-                        tenant?.subscription_status === 'trial' ? '#F59E0B' : 'var(--color-secondary)'
-                    }} />
-                  </div>
-
-                  <div>
-                    <h4 style={{ fontSize: '1.125rem', fontWeight: 800, color: '#fff', marginBottom: '4px' }}>
-                      {tenant?.subscription_status === 'trial' ? 'Período de Prueba Activo' : 
-                       tenant?.subscription_status === 'suspended' ? 'Suscripción Bloqueada por Pago' : 'Membresía Activa'}
-                    </h4>
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                      Tu negocio está en el plan <strong style={{ textTransform: 'capitalize', color: '#fff' }}>{tenant?.subscription_plan || 'Básico'}</strong>. 
-                      {tenant?.subscription_status === 'trial' && tenant?.trial_ends_at && (
-                        <> Vence el {new Date(tenant.trial_ends_at).toLocaleDateString()} (Quedan {Math.max(0, Math.ceil((new Date(tenant.trial_ends_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))} días).</>
-                      )}
-                    </p>
-                  </div>
-                </div>
-
-                <div>
-                  <button 
-                    className="btn btn-secondary" 
-                    onClick={() => handleUpgrade(tenant?.subscription_plan || 'professional')}
-                    disabled={upgrading}
-                    style={{
-                      background: '#009EE3',
-                      color: '#fff',
-                      fontWeight: 700,
-                      borderRadius: 'var(--radius-md)',
-                      border: 'none',
+                <div style={{ marginTop: 'var(--space-6)' }}>
+                  <h4 style={{ marginBottom: 'var(--space-4)', fontSize: '1.125rem', fontWeight: 600 }}>Planes Disponibles</h4>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-6)' }}>
+                    {/* Básico */}
+                    <div className="card" style={{ 
+                      border: tenant?.subscription_plan === 'basic' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)', 
+                      opacity: 1,
+                      background: tenant?.subscription_plan === 'basic' ? 'var(--bg-card-hover)' : 'var(--bg-card)',
                       display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      boxShadow: '0 4px 12px rgba(0, 158, 227, 0.2)',
-                      opacity: upgrading ? 0.7 : 1
-                    }}
-                  >
-                    {upgrading ? (
-                      <>
-                        <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
-                        Procesando...
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard size={16} />
-                        Pagar con Mercado Pago
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
+                      flexDirection: 'column',
+                      borderRadius: 'var(--radius-lg)'
+                    }}>
+                      <div className="card-body" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 'var(--space-6)' }}>
+                        <div style={{ fontWeight: 700, fontSize: '1.25rem', color: '#fff', marginBottom: '4px' }}>Básico</div>
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>Para iniciar con ventas y stock</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-secondary)', marginBottom: 'var(--space-4)' }}>$20.000<span style={{ fontSize: '0.875rem', fontWeight: 400, color: 'var(--text-muted)' }}>/mes</span></div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8125rem', color: 'var(--text-primary)', marginBottom: 'var(--space-6)', flexGrow: 1, textAlign: 'left' }}>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Punto de Venta (POS)</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Lector Código de Barras</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Inventario (Hasta 500 prod.)</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Apertura/Cierre de Caja</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Impresión de Tickets</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Historial de Ventas</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Dashboard Diario</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> 1 Usuario administrador</div>
+                        </div>
 
-              {/* Plans pricing table */}
-              <div style={{ marginTop: '16px' }}>
-                <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#fff', marginBottom: '16px' }}>Planes de Membresía</h3>
-                
-                <div className="pricing-grid">
-                  
-                  {/* Plan Básico */}
-                  <div style={{
-                    background: 'var(--bg-card)',
-                    border: tenant?.subscription_plan === 'basic' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
-                    borderRadius: 'var(--radius-xl)',
-                    padding: '24px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    opacity: tenant?.subscription_plan === 'basic' ? 1 : 0.85,
-                    boxShadow: tenant?.subscription_plan === 'basic' ? '0 8px 24px rgba(221, 183, 255, 0.1)' : 'none',
-                    transition: 'all 0.2s'
-                  }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>Básico</h4>
-                        {tenant?.subscription_plan === 'basic' && (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: '9999px' }}>
-                            Activo
-                          </span>
+                        {tenant?.subscription_plan === 'basic' && tenant?.subscription_status === 'active' ? (
+                          <div className="badge badge-success" style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'center' }}>Plan Activo</div>
+                        ) : (
+                          <button 
+                            className="btn btn-ghost btn-sm"
+                            style={{ width: '100%', padding: '10px' }}
+                            disabled={subscribingPlan !== null}
+                            onClick={() => handleSubscribe('basic')}
+                          >
+                            {subscribingPlan === 'basic' ? 'Cargando...' : 'Elegir Básico'}
+                          </button>
                         )}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '20px' }}>
-                        <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff' }}>$20.000</span>
-                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>ARS / mes</span>
-                      </div>
-                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.4 }}>
-                        Ideal para pequeños almacenes o kioscos individuales que inician.
-                      </p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-                        {[
-                          { text: 'Punto de venta y caja rápida', active: true },
-                          { text: 'Gestión de stock básico', active: true },
-                          { text: 'Registro y cierre de turnos', active: true },
-                          { text: 'Reportes iniciales de ventas', active: true },
-                          { text: 'Estadísticas avanzadas', active: false },
-                          { text: 'Soporte multi-sucursal', active: false },
-                        ].map((feat, idx) => (
-                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: feat.active ? 'var(--text-primary)' : 'var(--text-muted)', textDecoration: feat.active ? 'none' : 'line-through' }}>
-                            {feat.active ? <Check size={14} style={{ color: 'var(--color-secondary)' }} /> : <span style={{ width: '14px', textAlign: 'center' }}>-</span>}
-                            {feat.text}
-                          </div>
-                        ))}
-                      </div>
                     </div>
-                    <button 
-                      className="btn btn-ghost btn-sm"
-                      style={{ marginTop: '24px', width: '100%', borderColor: 'var(--border-color)' }}
-                      disabled={tenant?.subscription_plan === 'basic'}
-                      onClick={() => handleUpgrade('basic')}
-                    >
-                      {tenant?.subscription_plan === 'basic' ? 'Tu Plan Actual' : 'Seleccionar Básico'}
-                    </button>
-                  </div>
 
-                  {/* Plan Profesional */}
-                  <div style={{
-                    background: 'var(--bg-card)',
-                    border: '2px solid var(--color-primary)',
-                    borderRadius: 'var(--radius-xl)',
-                    padding: '24px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    position: 'relative',
-                    boxShadow: '0 12px 32px rgba(221, 183, 255, 0.15)',
-                    transform: 'scale(1.02)',
-                    zIndex: 2,
-                    transition: 'all 0.2s'
-                  }}>
-                    <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: 'var(--color-primary)', color: '#000', fontWeight: 800, fontSize: '0.6875rem', textTransform: 'uppercase', padding: '4px 12px', borderRadius: '9999px', letterSpacing: '0.05em' }}>
-                      Popular / Recomendado
-                    </div>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', marginTop: '4px' }}>
-                        <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>Profesional</h4>
-                        {tenant?.subscription_plan === 'professional' && (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: '9999px' }}>
-                            Activo
-                          </span>
+                    {/* Profesional */}
+                    <div className="card" style={{ 
+                      border: '2px solid var(--color-primary)', 
+                      boxShadow: '0 8px 30px rgba(168, 85, 247, 0.15)',
+                      background: tenant?.subscription_plan === 'professional' ? 'var(--bg-card-hover)' : 'var(--bg-card)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      borderRadius: 'var(--radius-lg)',
+                      position: 'relative'
+                    }}>
+                      <div style={{ 
+                        position: 'absolute', 
+                        top: '12px', 
+                        right: '12px', 
+                        background: 'var(--color-primary)', 
+                        color: '#060e20',
+                        fontSize: '0.6875rem', 
+                        fontWeight: 800, 
+                        padding: '2px 8px', 
+                        borderRadius: 'var(--radius-full)' 
+                      }}>
+                        MÁS POPULAR
+                      </div>
+
+                      <div className="card-body" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 'var(--space-6)' }}>
+                        <div style={{ fontWeight: 700, fontSize: '1.25rem', color: '#fff', marginBottom: '4px' }}>Profesional</div>
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>Control total y fidelización</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: 'var(--space-4)' }}>$35.000<span style={{ fontSize: '0.875rem', fontWeight: 400, color: 'var(--text-muted)' }}>/mes</span></div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8125rem', color: 'var(--text-primary)', marginBottom: 'var(--space-6)', flexGrow: 1, textAlign: 'left' }}>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontWeight: 'bold' }}><span>⚡</span> Todo lo de Básico</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Inventario Ilimitado</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Plan de Cuotas / Cta Cte</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Gestión de Clientes</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Estadísticas Avanzadas</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Descuentos y Promos POS</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Integración Mercado Pago</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Multi-usuario (hasta 3)</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Colores de Marca Personalizados</div>
+                        </div>
+
+                        {tenant?.subscription_plan === 'professional' && tenant?.subscription_status === 'active' ? (
+                          <div className="badge badge-success" style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'center' }}>Plan Activo</div>
+                        ) : (
+                          <button 
+                            className="btn btn-primary btn-sm"
+                            style={{ width: '100%', padding: '10px' }}
+                            disabled={subscribingPlan !== null}
+                            onClick={() => handleSubscribe('professional')}
+                          >
+                            {subscribingPlan === 'professional' ? 'Cargando...' : 'Elegir Profesional'}
+                          </button>
                         )}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '20px' }}>
-                        <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-primary)' }}>$35.000</span>
-                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>ARS / mes</span>
-                      </div>
-                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.4 }}>
-                        Para comercios medianos que buscan impulsar sus ventas y gestionar cuentas corrientes.
-                      </p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-                        {[
-                          { text: 'Todo lo incluido en Básico', active: true },
-                          { text: 'Módulo de estadísticas y analíticas', active: true },
-                          { text: 'Registro de ventas en cuotas / crédito', active: true },
-                          { text: 'Pedidos pendientes de sucursales', active: true },
-                          { text: 'Personalización avanzada de marca', active: true },
-                          { text: 'Soporte multi-sucursal central', active: false },
-                        ].map((feat, idx) => (
-                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: feat.active ? 'var(--text-primary)' : 'var(--text-muted)', textDecoration: feat.active ? 'none' : 'line-through' }}>
-                            {feat.active ? <Check size={14} style={{ color: 'var(--color-secondary)' }} /> : <span style={{ width: '14px', textAlign: 'center' }}>-</span>}
-                            {feat.text}
-                          </div>
-                        ))}
-                      </div>
                     </div>
-                    <button 
-                      className="btn btn-primary btn-sm"
-                      style={{ marginTop: '24px', width: '100%', background: 'var(--color-primary)', color: '#000', fontWeight: 700 }}
-                      disabled={tenant?.subscription_plan === 'professional'}
-                      onClick={() => handleUpgrade('professional')}
-                    >
-                      {tenant?.subscription_plan === 'professional' ? 'Tu Plan Actual' : 'Seleccionar Profesional'}
-                    </button>
-                  </div>
 
-                  {/* Plan Empresa */}
-                  <div style={{
-                    background: 'var(--bg-card)',
-                    border: tenant?.subscription_plan === 'enterprise' ? '2px solid var(--color-secondary)' : '1px solid var(--border-color)',
-                    borderRadius: 'var(--radius-xl)',
-                    padding: '24px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    opacity: tenant?.subscription_plan === 'enterprise' ? 1 : 0.85,
-                    boxShadow: tenant?.subscription_plan === 'enterprise' ? '0 8px 24px rgba(78, 222, 163, 0.1)' : 'none',
-                    transition: 'all 0.2s'
-                  }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>Empresa</h4>
-                        {tenant?.subscription_plan === 'enterprise' && (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', background: 'var(--color-secondary-light)', color: 'var(--color-secondary)', borderRadius: '9999px' }}>
-                            Activo
-                          </span>
+                    {/* Empresa */}
+                    <div className="card" style={{ 
+                      border: tenant?.subscription_plan === 'enterprise' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)', 
+                      opacity: 1,
+                      background: tenant?.subscription_plan === 'enterprise' ? 'var(--bg-card-hover)' : 'var(--bg-card)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      borderRadius: 'var(--radius-lg)'
+                    }}>
+                      <div className="card-body" style={{ display: 'flex', flexDirection: 'column', height: '100%', padding: 'var(--space-6)' }}>
+                        <div style={{ fontWeight: 700, fontSize: '1.25rem', color: '#fff', marginBottom: '4px' }}>Empresa</div>
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>Gestión multi-local y compras</div>
+                        <div style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-secondary)', marginBottom: 'var(--space-4)' }}>$60.000<span style={{ fontSize: '0.875rem', fontWeight: 400, color: 'var(--text-muted)' }}>/mes</span></div>
+                        
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', fontSize: '0.8125rem', color: 'var(--text-primary)', marginBottom: 'var(--space-6)', flexGrow: 1, textAlign: 'left' }}>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center', fontWeight: 'bold' }}><span>⚡</span> Todo lo de Profesional</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Múltiples Sucursales</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Registro Compras & Prov.</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Usuarios Invitados Ilimitados</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Reportes Exportables (Excel/PDF)</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Integración API Externa</div>
+                          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}><span>✅</span> Soporte VIP Prioritario 24/7</div>
+                        </div>
+
+                        {tenant?.subscription_plan === 'enterprise' && tenant?.subscription_status === 'active' ? (
+                          <div className="badge badge-success" style={{ width: '100%', padding: '10px', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'center' }}>Plan Activo</div>
+                        ) : (
+                          <button 
+                            className="btn btn-ghost btn-sm"
+                            style={{ width: '100%', padding: '10px', borderColor: 'var(--color-secondary)', color: 'var(--color-secondary)' }}
+                            disabled={subscribingPlan !== null}
+                            onClick={() => handleSubscribe('enterprise')}
+                          >
+                            {subscribingPlan === 'enterprise' ? 'Cargando...' : 'Elegir Empresa'}
+                          </button>
                         )}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '20px' }}>
-                        <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-secondary)' }}>$60.000</span>
-                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>ARS / mes</span>
-                      </div>
-                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.4 }}>
-                        Para cadenas de comercios y negocios a gran escala con múltiples sucursales.
-                      </p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-                        {[
-                          { text: 'Todo lo incluido en Profesional', active: true },
-                          { text: 'Multi-sucursal centralizada', active: true },
-                          { text: 'Inventarios cruzados entre locales', active: true },
-                          { text: 'Integración API personalizada', active: true },
-                          { text: 'Acceso anticipado a funciones', active: true },
-                          { text: 'Soporte prioritario dedicado 24/7', active: true },
-                        ].map((feat, idx) => (
-                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: feat.active ? 'var(--text-primary)' : 'var(--text-muted)' }}>
-                            {feat.active ? <Check size={14} style={{ color: 'var(--color-secondary)' }} /> : <span style={{ width: '14px', textAlign: 'center' }}>-</span>}
-                            {feat.text}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <button 
-                      className="btn btn-ghost btn-sm"
-                      style={{ marginTop: '24px', width: '100%', borderColor: 'var(--border-color)' }}
-                      disabled={tenant?.subscription_plan === 'enterprise'}
-                      onClick={() => handleUpgrade('enterprise')}
-                    >
-                      {tenant?.subscription_plan === 'enterprise' ? 'Tu Plan Actual' : 'Seleccionar Empresa'}
-                    </button>
-                  </div>
-                  
-                </div>
-
-              </div>
-
-              {/* Developer/Testing sandbox drawer */}
-              <div style={{ marginTop: '40px', borderTop: '1px dashed var(--border-color)', paddingTop: '24px' }}>
-                <details style={{ background: '#0a0d16', border: '1px solid rgba(255, 178, 183, 0.1)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-                  <summary style={{ padding: '16px', fontWeight: 600, color: 'var(--color-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', userSelect: 'none' }}>
-                    <Activity size={16} />
-                    Herramientas de Desarrollador / Simulación (Modo Sandbox)
-                  </summary>
-                  <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', background: '#070a12' }}>
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                      Usa estas utilidades para simular diferentes estados de facturación y probar el comportamiento de cobros y webhooks de Mercado Pago.
-                    </p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                      <button 
-                        className="btn btn-sm btn-secondary"
-                        onClick={async () => {
-                          const { error } = await supabase
-                            .from('tenants')
-                            .update({ 
-                              subscription_status: 'active',
-                              subscription_plan: 'professional' 
-                            })
-                            .eq('id', tenant.id)
-                          if (!error) {
-                            toast.success('¡Suscripción simulada como ACTIVA (Profesional)!')
-                            window.location.reload()
-                          }
-                        }}
-                      >
-                        ✓ Simular Cuenta Activa (Profesional)
-                      </button>
-                      
-                      <button 
-                        className="btn btn-sm" 
-                        style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid var(--color-error)', color: 'var(--color-error)' }}
-                        onClick={async () => {
-                          const { error } = await supabase
-                            .from('tenants')
-                            .update({ subscription_status: 'suspended' })
-                            .eq('id', tenant.id)
-                          if (!error) {
-                            toast.warning('¡Cuenta suspendida por falta de pago!')
-                            window.location.reload()
-                          }
-                        }}
-                      >
-                        ⚠️ Simular Cuenta Suspendida
-                      </button>
-
-                      <button 
-                        className="btn btn-sm" 
-                        style={{ background: 'rgba(245, 158, 11, 0.15)', border: '1px solid #F59E0B', color: '#F59E0B' }}
-                        onClick={async () => {
-                          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-                          const { error } = await supabase
-                            .from('tenants')
-                            .update({ 
-                              subscription_status: 'trial', 
-                              trial_ends_at: yesterday 
-                            })
-                            .eq('id', tenant.id)
-                          if (!error) {
-                            toast.warning('¡Prueba gratis simulada como EXPIRADA!')
-                            window.location.reload()
-                          }
-                        }}
-                      >
-                        ⏳ Simular Prueba Expirada
-                      </button>
-                    </div>
-
-                    {/* Informative boxes inside details */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '8px' }}>
-                      <div style={{ padding: '12px', background: 'rgba(0, 158, 227, 0.05)', border: '1px solid rgba(0, 158, 227, 0.1)', borderRadius: 'var(--radius-md)' }}>
-                        <h5 style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#009EE3', marginBottom: '6px' }}>Cobro Automático por Webhook</h5>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                          Mercado Pago Preapprovals emite notificaciones a <code style={{ color: 'var(--color-primary)' }}>/api/webhooks/mercadopago</code>. El backend procesa el estado de acreditación y reactiva la cuenta.
-                        </p>
-                      </div>
-                      <div style={{ padding: '12px', background: 'rgba(37, 211, 102, 0.05)', border: '1px solid rgba(37, 211, 102, 0.1)', borderRadius: 'var(--radius-md)' }}>
-                        <h5 style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#25D366', marginBottom: '6px' }}>Bot de Alertas WhatsApp</h5>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                          Las notificaciones de cobro próximo y bloqueo se envían vía SMS/WhatsApp usando la plantilla oficial.
-                        </p>
-                        <button 
-                          className="btn btn-sm"
-                          style={{ background: '#25D366', color: '#000', marginTop: '8px', width: '100%', fontWeight: 700 }}
-                          onClick={() => {
-                            toast.info(`📲 [Simulación Bot] De: Smart Caja Alertas 🤖 → Para: ${tenant?.name || 'Comercio'} — "Tu período de prueba vence pronto. Configurá tu facturación para continuar usando Smart Caja."`)
-                          }}
-                        >
-                          📲 Probar Mensaje Bot
-                        </button>
                       </div>
                     </div>
                   </div>

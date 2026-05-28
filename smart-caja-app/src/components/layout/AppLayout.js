@@ -22,15 +22,15 @@ import {
 } from 'lucide-react'
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, minPlan: 'basic' },
-  { href: '/pos', label: 'Caja', icon: ShoppingCart, minPlan: 'basic' },
-  { href: '/inventory', label: 'Inventario', icon: Package, minPlan: 'basic' },
-  { href: '/shifts', label: 'Turnos', icon: Clock, minPlan: 'basic' },
-  { href: '/sales', label: 'Ventas', icon: Receipt, minPlan: 'basic' },
-  { href: '/orders', label: 'Pedidos', icon: ListTodo, minPlan: 'professional' },
-  { href: '/analytics', label: 'Estadísticas', icon: BarChart3, minPlan: 'professional' },
-  { href: '/installments', label: 'Cuotas', icon: CreditCard, minPlan: 'professional' },
-  { href: '/branches', label: 'Sucursales', icon: Store, minPlan: 'enterprise' },
+  { href: '/dashboard', label: 'Dashboard', icon: '📊', minPlan: 'basic' },
+  { href: '/pos', label: 'Caja', icon: '💰', minPlan: 'basic' },
+  { href: '/inventory', label: 'Inventario', icon: '📦', minPlan: 'basic' },
+  { href: '/shifts', label: 'Turnos', icon: '⏱️', minPlan: 'basic' },
+  { href: '/sales', label: 'Ventas', icon: '🧾', minPlan: 'basic' },
+  { href: '/customers', label: 'Clientes', icon: '👥', minPlan: 'professional' },
+  { href: '/analytics', label: 'Estadísticas', icon: '📈', minPlan: 'professional' },
+  { href: '/installments', label: 'Cuotas', icon: '📋', minPlan: 'professional' },
+  { href: '/purchases', label: 'Compras', icon: '🛒', minPlan: 'enterprise' },
 ]
 
 const PLAN_WEIGHTS = {
