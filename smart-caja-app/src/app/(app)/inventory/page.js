@@ -37,22 +37,28 @@ export default function InventoryPage() {
       const cachedProds = localStorage.getItem(cacheKeyProds)
 
       if (cachedCats || cachedProds) {
-        if (cachedCats) {
-          try {
-            setCategories(JSON.parse(cachedCats))
-          } catch (e) {}
-        }
-        if (cachedProds) {
-          try {
-            setProducts(JSON.parse(cachedProds))
-          } catch (e) {}
-        }
-        setLoading(false)
+        setTimeout(() => {
+          if (cachedCats) {
+            try {
+              setCategories(JSON.parse(cachedCats))
+            } catch (e) {}
+          }
+          if (cachedProds) {
+            try {
+              setProducts(JSON.parse(cachedProds))
+            } catch (e) {}
+          }
+          setLoading(false)
+        }, 0)
       } else {
-        setLoading(true)
+        setTimeout(() => {
+          setLoading(true)
+        }, 0)
       }
     } else {
-      setLoading(true)
+      setTimeout(() => {
+        setLoading(true)
+      }, 0)
     }
 
     // 2. Fetch fresh data from Supabase in the background
@@ -91,7 +97,10 @@ export default function InventoryPage() {
 
   useEffect(() => {
     if (tenant?.id) {
-      loadInventory()
+      const timer = setTimeout(() => {
+        loadInventory()
+      }, 0)
+      return () => clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id])

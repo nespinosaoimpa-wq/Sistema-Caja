@@ -34,6 +34,7 @@ export default function SettingsPage() {
   const { tenant, profile, reloadProfile } = useAuth()
   const supabase = createClient()
   const toast = useToast()
+  const [nowTimestamp] = useState(() => Date.now())
   
   const [saving, setSaving] = useState(false)      // for Save button
   const [upgrading, setUpgrading] = useState(false) // for Upgrade button
@@ -72,22 +73,25 @@ export default function SettingsPage() {
   // Sync form state with tenant profile
   useEffect(() => {
     if (tenant) {
-      setForm({
-        name: tenant.name || '',
-        business_type: tenant.business_type || '',
-        address: tenant.address || '',
-        phone: tenant.phone || '',
-        primary_color: tenant.theme_config?.primary_color || '#7C3AED',
-        secondary_color: tenant.theme_config?.secondary_color || '#10B981',
-        mp_access_token: tenant.theme_config?.mp_access_token || '',
-        mp_public_key: tenant.theme_config?.mp_public_key || '',
-        currency: tenant.theme_config?.currency || 'ARS',
-        locale: tenant.theme_config?.locale || 'es-AR',
-        tax_rate: tenant.theme_config?.tax_rate !== undefined ? tenant.theme_config.tax_rate.toString() : '21',
-        tax_name: tenant.theme_config?.tax_name || 'IVA',
-        logo_url: tenant.logo_url || '',
-        background_preset: tenant.theme_config?.background_preset || 'matte',
-      })
+      const timer = setTimeout(() => {
+        setForm({
+          name: tenant.name || '',
+          business_type: tenant.business_type || '',
+          address: tenant.address || '',
+          phone: tenant.phone || '',
+          primary_color: tenant.theme_config?.primary_color || '#7C3AED',
+          secondary_color: tenant.theme_config?.secondary_color || '#10B981',
+          mp_access_token: tenant.theme_config?.mp_access_token || '',
+          mp_public_key: tenant.theme_config?.mp_public_key || '',
+          currency: tenant.theme_config?.currency || 'ARS',
+          locale: tenant.theme_config?.locale || 'es-AR',
+          tax_rate: tenant.theme_config?.tax_rate !== undefined ? tenant.theme_config.tax_rate.toString() : '21',
+          tax_name: tenant.theme_config?.tax_name || 'IVA',
+          logo_url: tenant.logo_url || '',
+          background_preset: tenant.theme_config?.background_preset || 'matte',
+        })
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [tenant])
 
@@ -100,11 +104,14 @@ export default function SettingsPage() {
       const isSuspended = tenant?.subscription_status === 'suspended' || 
         (tenant?.subscription_status === 'trial' && tenant?.trial_ends_at && new Date() > new Date(tenant.trial_ends_at))
       
-      if (isSuspended) {
-        setActiveTab('billing')
-      } else if (tabParam) {
-        setActiveTab(tabParam)
-      }
+      const timer = setTimeout(() => {
+        if (isSuspended) {
+          setActiveTab('billing')
+        } else if (tabParam) {
+          setActiveTab(tabParam)
+        }
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [tenant])
 
@@ -126,7 +133,7 @@ export default function SettingsPage() {
     } finally {
       setLoadingTeam(false)
     }
-  }, [tenant?.id])
+  }, [tenant, supabase, toast])
 
   // Fetch Branches
   const fetchBranches = useCallback(async () => {
@@ -145,14 +152,20 @@ export default function SettingsPage() {
     } finally {
       setLoadingBranches(false)
     }
-  }, [tenant?.id, tenant?.subscription_plan])
+  }, [tenant, supabase])
 
   // Load contextual data based on active tab
   useEffect(() => {
     if (activeTab === 'users') {
-      fetchTeamMembers()
+      const timer = setTimeout(() => {
+        fetchTeamMembers()
+      }, 0)
+      return () => clearTimeout(timer)
     } else if (activeTab === 'branches') {
-      fetchBranches()
+      const timer = setTimeout(() => {
+        fetchBranches()
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [activeTab, fetchTeamMembers, fetchBranches])
 
@@ -1642,7 +1655,7 @@ export default function SettingsPage() {
                     <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
                       Tu negocio está en el plan <strong style={{ textTransform: 'capitalize', color: '#fff' }}>{tenant?.subscription_plan || 'Básico'}</strong>. 
                       {tenant?.subscription_status === 'trial' && tenant?.trial_ends_at && (
-                        <> Vence el {new Date(tenant.trial_ends_at).toLocaleDateString()} (Quedan {Math.max(0, Math.ceil((new Date(tenant.trial_ends_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))} días).</>
+                        <> Vence el {new Date(tenant.trial_ends_at).toLocaleDateString()} (Quedan {Math.max(0, Math.ceil((new Date(tenant.trial_ends_at).getTime() - nowTimestamp) / (24 * 60 * 60 * 1000)))} días).</>
                       )}
                     </p>
                   </div>

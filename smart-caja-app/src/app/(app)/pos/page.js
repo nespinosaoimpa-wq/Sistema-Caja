@@ -233,7 +233,10 @@ export default function POSPage() {
 
   useEffect(() => {
     if (tenant?.id) {
-      loadData()
+      const timer = setTimeout(() => {
+        loadData()
+      }, 0)
+      return () => clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id])

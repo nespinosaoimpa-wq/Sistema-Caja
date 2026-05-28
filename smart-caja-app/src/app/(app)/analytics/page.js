@@ -28,13 +28,6 @@ export default function AnalyticsPage() {
     stagnantProducts: []
   })
 
-  useEffect(() => {
-    if (tenant?.id && tenant?.subscription_plan !== 'basic') {
-      loadData()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant?.id, timeRange])
-
   async function loadData() {
     setLoading(true)
     try {
@@ -150,6 +143,16 @@ export default function AnalyticsPage() {
     }
     setLoading(false)
   }
+
+  useEffect(() => {
+    if (tenant?.id && tenant?.subscription_plan !== 'basic') {
+      const timer = setTimeout(() => {
+        loadData()
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant?.id, timeRange])
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>

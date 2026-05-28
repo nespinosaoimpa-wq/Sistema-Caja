@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import UpgradePrompt from '@/components/ui/UpgradePrompt'
@@ -16,13 +16,8 @@ export default function InstallmentsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
 
-  useEffect(() => {
-    if (tenant?.id && tenant?.subscription_plan !== 'basic') {
-      loadPlans()
-    }
-  }, [tenant?.id])
-
-  const loadPlans = async () => {
+  const loadPlans = useCallback(async () => {
+    if (!tenant?.id) return
     setLoading(true)
     const { data } = await supabase
       .from('installment_plans')
@@ -32,7 +27,16 @@ export default function InstallmentsPage() {
 
     if (data) setPlans(data)
     setLoading(false)
-  }
+  }, [supabase, tenant])
+
+  useEffect(() => {
+    if (tenant?.id && tenant?.subscription_plan !== 'basic') {
+      const timer = setTimeout(() => {
+        loadPlans()
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+  }, [tenant?.id, tenant?.subscription_plan, loadPlans])
 
   const handlePayInstallment = async (planId, amount) => {
     try {

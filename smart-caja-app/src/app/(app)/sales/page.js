@@ -47,12 +47,14 @@ export default function SalesPage() {
 
     setLoading(false)
     setLoadingMore(false)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [sales.length, supabase, tenant?.id])
+  }, [sales.length, supabase, tenant])
 
   useEffect(() => {
     if (tenant?.id) {
-      loadSales(true)
+      const timer = setTimeout(() => {
+        loadSales(true)
+      }, 0)
+      return () => clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id])

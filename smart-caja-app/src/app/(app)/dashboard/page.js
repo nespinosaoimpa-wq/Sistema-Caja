@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -27,13 +27,7 @@ export default function DashboardPage() {
     chartData: []
   })
 
-  useEffect(() => {
-    if (tenant?.id) {
-      loadStats()
-    }
-  }, [tenant?.id])
-
-  const loadStats = async () => {
+  const loadStats = useCallback(async () => {
     setLoading(true)
     
     try {
@@ -149,7 +143,19 @@ export default function DashboardPage() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase, tenant])
+
+  useEffect(() => {
+    if (tenant?.id) {
+      const timer = setTimeout(() => {
+        loadStats()
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+  }, [tenant?.id, loadStats])
+
+  const [nowTimestamp] = useState(() => Date.now())
+
 
   // Verification of quickstart onboarding steps
   // 1. Configured details if address or custom values set
@@ -480,7 +486,7 @@ export default function DashboardPage() {
                     </div>
                   ) : (
                     recentSales.map((sale, i) => {
-                      const mins = Math.floor((Date.now() - new Date(sale.created_at).getTime()) / 60000)
+                      const mins = Math.floor((nowTimestamp - new Date(sale.created_at).getTime()) / 60000)
                       const timeAgo = mins < 1 ? 'Ahora' : mins < 60 ? `Hace ${mins} min` : mins < 1440 ? `Hace ${Math.floor(mins/60)}h` : `Hace ${Math.floor(mins/1440)}d`
                       const pmIcons = { cash: '💵', debit: '💳', credit: '💳', transfer: '📲', combined: '🔀', installment: '📋' }
                       return (

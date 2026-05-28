@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useRouter } from 'next/navigation'
@@ -14,16 +14,9 @@ export default function BranchesPage() {
   
   const [branches, setBranches] = useState([])
   const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    if (tenant?.id && tenant.subscription_plan === 'enterprise') {
-      loadBranches()
-    } else {
-      setLoading(false)
-    }
-  }, [tenant])
-
-  const loadBranches = async () => {
+  
+  const loadBranches = useCallback(async () => {
+    if (!tenant?.id) return
     setLoading(true)
     const { data, error } = await supabase
       .from('branches')
@@ -33,7 +26,21 @@ export default function BranchesPage() {
 
     if (data) setBranches(data)
     setLoading(false)
-  }
+  }, [supabase, tenant])
+
+  useEffect(() => {
+    if (tenant?.id && tenant.subscription_plan === 'enterprise') {
+      const timer = setTimeout(() => {
+        loadBranches()
+      }, 0)
+      return () => clearTimeout(timer)
+    } else if (tenant) {
+      const timer = setTimeout(() => {
+        setLoading(false)
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+  }, [tenant, loadBranches])
 
   // Verificación de Plan
   if (loading) return <div style={{ padding: 'var(--space-8)' }}>Cargando...</div>

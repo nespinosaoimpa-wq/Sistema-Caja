@@ -66,14 +66,6 @@ export default function EditProductPage() {
   })
   const [adjustingStock, setAdjustingStock] = useState(false)
 
-  useEffect(() => {
-    if (tenant?.id && id) {
-      loadProduct()
-      loadCategories()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant?.id, id])
-
   async function loadProduct() {
     setLoading(true)
     try {
@@ -120,6 +112,17 @@ export default function EditProductPage() {
 
     setCategories(data || [])
   }
+
+  useEffect(() => {
+    if (tenant?.id && id) {
+      const timer = setTimeout(() => {
+        loadProduct()
+        loadCategories()
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant?.id, id])
 
   const updateForm = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }))

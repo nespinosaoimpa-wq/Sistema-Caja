@@ -35,13 +35,6 @@ export default function NewProductPage() {
   const [newCategory, setNewCategory] = useState({ name: '', icon: '📦', color: '#10B981' })
   const [creatingCategory, setCreatingCategory] = useState(false)
 
-  useEffect(() => {
-    if (tenant?.id) {
-      loadCategories()
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant?.id])
-
   async function loadCategories() {
     const { data } = await supabase
       .from('categories')
@@ -54,6 +47,16 @@ export default function NewProductPage() {
       setForm(prev => ({ ...prev, category_id: data[0].id }))
     }
   }
+
+  useEffect(() => {
+    if (tenant?.id) {
+      const timer = setTimeout(() => {
+        loadCategories()
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tenant?.id])
 
   const updateForm = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }))

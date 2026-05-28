@@ -394,7 +394,7 @@ export default function LandingPage() {
             }
           ].map((t, i) => (
             <div key={i} className="testimonial-card">
-              <p className="testimonial-quote">"{t.quote}"</p>
+              <p className="testimonial-quote">&ldquo;{t.quote}&rdquo;</p>
               <div className="testimonial-author">
                 <div className="testimonial-avatar">{t.initials}</div>
                 <div>

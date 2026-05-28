@@ -35,12 +35,15 @@ function RegisterContent() {
   // Si está invitado, saltamos al paso 2 y precargamos datos
   useEffect(() => {
     if (inviteTenant) {
-      setStep(2)
-      setForm(prev => ({
-        ...prev,
-        email: inviteEmail,
-        full_name: inviteName,
-      }))
+      const timer = setTimeout(() => {
+        setStep(2)
+        setForm(prev => ({
+          ...prev,
+          email: inviteEmail,
+          full_name: inviteName,
+        }))
+      }, 0)
+      return () => clearTimeout(timer)
     }
   }, [inviteTenant, inviteEmail, inviteName])
 

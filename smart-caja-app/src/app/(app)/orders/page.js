@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { formatCurrency, formatDateTime } from '@/lib/utils/formatters'
@@ -22,16 +22,8 @@ export default function OrdersPage() {
   const [orders, setOrders] = useState([])
   const [loading, setLoading] = useState(true)
 
-  useEffect(() => {
-    // Orders feature available for Professional and Enterprise
-    if (tenant?.id && (tenant.subscription_plan === 'professional' || tenant.subscription_plan === 'enterprise')) {
-      loadOrders()
-    } else {
-      setLoading(false)
-    }
-  }, [tenant])
-
-  const loadOrders = async () => {
+  const loadOrders = useCallback(async () => {
+    if (!tenant?.id) return
     setLoading(true)
     const { data, error } = await supabase
       .from('orders')
@@ -41,7 +33,21 @@ export default function OrdersPage() {
 
     if (data) setOrders(data)
     setLoading(false)
-  }
+  }, [supabase, tenant])
+
+  useEffect(() => {
+    if (tenant?.id && (tenant.subscription_plan === 'professional' || tenant.subscription_plan === 'enterprise')) {
+      const timer = setTimeout(() => {
+        loadOrders()
+      }, 0)
+      return () => clearTimeout(timer)
+    } else if (tenant) {
+      const timer = setTimeout(() => {
+        setLoading(false)
+      }, 0)
+      return () => clearTimeout(timer)
+    }
+  }, [tenant, loadOrders])
 
   const moveOrder = async (orderId, newStatus) => {
     const { error } = await supabase

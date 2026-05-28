@@ -84,8 +84,10 @@ export default function AppLayout({ children }) {
   // Safety net: if initial auth loading stays true for more than 8 seconds, show timeout options
   useEffect(() => {
     if (!loading) {
-      setLoadingTimeout(false)
-      return
+      const timer = setTimeout(() => {
+        setLoadingTimeout(false)
+      }, 0)
+      return () => clearTimeout(timer)
     }
 
     const timer = setTimeout(() => {
