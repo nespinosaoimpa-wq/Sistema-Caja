@@ -15,12 +15,40 @@ export async function POST(request) {
       return Response.json({ error: 'No autenticado' }, { status: 401 })
     }
 
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const hasAdminKey = serviceKey && serviceKey !== 'YOUR_SERVICE_ROLE_KEY_HERE' && serviceKey.trim() !== ''
+
     // 2. Obtener el perfil del usuario que invita
-    const { data: inviterProfile, error: profileError } = await supabase
-      .from('profiles')
-      .select('tenant_id, role')
-      .eq('id', user.id)
-      .single()
+    let inviterProfile = null
+    let profileError = null
+
+    if (hasAdminKey) {
+      const supabaseAdmin = createSupabaseClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        serviceKey,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        }
+      )
+      const { data, error } = await supabaseAdmin
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+      inviterProfile = data
+      profileError = error
+    } else {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('tenant_id, role')
+        .eq('id', user.id)
+        .single()
+      inviterProfile = data
+      profileError = error
+    }
 
     if (profileError || !inviterProfile) {
       return Response.json({ error: 'No se encontró el perfil del invitador' }, { status: 403 })
@@ -32,10 +60,6 @@ export async function POST(request) {
     }
 
     const tenantId = inviterProfile.tenant_id
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    
-    // Validar si la clave de servicio está configurada de manera real
-    const hasAdminKey = serviceKey && serviceKey !== 'YOUR_SERVICE_ROLE_KEY_HERE' && serviceKey.trim() !== ''
 
     if (!hasAdminKey) {
       // Retornar enlace manual en modo de fallback

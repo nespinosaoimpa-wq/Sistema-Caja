@@ -56,6 +56,7 @@ export default function POSPage() {
   const [posnetVoucher, setPosnetVoucher] = useState('')
   const [manualVoucher, setManualVoucher] = useState('')
   const [showCatalog, setShowCatalog] = useState(true)
+  const [showDropdown, setShowDropdown] = useState(false)
 
   // Installment/Accounts Receivable states
   const [showInstallmentModal, setShowInstallmentModal] = useState(false)
@@ -323,9 +324,22 @@ export default function POSPage() {
   const handleBarcodeSubmit = (e) => {
     e.preventDefault()
     if (!searchTerm) return
-    const product = products.find(p => p.barcode === searchTerm || p.reference_code === searchTerm)
-    if (product) {
-      addToCart(product)
+    const exactMatch = products.find(p => p.barcode === searchTerm || p.reference_code === searchTerm)
+    if (exactMatch) {
+      addToCart(exactMatch)
+      setSearchTerm('')
+      return
+    }
+
+    const matches = products.filter(p => 
+      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      p.categories?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+      (p.reference_code && p.reference_code.toLowerCase().includes(searchTerm.toLowerCase()))
+    )
+
+    if (matches.length > 0) {
+      addToCart(matches[0])
       setSearchTerm('')
     } else {
       toast.warning('Producto no encontrado')
@@ -376,7 +390,9 @@ export default function POSPage() {
   const filteredProducts = products.filter(p => 
     !searchTerm || 
     p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    p.categories?.name.toLowerCase().includes(searchTerm.toLowerCase())
+    p.categories?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
+    (p.reference_code && p.reference_code.toLowerCase().includes(searchTerm.toLowerCase()))
   )
 
   const cartSubtotal = cart.reduce((sum, item) => sum + item.subtotal, 0)
@@ -811,32 +827,102 @@ export default function POSPage() {
 
   return (
     <>
+      <style>{`
+        .pos-container {
+          display: grid;
+          grid-template-columns: 1fr 420px;
+          gap: var(--space-6);
+          align-items: start;
+          padding-bottom: var(--space-8);
+        }
+        @media (max-width: 1024px) {
+          .pos-container {
+            grid-template-columns: 1fr;
+          }
+        }
+        .pos-left {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-6);
+          background: var(--bg-surface);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-xl);
+          padding: var(--space-6);
+        }
+        .pos-right {
+          display: flex;
+          flex-direction: column;
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-xl);
+          position: sticky;
+          top: 24px;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+        }
+        .search-wrapper {
+          position: relative;
+          width: 100%;
+        }
+        .autocomplete-dropdown {
+          position: absolute;
+          top: 100%;
+          left: 0;
+          right: 0;
+          background: var(--bg-card);
+          border: 1px solid var(--border-color);
+          border-radius: var(--radius-lg);
+          margin-top: 6px;
+          max-height: 320px;
+          overflow-y: auto;
+          z-index: 1000;
+          box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+        }
+        .autocomplete-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 12px 16px;
+          border-bottom: 1px solid var(--border-color);
+          cursor: pointer;
+          transition: var(--transition);
+        }
+        .autocomplete-item:last-child {
+          border-bottom: none;
+        }
+        .autocomplete-item:hover {
+          background: var(--bg-card-hover);
+        }
+        .cart-table {
+          width: 100%;
+          border-collapse: collapse;
+          margin-top: var(--space-2);
+        }
+        .cart-table th {
+          padding: 12px 8px;
+          text-align: left;
+          border-bottom: 1px solid var(--border-color);
+          color: var(--text-muted);
+          font-size: 0.8125rem;
+          font-weight: 600;
+          text-transform: uppercase;
+          letter-spacing: 0.05em;
+        }
+        .cart-table td {
+          padding: 16px 8px;
+          border-bottom: 1px solid var(--border-color);
+          vertical-align: middle;
+        }
+        .cart-table tr:last-child td {
+          border-bottom: none;
+        }
+      `}</style>
       <div ref={posContainerRef} className="pos-container">
         
-        {/* LEFT SIDE - Product Catalog */}
+        {/* LEFT SIDE - Search, Cart Table, & Optional Catalog */}
         <div className="pos-left">
           
-          {/* Header & Filters */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-4)', marginBottom: 'var(--space-6)', flexWrap: 'wrap' }}>
-            <form onSubmit={handleBarcodeSubmit} style={{ width: '320px' }}>
-              <div className="form-input-icon">
-                <span className="input-icon" style={{ top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
-                  <Search size={16} />
-                </span>
-                <input 
-                  id="barcode-scanner"
-                  ref={barcodeInputRef}
-                  className="form-input" 
-                  placeholder="Buscar por nombre, SKU..."
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
-                  autoFocus
-                />
-              </div>
-            </form>
-
-            {/* Controls: Fullscreen and Lector selector */}
+          {/* Header Controls (Lector, Fullscreen, Catalog Toggle) */}
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button 
                 type="button"
@@ -872,51 +958,202 @@ export default function POSPage() {
                 {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
                 {isFullscreen ? 'Salir de Fullscreen' : 'Pantalla Completa'}
               </button>
-
-              <div style={{ display: 'flex', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '3px' }}>
-                <button
-                  type="button"
-                  onClick={() => setPosnetMode('integrated')}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    color: posnetMode === 'integrated' ? '#fff' : 'var(--text-muted)',
-                    background: posnetMode === 'integrated' ? 'var(--color-primary-light)' : 'transparent',
-                    border: posnetMode === 'integrated' ? '1px solid var(--color-primary)' : '1px solid transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    transition: 'var(--transition)'
-                  }}
-                >
-                  <Zap size={14} /> POSnet Simulado
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPosnetMode('manual')}
-                  style={{
-                    padding: '6px 12px',
-                    borderRadius: 'var(--radius-sm)',
-                    fontSize: '0.75rem',
-                    fontWeight: 600,
-                    color: posnetMode === 'manual' ? '#fff' : 'var(--text-muted)',
-                    background: posnetMode === 'manual' ? 'var(--color-primary-light)' : 'transparent',
-                    border: posnetMode === 'manual' ? '1px solid var(--color-primary)' : '1px solid transparent',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '4px',
-                    transition: 'var(--transition)'
-                  }}
-                >
-                  <Edit size={14} /> Manual
-                </button>
-              </div>
             </div>
 
-            {showCatalog && (
-              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', flex: 1 }}>
+            <div style={{ display: 'flex', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '3px' }}>
+              <button
+                type="button"
+                onClick={() => setPosnetMode('integrated')}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: posnetMode === 'integrated' ? '#fff' : 'var(--text-muted)',
+                  background: posnetMode === 'integrated' ? 'var(--color-primary-light)' : 'transparent',
+                  border: posnetMode === 'integrated' ? '1px solid var(--color-primary)' : '1px solid transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'var(--transition)'
+                }}
+              >
+                <Zap size={14} /> POSnet Simulado
+              </button>
+              <button
+                type="button"
+                onClick={() => setPosnetMode('manual')}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: 'var(--radius-sm)',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: posnetMode === 'manual' ? '#fff' : 'var(--text-muted)',
+                  background: posnetMode === 'manual' ? 'var(--color-primary-light)' : 'transparent',
+                  border: posnetMode === 'manual' ? '1px solid var(--color-primary)' : '1px solid transparent',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  transition: 'var(--transition)'
+                }}
+              >
+                <Edit size={14} /> Manual
+              </button>
+            </div>
+          </div>
+
+          {/* Search bar with Autocomplete Dropdown */}
+          <div className="search-wrapper">
+            <form onSubmit={handleBarcodeSubmit} style={{ width: '100%' }}>
+              <div className="form-input-icon">
+                <span className="input-icon" style={{ top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+                  <Search size={18} />
+                </span>
+                <input 
+                  id="barcode-scanner"
+                  ref={barcodeInputRef}
+                  className="form-input" 
+                  placeholder="Buscar por nombre, rubro, código o escanear código de barras..."
+                  value={searchTerm}
+                  onChange={e => setSearchTerm(e.target.value)}
+                  onFocus={() => setShowDropdown(true)}
+                  onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '1rem', padding: '14px 16px 14px 42px' }}
+                  autoFocus
+                />
+              </div>
+            </form>
+
+            {/* Dropdown list */}
+            {showDropdown && searchTerm.trim() !== '' && filteredProducts.length > 0 && (
+              <div className="autocomplete-dropdown">
+                {filteredProducts.slice(0, 8).map(product => (
+                  <div 
+                    key={product.id} 
+                    className="autocomplete-item"
+                    onClick={() => {
+                      addToCart(product)
+                      setSearchTerm('')
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                        {product.image_url ? (
+                          <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        ) : (
+                          <span style={{ fontSize: '1.2rem' }}>{product.categories?.icon || '📦'}</span>
+                        )}
+                      </div>
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#fff' }}>{product.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                          {product.categories?.name || 'Sin Categoría'} · Stock: {product.stock_quantity}
+                        </div>
+                      </div>
+                    </div>
+                    <div style={{ textAlign: 'right' }}>
+                      <div style={{ fontWeight: 700, color: 'var(--color-secondary)', fontSize: '0.95rem' }}>{formatCurrency(product.sale_price)}</div>
+                      {(product.barcode || product.reference_code) && (
+                        <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                          {product.barcode || product.reference_code}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Cart Table */}
+          <div style={{ overflowX: 'auto', flex: 1, minHeight: '200px' }}>
+            {cart.length === 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', height: '200px', gap: '8px' }}>
+                <ShoppingCart size={32} />
+                <span>Añade productos para cobrar. Escanea o busca en el campo superior.</span>
+              </div>
+            ) : (
+              <table className="cart-table">
+                <thead>
+                  <tr>
+                    <th>Producto</th>
+                    <th style={{ textAlign: 'right' }}>Precio</th>
+                    <th style={{ textAlign: 'center' }}>Cantidad</th>
+                    <th style={{ textAlign: 'right' }}>Subtotal</th>
+                    <th style={{ textAlign: 'center' }}></th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cart.map(item => (
+                    <tr key={item.id}>
+                      <td style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                        <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden', flexShrink: 0 }}>
+                          {item.image_url ? (
+                            <img src={item.image_url} alt={item.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            <span style={{ fontSize: '1.2rem' }}>{item.categories?.icon || '📦'}</span>
+                          )}
+                        </div>
+                        <div>
+                          <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9375rem' }}>{item.name}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                            {item.categories?.name || 'Sin Categoría'} · Stock: {item.stock_quantity}
+                          </div>
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 500 }}>
+                        {formatCurrency(item.sale_price)}
+                      </td>
+                      <td>
+                        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {isDecimalProduct(item) ? (
+                            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                              <input
+                                type="number"
+                                step="0.001"
+                                value={item.qty}
+                                onChange={(e) => updateQtyDirect(item.id, e.target.value)}
+                                style={{
+                                  width: '70px', padding: '6px', textAlign: 'center',
+                                  background: 'transparent', border: 'none',
+                                  color: '#fff', fontWeight: 600, fontSize: '0.875rem'
+                                }}
+                              />
+                            </div>
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+                              <button type="button" onClick={() => updateQty(item.id, -1)} style={{ padding: '4px 10px', color: 'var(--text-secondary)' }}>−</button>
+                              <span style={{ width: '24px', textAlign: 'center', fontWeight: 600, fontSize: '0.875rem', color: '#fff' }}>{item.qty}</span>
+                              <button type="button" onClick={() => updateQty(item.id, 1)} style={{ padding: '4px 10px', color: 'var(--text-secondary)' }}>+</button>
+                            </div>
+                          )}
+                        </div>
+                      </td>
+                      <td style={{ textAlign: 'right', fontWeight: 600, color: 'var(--color-primary)' }}>
+                        {formatCurrency(item.subtotal)}
+                      </td>
+                      <td style={{ textAlign: 'center' }}>
+                        <button 
+                          type="button"
+                          onClick={() => removeFromCart(item.id)}
+                          style={{ color: 'var(--color-error)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px' }}
+                          title="Eliminar producto"
+                        >
+                          <Trash2 size={16} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+
+          {/* Optional Visual Catalog Grid */}
+          {showCatalog && (
+            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 'var(--space-6)', marginTop: 'var(--space-4)' }}>
+              {/* Category Buttons */}
+              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', marginBottom: 'var(--space-4)' }}>
                 {uniqueCategories.map(cat => (
                   <button
                     key={cat}
@@ -938,15 +1175,11 @@ export default function POSPage() {
                   </button>
                 ))}
               </div>
-            )}
-          </div>
 
-          {showCatalog && (
-            <div style={{ flex: 1, overflowY: 'auto', paddingRight: 'var(--space-2)' }}>
               {loading ? (
-                <div style={{ color: 'var(--text-muted)' }}>Cargando inventario...</div>
+                <div style={{ color: 'var(--text-muted)' }}>Cargando catálogo...</div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 'var(--space-4)' }}>
                   {filteredProductsByCategory.map(product => (
                     <div 
                       key={product.id} 
@@ -955,7 +1188,7 @@ export default function POSPage() {
                         background: 'var(--bg-card)',
                         border: '1px solid var(--border-color)',
                         borderRadius: 'var(--radius-lg)',
-                        padding: 'var(--space-5)',
+                        padding: 'var(--space-4)',
                         cursor: 'pointer',
                         transition: 'var(--transition)',
                         textAlign: 'center',
@@ -968,30 +1201,27 @@ export default function POSPage() {
                       onMouseOver={(e) => {
                         e.currentTarget.style.borderColor = 'var(--color-primary-border)'
                         e.currentTarget.style.transform = 'translateY(-2px)'
-                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)'
                       }}
                       onMouseOut={(e) => {
                         e.currentTarget.style.borderColor = 'var(--border-color)'
                         e.currentTarget.style.transform = 'translateY(0)'
-                        e.currentTarget.style.boxShadow = 'none'
                       }}
                     >
-                      {/* Category Badge */}
                       {product.categories?.name && (
                         <div style={{ 
-                          position: 'absolute', top: '0', right: '16px', 
+                          position: 'absolute', top: '0', right: '12px', 
                           background: 'rgba(78, 222, 163, 0.1)', color: 'var(--color-secondary)',
-                          padding: '4px 12px', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px',
-                          fontSize: '0.6875rem', fontWeight: 600
+                          padding: '2px 8px', borderBottomLeftRadius: '6px', borderBottomRightRadius: '6px',
+                          fontSize: '0.625rem', fontWeight: 600
                         }}>
                           {product.categories.name}
                         </div>
                       )}
                       
                       <div style={{ 
-                        width: '64px', height: '64px', borderRadius: '50%', 
+                        width: '48px', height: '48px', borderRadius: '50%', 
                         background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '2rem', marginBottom: '16px', marginTop: '12px',
+                        fontSize: '1.5rem', marginBottom: '10px', marginTop: '8px',
                         border: '1px solid var(--border-highlight)'
                       }}>
                         {product.image_url ? (
@@ -1001,11 +1231,11 @@ export default function POSPage() {
                         )}
                       </div>
 
-                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px', minHeight: '40px' }} className="truncate">
+                      <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '4px', minHeight: '34px' }} className="truncate">
                         {product.name}
                       </div>
 
-                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-secondary)' }}>
+                      <div style={{ fontSize: '1.1rem', fontWeight: 800, color: 'var(--color-secondary)' }}>
                         {formatCurrency(product.sale_price)}
                       </div>
                     </div>
@@ -1018,10 +1248,10 @@ export default function POSPage() {
 
         {/* RIGHT SIDE - Checkout Panel */}
         <div className="pos-right">
+          {/* Panel Header */}
           <div style={{ padding: 'var(--space-6)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
-              {/* eslint-disable-next-line react-hooks/purity */}
-              <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#fff', marginBottom: '4px', fontFamily: 'var(--font-headline)' }}>Ticket #{Date.now().toString().slice(-6)}</h2>
+              <h2 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff', marginBottom: '4px', fontFamily: 'var(--font-headline)' }}>Resumen de Venta</h2>
               <div style={{ color: 'var(--text-secondary)', fontSize: '0.8125rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
                 <User size={14} /> {profile?.full_name || 'Vendedor'}
               </div>
@@ -1031,77 +1261,27 @@ export default function POSPage() {
             </div>
           </div>
 
-          <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
-            {cart.length === 0 ? (
-              <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)' }}>
-                Añade productos para cobrar
-              </div>
-            ) : (
-              cart.map(item => (
-                <div key={item.id} style={{ 
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                  borderBottom: '1px solid var(--border-color)',
-                  paddingBottom: '16px'
-                }}>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#fff', marginBottom: '2px' }}>{item.name}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                      {formatCurrency(item.sale_price)} c/u
-                    </div>
-                  </div>
-                  
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-                    {isDecimalProduct(item) ? (
-                      <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                         <input
-                            type="number"
-                            step="0.001"
-                            value={item.qty}
-                            onChange={(e) => updateQtyDirect(item.id, e.target.value)}
-                            style={{
-                              width: '60px', padding: '6px', textAlign: 'center',
-                              background: 'transparent', border: 'none',
-                              color: '#fff', fontWeight: 600, fontSize: '0.875rem'
-                            }}
-                          />
-                      </div>
-                    ) : (
-                      <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                        <button onClick={() => updateQty(item.id, -1)} style={{ padding: '4px 10px', color: 'var(--text-secondary)' }}>−</button>
-                        <span style={{ width: '20px', textAlign: 'center', fontWeight: 600, fontSize: '0.875rem', color: '#fff' }}>{item.qty}</span>
-                        <button onClick={() => updateQty(item.id, 1)} style={{ padding: '4px 10px', color: 'var(--text-secondary)' }}>+</button>
-                      </div>
-                    )}
-                    <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: 'var(--text-primary)', width: '60px', textAlign: 'right' }}>
-                      {formatCurrency(item.subtotal)}
-                    </div>
-                    <button 
-                      onClick={() => removeFromCart(item.id)}
-                      style={{ color: 'var(--color-error)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '4px', marginLeft: '4px' }}
-                      title="Eliminar producto"
-                    >
-                      <Trash2 size={18} />
-                    </button>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
+          {/* Panel Body */}
+          <div style={{ padding: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            {/* Stats Row */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', color: 'var(--text-muted)', borderBottom: '1px dashed var(--border-color)', paddingBottom: '8px' }}>
+              <span>Líneas: {cart.length}</span>
+              <span>Productos totales: {cartItemsCount}</span>
+            </div>
 
-          <div style={{ padding: 'var(--space-6)', borderTop: '1px solid var(--border-color)', overflowY: 'auto', flexShrink: 1, display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
+            {/* Subtotal */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
               <span>Subtotal</span>
-              <span>{formatCurrency(cartSubtotal)}</span>
+              <span style={{ fontWeight: 600 }}>{formatCurrency(cartSubtotal)}</span>
             </div>
             
             {/* Discounts Section */}
-            <div style={{ marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
                 <span>Descuento</span>
                 <div style={{ display: 'flex', gap: '6px' }}>
                   <button 
+                    type="button"
                     onClick={() => { setDiscountType(discountType === 'percentage' ? null : 'percentage'); setDiscountValue(''); }}
                     style={{ 
                       border: '1px solid var(--border-color)', 
@@ -1117,6 +1297,7 @@ export default function POSPage() {
                     Porcentaje (%)
                   </button>
                   <button 
+                    type="button"
                     onClick={() => { setDiscountType(discountType === 'fixed' ? null : 'fixed'); setDiscountValue(''); }}
                     style={{ 
                       border: '1px solid var(--border-color)', 
@@ -1165,15 +1346,17 @@ export default function POSPage() {
               )}
             </div>
 
+            {/* IVA Tax */}
             {tenant?.theme_config?.tax_rate > 0 && (
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
                 <span>{tenant?.theme_config?.tax_name || 'IVA'} ({tenant?.theme_config?.tax_rate}%) Incluido</span>
                 <span>{formatCurrency((cartTotal * Number(tenant.theme_config.tax_rate)) / (100 + Number(tenant.theme_config.tax_rate)))}</span>
               </div>
             )}
 
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '24px' }}>
-              <span style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', fontFamily: 'var(--font-headline)' }}>TOTAL</span>
+            {/* Final Total */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '4px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+              <span style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', fontFamily: 'var(--font-headline)' }}>TOTAL</span>
               <span style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-secondary)' }}>
                 {formatCurrency(finalTotal)}
               </span>
@@ -1181,7 +1364,7 @@ export default function POSPage() {
 
             {/* Installment Customer Selector */}
             {paymentMethod === 'installment' && (
-              <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '12px', margin: '4px 0' }}>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Asociar Cliente (Cuenta Corriente)</div>
                 
                 <select
@@ -1224,7 +1407,7 @@ export default function POSPage() {
 
             {/* Mixed Payment Details Inputs */}
             {paymentMethod === 'mixed' && (
-              <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '12px', marginBottom: '16px' }}>
+              <div style={{ background: 'var(--bg-surface)', padding: '16px', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '12px', margin: '4px 0' }}>
                 <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Desglose de Pago Mixto</div>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -1275,26 +1458,29 @@ export default function POSPage() {
               </div>
             )}
 
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', marginBottom: 'var(--space-6)' }}>
+            {/* Payment Method Selector Grid */}
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', margin: '4px 0' }}>
               {[
-                { id: 'cash', label: 'Efectivo (F2)', icon: <Banknote size={20} /> },
-                { id: 'debit', label: 'Débito (F3)', icon: <CreditCard size={20} /> },
-                { id: 'credit', label: 'Crédito (F4)', icon: <Landmark size={20} /> },
-                { id: 'transfer', label: 'Transf. (F6)', icon: <ArrowLeftRight size={20} /> },
-                { id: 'combined', label: 'Mixto', icon: <Split size={20} /> },
-                { id: 'installment', label: 'Cuotas', icon: <Calendar size={20} /> }
+                { id: 'cash', label: 'Efectivo (F2)', icon: <Banknote size={18} /> },
+                { id: 'debit', label: 'Débito (F3)', icon: <CreditCard size={18} /> },
+                { id: 'credit', label: 'Crédito (F4)', icon: <Landmark size={18} /> },
+                { id: 'transfer', label: 'Transf. (F6)', icon: <ArrowLeftRight size={18} /> },
+                { id: 'combined', label: 'Mixto', icon: <Split size={18} /> },
+                { id: 'installment', label: 'Cuotas', icon: <Calendar size={18} /> }
               ].map(method => (
                 <button
                   key={method.id}
+                  type="button"
                   onClick={() => setPaymentMethod(method.id)}
                   style={{
-                    padding: '12px 4px',
+                    padding: '10px 4px',
                     borderRadius: 'var(--radius-md)',
                     background: paymentMethod === method.id ? 'var(--color-primary-light)' : 'var(--bg-surface)',
                     border: `1px solid ${paymentMethod === method.id ? 'var(--color-primary)' : 'var(--border-color)'}`,
                     color: paymentMethod === method.id ? 'var(--color-primary)' : 'var(--text-secondary)',
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px',
-                    transition: 'var(--transition)'
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '6px',
+                    transition: 'var(--transition)',
+                    cursor: 'pointer'
                   }}
                 >
                   <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{method.icon}</span>
@@ -1303,9 +1489,10 @@ export default function POSPage() {
               ))}
             </div>
 
+            {/* Cash Received Input */}
             {paymentMethod === 'cash' && (
-              <div style={{ marginBottom: 'var(--space-6)' }}>
-                <label style={{ display: 'block', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '8px' }}>Efectivo Recibido (opcional)</label>
+              <div style={{ margin: '4px 0' }}>
+                <label style={{ display: 'block', fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '6px' }}>Efectivo Recibido (opcional)</label>
                 <div className="form-input-icon">
                   <span className="input-icon" style={{ color: 'var(--color-secondary)' }}>$</span>
                   <input 
@@ -1314,19 +1501,21 @@ export default function POSPage() {
                     placeholder="Dejar vacío si paga con cambio exacto"
                     value={cashReceived}
                     onChange={(e) => setCashReceived(e.target.value)}
+                    style={{ padding: '8px 12px 8px 32px' }}
                   />
                 </div>
-                {cashReceived && parseFloat(cashReceived) >= cartTotal && (
+                {cashReceived && parseFloat(cashReceived) >= finalTotal && (
                   <div style={{ marginTop: '8px', fontSize: '0.9375rem', color: 'var(--color-secondary)', fontWeight: 600, textAlign: 'right' }}>
-                    Vuelto a entregar: {formatCurrency(parseFloat(cashReceived) - cartTotal)}
+                    Vuelto a entregar: {formatCurrency(parseFloat(cashReceived) - finalTotal)}
                   </div>
                 )}
               </div>
             )}
 
+            {/* Combined/Split Payment Inputs */}
             {paymentMethod === 'combined' && (
-              <div style={{ marginBottom: 'var(--space-6)', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <label style={{ fontSize: '0.875rem', color: 'var(--text-secondary)' }}>Monto a pagar con cada medio:</label>
+              <div style={{ margin: '4px 0', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Monto a pagar con cada medio:</label>
                 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   <div style={{ width: '80px', fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>Efectivo</div>
@@ -1354,9 +1543,9 @@ export default function POSPage() {
 
                 {(() => {
                   const sum = Number(splitCash || 0) + Number(splitDebit || 0) + Number(splitCredit || 0)
-                  const diff = cartTotal - sum
+                  const diff = finalTotal - sum
                   return (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '0.875rem', fontWeight: 600, color: Math.abs(diff) < 0.01 ? 'var(--color-secondary)' : 'var(--color-error)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '8px', fontSize: '0.8125rem', fontWeight: 600, color: Math.abs(diff) < 0.01 ? 'var(--color-secondary)' : 'var(--color-error)' }}>
                       <span>Ingresado: {formatCurrency(sum)}</span>
                       {diff > 0 ? <span>Falta: {formatCurrency(diff)}</span> : diff < 0 ? <span>Sobra: {formatCurrency(Math.abs(diff))}</span> : <span>¡Completo!</span>}
                     </div>
@@ -1365,50 +1554,78 @@ export default function POSPage() {
               </div>
             )}
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+            {/* Action Buttons */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
               <button 
                 id="btn-confirm-sale"
+                type="button"
                 className="glow-primary" 
                 style={{ 
                   width: '100%', 
-                  padding: '20px', 
-                  fontSize: '1.25rem',
+                  padding: '16px', 
+                  fontSize: '1.1rem',
                   fontWeight: 700, 
                   borderRadius: 'var(--radius-lg)',
                   background: cart.length === 0 ? 'var(--bg-surface)' : 'var(--color-primary-hover)',
                   color: cart.length === 0 ? 'var(--text-muted)' : '#fff',
                   border: 'none',
                   pointerEvents: cart.length === 0 ? 'none' : 'auto',
-                  transition: 'var(--transition)'
+                  transition: 'var(--transition)',
+                  cursor: 'pointer'
                 }}
                 onClick={handleCheckout}
                 disabled={isProcessing || cart.length === 0}
               >
-                {isProcessing ? 'Procesando...' : `Confirmar Venta (Enter) →`}
+                {isProcessing ? 'Procesando...' : `Cobrar ${formatCurrency(finalTotal)} (Enter) →`}
               </button>
 
-              <button 
-                className="glow-secondary"
-                style={{ 
-                  width: '100%', 
-                  padding: '16px', 
-                  fontSize: '1rem',
-                  fontWeight: 600, 
-                  borderRadius: 'var(--radius-lg)',
-                  background: cart.length === 0 ? 'var(--bg-surface)' : 'rgba(16, 185, 129, 0.1)',
-                  color: cart.length === 0 ? 'var(--text-muted)' : 'var(--color-secondary)',
-                  border: `1px solid ${cart.length === 0 ? 'transparent' : 'var(--color-secondary)'}`,
-                  pointerEvents: cart.length === 0 ? 'none' : 'auto',
-                  transition: 'var(--transition)'
-                }}
-                onClick={() => setShowOrderModal(true)}
-                disabled={isProcessing || cart.length === 0}
-              >
-                📝 Guardar como Pedido
-              </button>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
+                <button 
+                  type="button"
+                  className="glow-secondary"
+                  style={{ 
+                    padding: '12px', 
+                    fontSize: '0.85rem',
+                    fontWeight: 600, 
+                    borderRadius: 'var(--radius-md)',
+                    background: cart.length === 0 ? 'var(--bg-surface)' : 'rgba(16, 185, 129, 0.05)',
+                    color: cart.length === 0 ? 'var(--text-muted)' : 'var(--color-secondary)',
+                    border: `1px solid ${cart.length === 0 ? 'transparent' : 'var(--color-secondary)'}`,
+                    pointerEvents: cart.length === 0 ? 'none' : 'auto',
+                    transition: 'var(--transition)',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => setShowOrderModal(true)}
+                  disabled={isProcessing || cart.length === 0}
+                >
+                  📝 Pedido
+                </button>
+
+                <button 
+                  type="button"
+                  className="btn-ghost"
+                  style={{ 
+                    padding: '12px', 
+                    fontSize: '0.85rem',
+                    fontWeight: 600, 
+                    borderRadius: 'var(--radius-md)',
+                    background: cart.length === 0 ? 'var(--bg-surface)' : 'rgba(239, 68, 68, 0.05)',
+                    color: cart.length === 0 ? 'var(--text-muted)' : 'var(--color-error)',
+                    border: `1px solid ${cart.length === 0 ? 'transparent' : 'rgba(239, 68, 68, 0.2)'}`,
+                    pointerEvents: cart.length === 0 ? 'none' : 'auto',
+                    transition: 'var(--transition)',
+                    cursor: 'pointer'
+                  }}
+                  onClick={() => setCart([])}
+                  disabled={isProcessing || cart.length === 0}
+                >
+                  🗑️ Cancelar
+                </button>
+              </div>
             </div>
           </div>
         </div>
+      </div>
 
       {/* Receipt Modal (Unchanged structurally, kept dark theme compatible) */}
       {showReceipt && receiptData && (
@@ -2046,7 +2263,6 @@ export default function POSPage() {
           </div>
         </div>
       )}
-      </div>
     </>
   )
 }

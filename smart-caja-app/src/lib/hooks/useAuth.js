@@ -30,33 +30,22 @@ export function AuthProvider({ children }) {
     setProfileLoaded(false)
     setProfileError(null)
     try {
-      const { data: profileData, error } = await withTimeout(
-        supabase
-          .from('profiles')
-          .select(`
-            *,
-            tenants (*)
-          `)
-          .eq('id', userId)
-          .single(),
+      const res = await withTimeout(
+        fetch('/api/auth/profile'),
         30000,
         new Error('Tiempo de espera agotado al conectar con la base de datos')
       )
 
-      if (error) {
-        if (error.code === 'PGRST116') {
-          // No profile row exists yet - this is a valid state (needs self-healing/setup)
-          setProfile(null)
-          setTenant(null)
-          setProfileLoaded(true)
-          setProfileError(null)
-        } else {
-          console.error('Error loading profile:', error)
-          setProfileError(error.message || 'Error cargando perfil')
-          setProfileLoaded(false)
-        }
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        const errMsg = errData.error || `HTTP error ${res.status}`
+        console.error('Error loading profile from API:', errMsg)
+        setProfileError(errMsg)
+        setProfileLoaded(false)
         return
       }
+
+      const { data: profileData } = await res.json()
 
       if (profileData) {
         setProfile(profileData)
@@ -78,7 +67,7 @@ export function AuthProvider({ children }) {
           }
         }
       } else {
-        // Fallback for null profileData without error
+        // No profile row exists yet - this is a valid state (needs self-healing/setup)
         setProfile(null)
         setTenant(null)
         setProfileLoaded(true)
@@ -88,7 +77,7 @@ export function AuthProvider({ children }) {
       setProfileError(err.message || 'Excepción cargando perfil')
       setProfileLoaded(false)
     }
-  }, [supabase])
+  }, [])
 
   useEffect(() => {
     let isMounted = true
