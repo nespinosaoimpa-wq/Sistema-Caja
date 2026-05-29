@@ -92,10 +92,10 @@ export default function AppLayout({ children }) {
 
     const timer = setTimeout(() => {
       if (loading) {
-        console.warn('[AppLayout] Initial authentication loading timed out after 8s')
+        console.warn('[AppLayout] Initial authentication loading timed out after 20s')
         setLoadingTimeout(true)
       }
-    }, 8000)
+    }, 20000)
 
     return () => clearTimeout(timer)
   }, [loading])
@@ -117,7 +117,7 @@ export default function AppLayout({ children }) {
         console.warn('[AppLayout] profileLoaded still false after retries — showing timeout error')
         setVerifyTimeout(true)
       }
-    }, 4000)
+    }, 12000)
 
     return () => clearTimeout(timer)
   }, [loading, user, profileLoaded, profileError, reloadProfile])

@@ -35,7 +35,7 @@ export function AuthProvider({ children }) {
           `)
           .eq('id', userId)
           .single(),
-        6000,
+        30000,
         new Error('Tiempo de espera agotado al conectar con la base de datos')
       )
 
@@ -122,7 +122,7 @@ export function AuthProvider({ children }) {
       try {
         const { data: { user: currentUser } } = await withTimeout(
           supabase.auth.getUser(),
-          8000,
+          30000,
           new Error('Error de conexión con el servidor de autenticación (timeout)')
         )
         if (isMounted) {
