@@ -11,10 +11,6 @@ const withTimeout = (promise, ms, timeoutError = new Error('Timeout exceeded')) 
     promise,
     new Promise((_, reject) => {
       setTimeout(() => {
-        // Do not trigger timeout if the tab is hidden in the background
-        if (typeof document !== 'undefined' && document.visibilityState === 'hidden') {
-          return
-        }
         reject(timeoutError)
       }, ms)
     })

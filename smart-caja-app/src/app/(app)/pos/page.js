@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
@@ -41,6 +41,11 @@ export default function POSPage() {
   // Receipt modal state
   const [receiptData, setReceiptData] = useState(null)
   const [showReceipt, setShowReceipt] = useState(false)
+  const stateRef = useRef({ showReceipt })
+
+  useEffect(() => {
+    stateRef.current = { showReceipt }
+  }, [showReceipt])
 
   // Fullscreen and POSnet integration states
   const [isFullscreen, setIsFullscreen] = useState(false)
@@ -167,16 +172,20 @@ export default function POSPage() {
     }
   }
 
-  async function loadData() {
+  const loadData = useCallback(async () => {
+    if (!tenant?.id || !profile?.id) return
+
     const cacheKeyShift = `smartcaja_shift_${tenant.id}_${profile.id}`
     const cacheKeyProds = `smartcaja_products_${tenant.id}`
+    const cacheKeyCusts = `smartcaja_customers_${tenant.id}`
 
     // 1. Stale-While-Revalidate: Load from local cache immediately
     if (typeof window !== 'undefined') {
       const cachedShift = localStorage.getItem(cacheKeyShift)
       const cachedProds = localStorage.getItem(cacheKeyProds)
+      const cachedCusts = localStorage.getItem(cacheKeyCusts)
 
-      if (cachedShift || cachedProds) {
+      if (cachedShift || cachedProds || cachedCusts) {
         if (cachedShift) {
           try {
             setActiveShift(JSON.parse(cachedShift))
@@ -185,6 +194,11 @@ export default function POSPage() {
         if (cachedProds) {
           try {
             setProducts(JSON.parse(cachedProds))
+          } catch (e) {}
+        }
+        if (cachedCusts) {
+          try {
+            setCustomers(JSON.parse(cachedCusts))
           } catch (e) {}
         }
         setLoading(false)
@@ -197,8 +211,8 @@ export default function POSPage() {
 
     // 2. Fetch fresh data from Supabase in the background
     try {
-      // Fetch shift status
-      const { data: shiftData, error: shiftError } = await supabase
+      // Fetch shift status (maybeSingle is safe)
+      const { data: shiftData } = await supabase
         .from('shifts')
         .select('*')
         .eq('tenant_id', tenant.id)
@@ -215,7 +229,7 @@ export default function POSPage() {
       }
 
       // Fetch products catalog
-      const { data: prods, error: prodsError } = await supabase
+      const { data: prods } = await supabase
         .from('products')
         .select('*, categories(name, icon)')
         .eq('tenant_id', tenant.id)
@@ -226,12 +240,25 @@ export default function POSPage() {
         setProducts(prods)
         localStorage.setItem(cacheKeyProds, JSON.stringify(prods))
       }
+
+      // Fetch active customers
+      const { data: custs } = await supabase
+        .from('customers')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .eq('is_active', true)
+        .order('name')
+
+      if (custs) {
+        setCustomers(custs)
+        localStorage.setItem(cacheKeyCusts, JSON.stringify(custs))
+      }
     } catch (err) {
       console.error('Error refreshing POS data in background:', err)
     } finally {
       setLoading(false)
     }
-  }
+  }, [supabase, tenant, profile])
 
   useEffect(() => {
     if (tenant?.id) {
@@ -240,42 +267,7 @@ export default function POSPage() {
       }, 0)
       return () => clearTimeout(timer)
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant?.id])
-
-  async function loadData() {
-    setLoading(true)
-    const { data: shiftData } = await supabase
-      .from('shifts')
-      .select('*')
-      .eq('tenant_id', tenant.id)
-      .eq('status', 'open')
-      .eq('user_id', profile.id)
-      .single()
-      
-    if (shiftData) setActiveShift(shiftData)
-
-    const { data: prods } = await supabase
-      .from('products')
-      .select('*, categories(name, icon)')
-      .eq('tenant_id', tenant.id)
-      .eq('is_active', true)
-      .order('name')
-      
-    if (prods) setProducts(prods)
-
-    // Fetch active customers
-    const { data: custs } = await supabase
-      .from('customers')
-      .select('*')
-      .eq('tenant_id', tenant.id)
-      .eq('is_active', true)
-      .order('name')
-      
-    if (custs) setCustomers(custs)
-
-    setLoading(false)
-  }
+  }, [tenant?.id, loadData])
 
   useEffect(() => {
     const handleKeyDown = (e) => {

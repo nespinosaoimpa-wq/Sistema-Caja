@@ -73,14 +73,13 @@ export default function AppLayout({ children }) {
   const [verifyTimeout, setVerifyTimeout] = useState(false)
   const [loadingTimeout, setLoadingTimeout] = useState(false)
   
-  const [logoUrl, setLogoUrl] = useState(tenant?.logo_url)
   const [logoError, setLogoError] = useState(false)
   const retryCountRef = useRef(0)
 
-  if (tenant?.logo_url !== logoUrl) {
-    setLogoUrl(tenant?.logo_url)
+  // Reset logo error status if the logo url changes
+  useEffect(() => {
     setLogoError(false)
-  }
+  }, [tenant?.logo_url])
 
   // Safety net: if initial auth loading stays true for more than 8 seconds, show timeout options
   useEffect(() => {
