@@ -1864,102 +1864,104 @@ export default function SettingsPage() {
               </div>
 
               {/* Developer/Testing sandbox drawer */}
-              <div style={{ marginTop: '40px', borderTop: '1px dashed var(--border-color)', paddingTop: '24px' }}>
-                <details style={{ background: '#0a0d16', border: '1px solid rgba(255, 178, 183, 0.1)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
-                  <summary style={{ padding: '16px', fontWeight: 600, color: 'var(--color-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', userSelect: 'none' }}>
-                    <Activity size={16} />
-                    Herramientas de Desarrollador / Simulación (Modo Sandbox)
-                  </summary>
-                  <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', background: '#070a12' }}>
-                    <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                      Usa estas utilidades para simular diferentes estados de facturación y probar el comportamiento de cobros y webhooks de Mercado Pago.
-                    </p>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
-                      <button 
-                        className="btn btn-sm btn-secondary"
-                        onClick={async () => {
-                          const { error } = await supabase
-                            .from('tenants')
-                            .update({ 
-                              subscription_status: 'active',
-                              subscription_plan: 'professional' 
-                            })
-                            .eq('id', tenant.id)
-                          if (!error) {
-                            toast.success('¡Suscripción simulada como ACTIVA (Profesional)!')
-                            window.location.reload()
-                          }
-                        }}
-                      >
-                        ✓ Simular Cuenta Activa (Profesional)
-                      </button>
-                      
-                      <button 
-                        className="btn btn-sm" 
-                        style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid var(--color-error)', color: 'var(--color-error)' }}
-                        onClick={async () => {
-                          const { error } = await supabase
-                            .from('tenants')
-                            .update({ subscription_status: 'suspended' })
-                            .eq('id', tenant.id)
-                          if (!error) {
-                            toast.warning('¡Cuenta suspendida por falta de pago!')
-                            window.location.reload()
-                          }
-                        }}
-                      >
-                        ⚠️ Simular Cuenta Suspendida
-                      </button>
-
-                      <button 
-                        className="btn btn-sm" 
-                        style={{ background: 'rgba(245, 158, 11, 0.15)', border: '1px solid #F59E0B', color: '#F59E0B' }}
-                        onClick={async () => {
-                          const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-                          const { error } = await supabase
-                            .from('tenants')
-                            .update({ 
-                              subscription_status: 'trial', 
-                              trial_ends_at: yesterday 
-                            })
-                            .eq('id', tenant.id)
-                          if (!error) {
-                            toast.warning('¡Prueba gratis simulada como EXPIRADA!')
-                            window.location.reload()
-                          }
-                        }}
-                      >
-                        ⏳ Simular Prueba Expirada
-                      </button>
-                    </div>
-
-                    {/* Informative boxes inside details */}
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '8px' }}>
-                      <div style={{ padding: '12px', background: 'rgba(0, 158, 227, 0.05)', border: '1px solid rgba(0, 158, 227, 0.1)', borderRadius: 'var(--radius-md)' }}>
-                        <h5 style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#009EE3', marginBottom: '6px' }}>Cobro Automático por Webhook</h5>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                          Mercado Pago Preapprovals emite notificaciones a <code style={{ color: 'var(--color-primary)' }}>/api/webhooks/mercadopago</code>. El backend procesa el estado de acreditación y reactiva la cuenta.
-                        </p>
-                      </div>
-                      <div style={{ padding: '12px', background: 'rgba(37, 211, 102, 0.05)', border: '1px solid rgba(37, 211, 102, 0.1)', borderRadius: 'var(--radius-md)' }}>
-                        <h5 style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#25D366', marginBottom: '6px' }}>Bot de Alertas WhatsApp</h5>
-                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
-                          Las notificaciones de cobro próximo y bloqueo se envían vía SMS/WhatsApp usando la plantilla oficial.
-                        </p>
+              {process.env.NODE_ENV === 'development' && (
+                <div style={{ marginTop: '40px', borderTop: '1px dashed var(--border-color)', paddingTop: '24px' }}>
+                  <details style={{ background: '#0a0d16', border: '1px solid rgba(255, 178, 183, 0.1)', borderRadius: 'var(--radius-lg)', overflow: 'hidden' }}>
+                    <summary style={{ padding: '16px', fontWeight: 600, color: 'var(--color-tertiary)', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '8px', userSelect: 'none' }}>
+                      <Activity size={16} />
+                      Herramientas de Desarrollador / Simulación (Modo Sandbox)
+                    </summary>
+                    <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px', background: '#070a12' }}>
+                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                        Usa estas utilidades para simular diferentes estados de facturación y probar el comportamiento de cobros y webhooks de Mercado Pago.
+                      </p>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px' }}>
                         <button 
-                          className="btn btn-sm"
-                          style={{ background: '#25D366', color: '#000', marginTop: '8px', width: '100%', fontWeight: 700 }}
-                          onClick={() => {
-                            toast.info(`📲 [Simulación Bot] De: Smart Caja Alertas 🤖 → Para: ${tenant?.name || 'Comercio'} — "Tu período de prueba vence pronto. Configurá tu facturación para continuar usando Smart Caja."`)
+                          className="btn btn-sm btn-secondary"
+                          onClick={async () => {
+                            const { error } = await supabase
+                              .from('tenants')
+                              .update({ 
+                                subscription_status: 'active',
+                                subscription_plan: 'professional' 
+                              })
+                              .eq('id', tenant.id)
+                            if (!error) {
+                              toast.success('¡Suscripción simulada como ACTIVA (Profesional)!')
+                              window.location.reload()
+                            }
                           }}
                         >
-                          📲 Probar Mensaje Bot
+                          ✓ Simular Cuenta Activa (Profesional)
+                        </button>
+                        
+                        <button 
+                          className="btn btn-sm" 
+                          style={{ background: 'rgba(239, 68, 68, 0.15)', border: '1px solid var(--color-error)', color: 'var(--color-error)' }}
+                          onClick={async () => {
+                            const { error } = await supabase
+                              .from('tenants')
+                              .update({ subscription_status: 'suspended' })
+                              .eq('id', tenant.id)
+                            if (!error) {
+                              toast.warning('¡Cuenta suspendida por falta de pago!')
+                              window.location.reload()
+                            }
+                          }}
+                        >
+                          ⚠️ Simular Cuenta Suspendida
+                        </button>
+
+                        <button 
+                          className="btn btn-sm" 
+                          style={{ background: 'rgba(245, 158, 11, 0.15)', border: '1px solid #F59E0B', color: '#F59E0B' }}
+                          onClick={async () => {
+                            const yesterday = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+                            const { error } = await supabase
+                              .from('tenants')
+                              .update({ 
+                                subscription_status: 'trial', 
+                                trial_ends_at: yesterday 
+                              })
+                              .eq('id', tenant.id)
+                            if (!error) {
+                              toast.warning('¡Prueba gratis simulada como EXPIRADA!')
+                              window.location.reload()
+                            }
+                          }}
+                        >
+                          ⏳ Simular Prueba Expirada
                         </button>
                       </div>
+
+                      {/* Informative boxes inside details */}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginTop: '8px' }}>
+                        <div style={{ padding: '12px', background: 'rgba(0, 158, 227, 0.05)', border: '1px solid rgba(0, 158, 227, 0.1)', borderRadius: 'var(--radius-md)' }}>
+                          <h5 style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#009EE3', marginBottom: '6px' }}>Cobro Automático por Webhook</h5>
+                          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                            Mercado Pago Preapprovals emite notificaciones a <code style={{ color: 'var(--color-primary)' }}>/api/webhooks/mercadopago</code>. El backend procesa el estado de acreditación y reactiva la cuenta.
+                          </p>
+                        </div>
+                        <div style={{ padding: '12px', background: 'rgba(37, 211, 102, 0.05)', border: '1px solid rgba(37, 211, 102, 0.1)', borderRadius: 'var(--radius-md)' }}>
+                          <h5 style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#25D366', marginBottom: '6px' }}>Bot de Alertas WhatsApp</h5>
+                          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                            Las notificaciones de cobro próximo y bloqueo se envían vía SMS/WhatsApp usando la plantilla oficial.
+                          </p>
+                          <button 
+                            className="btn btn-sm"
+                            style={{ background: '#25D366', color: '#000', marginTop: '8px', width: '100%', fontWeight: 700 }}
+                            onClick={() => {
+                              toast.info(`📲 [Simulación Bot] De: Smart Caja Alertas 🤖 → Para: ${tenant?.name || 'Comercio'} — "Tu período de prueba vence pronto. Configurá tu facturación para continuar usando Smart Caja."`)
+                            }}
+                          >
+                            📲 Probar Mensaje Bot
+                          </button>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </details>
-              </div>
+                  </details>
+                </div>
+              )}
 
             </div>
           )}
