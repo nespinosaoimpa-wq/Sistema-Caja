@@ -1,67 +1,86 @@
 import { NextResponse } from 'next/server'
-import { MercadoPagoConfig, Preference } from 'mercadopago'
 
-// Configurar cliente de MercadoPago
-const mpAccessToken = process.env.MERCADOPAGO_ACCESS_TOKEN || ''
-const client = new MercadoPagoConfig({ accessToken: mpAccessToken })
+// Unified checkout route — delegates to /api/billing/subscribe for recurring subscriptions.
+// Supports: basic ($20.000), professional ($35.000), enterprise ($60.000)
+
+const PLAN_PRICES = {
+  basic: { name: 'Básico', price: 20000 },
+  professional: { name: 'Profesional', price: 35000 },
+  enterprise: { name: 'Empresa', price: 60000 },
+}
 
 export async function POST(req) {
   try {
-    const { plan, tenant_id } = await req.json()
-
-    if (!plan || !tenant_id) {
-      return NextResponse.json({ error: 'Faltan parámetros' }, { status: 400 })
-    }
-
+    const mpAccessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
     if (!mpAccessToken) {
-      return NextResponse.json({ error: 'MercadoPago no configurado' }, { status: 500 })
+      return NextResponse.json(
+        { error: 'El sistema de pagos aún no está configurado. Contactá al administrador.' },
+        { status: 503 }
+      )
     }
 
-    let price = 0
-    let title = ''
+    const body = await req.json()
 
-    if (plan === 'professional') {
-      price = 35000
-      title = 'Smart Caja - Plan Profesional'
-    } else if (plan === 'enterprise') {
-      price = 60000
-      title = 'Smart Caja - Plan Empresa'
-    } else {
-      return NextResponse.json({ error: 'Plan inválido' }, { status: 400 })
+    // Accept both naming conventions for backwards compatibility:
+    // Old callers send: { plan, tenant_id }
+    // New callers send: { planId, tenantId, email }
+    const planId = body.planId || body.plan
+    const tenantId = body.tenantId || body.tenant_id
+    const email = body.email || null
+
+    if (!planId || !PLAN_PRICES[planId]) {
+      return NextResponse.json({ error: 'Plan inválido. Planes disponibles: basic, professional, enterprise.' }, { status: 400 })
+    }
+    if (!tenantId) {
+      return NextResponse.json({ error: 'Datos de cuenta incompletos (tenant_id requerido).' }, { status: 400 })
     }
 
-    // Crear preferencia en MercadoPago
-    const preference = new Preference(client)
-    
-    // Configurar la URL de retorno a donde volverá el usuario tras pagar
-    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
+    const plan = PLAN_PRICES[planId]
+    const origin = req.headers.get('origin') || process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
-    const response = await preference.create({
-      body: {
-        items: [
-          {
-            id: plan,
-            title: title,
-            quantity: 1,
-            unit_price: price,
-            currency_id: 'ARS',
-          }
-        ],
-        // Usamos external_reference para guardar el tenant_id y saber a quién asignarle el pago
-        external_reference: tenant_id,
-        back_urls: {
-          success: `${baseUrl}/settings?payment=success`,
-          pending: `${baseUrl}/settings?payment=pending`,
-          failure: `${baseUrl}/settings?payment=failure`,
-        },
-        auto_return: 'approved',
-      }
+    // Build the preapproval request (recurring monthly subscription)
+    const preapprovalBody = {
+      payer_email: email || undefined,
+      reason: `Smart Caja — Plan ${plan.name}`,
+      external_reference: `${tenantId}:${planId}`,
+      back_url: `${origin}/billing/success?plan=${planId}`,
+      auto_recurring: {
+        frequency: 1,
+        frequency_type: 'months',
+        transaction_amount: plan.price,
+        currency_id: 'ARS',
+      },
+      status: 'pending',
+    }
+
+    const response = await fetch('https://api.mercadopago.com/preapproval', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${mpAccessToken}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(preapprovalBody),
     })
 
-    return NextResponse.json({ init_point: response.init_point })
+    const data = await response.json()
+
+    if (!response.ok) {
+      console.error('[checkout] MP API error:', JSON.stringify(data))
+      return NextResponse.json(
+        { error: 'Error al comunicarse con Mercado Pago. Intentá de nuevo.' },
+        { status: 502 }
+      )
+    }
+
+    console.log(`[checkout] Preapproval created: ${data.id} for tenant ${tenantId} plan ${planId}`)
+
+    return NextResponse.json({
+      init_point: data.init_point,
+      preapproval_id: data.id,
+    })
 
   } catch (error) {
-    console.error('Error al crear preferencia MP:', error)
+    console.error('[checkout] Unexpected error:', error)
     return NextResponse.json({ error: 'Error interno al procesar el pago' }, { status: 500 })
   }
 }

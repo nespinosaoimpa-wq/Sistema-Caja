@@ -37,7 +37,7 @@ export default function SettingsPage() {
   const [nowTimestamp] = useState(() => Date.now())
   
   const [saving, setSaving] = useState(false)      // for Save button
-  const [upgrading, setUpgrading] = useState(false) // for Upgrade button
+  const [upgrading, setUpgrading] = useState(null) // planId string when upgrading, null when idle
   const [activeTab, setActiveTab] = useState('general')
   
   const [uploadingLogo, setUploadingLogo] = useState(false)
@@ -381,17 +381,23 @@ export default function SettingsPage() {
     }
   }
 
-  // Handle Plan Upgrade checkout
-  const handleUpgrade = async (plan) => {
+  // Handle Plan Upgrade checkout — uses unified subscription endpoint
+  const handleUpgrade = async (planId) => {
     if (!tenant?.id) return
-    setUpgrading(true)
+    // Don't allow re-subscribing to the exact same active plan
+    if (tenant?.subscription_status === 'active' && tenant?.subscription_plan === planId) {
+      toast.error('Ya estás suscripto a este plan.')
+      return
+    }
+    setUpgrading(planId)
     try {
       const res = await fetch('/api/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          plan,
-          tenant_id: tenant.id
+          planId,
+          tenantId: tenant.id,
+          email: profile?.email || tenant?.email || '',
         })
       })
       
@@ -403,9 +409,9 @@ export default function SettingsPage() {
       }
     } catch (err) {
       console.error(err)
-      toast.error('Aun no configuramos los pagos de producción: ' + err.message)
+      toast.error(err.message || 'Error al iniciar el pago. Intentá de nuevo.')
     } finally {
-      setUpgrading(false)
+      setUpgrading(null)
     }
   }
 
@@ -1662,35 +1668,18 @@ export default function SettingsPage() {
                 </div>
 
                 <div>
-                  <button 
-                    className="btn btn-secondary" 
-                    onClick={() => handleUpgrade(tenant?.subscription_plan || 'professional')}
-                    disabled={upgrading}
-                    style={{
-                      background: '#009EE3',
-                      color: '#fff',
-                      fontWeight: 700,
-                      borderRadius: 'var(--radius-md)',
-                      border: 'none',
+                  {tenant?.subscription_status !== 'active' && (
+                    <div style={{
+                      fontSize: '0.8125rem',
+                      color: 'var(--text-muted)',
                       display: 'flex',
                       alignItems: 'center',
-                      gap: '8px',
-                      boxShadow: '0 4px 12px rgba(0, 158, 227, 0.2)',
-                      opacity: upgrading ? 0.7 : 1
-                    }}
-                  >
-                    {upgrading ? (
-                      <>
-                        <span style={{ width: '14px', height: '14px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
-                        Procesando...
-                      </>
-                    ) : (
-                      <>
-                        <CreditCard size={16} />
-                        Pagar con Mercado Pago
-                      </>
-                    )}
-                  </button>
+                      gap: '6px'
+                    }}>
+                      <CreditCard size={14} />
+                      Elegí un plan en la tabla de abajo para suscribirte
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1748,10 +1737,10 @@ export default function SettingsPage() {
                     <button 
                       className="btn btn-ghost btn-sm"
                       style={{ marginTop: '24px', width: '100%', borderColor: 'var(--border-color)' }}
-                      disabled={tenant?.subscription_plan === 'basic'}
+                      disabled={tenant?.subscription_plan === 'basic' || upgrading === 'basic'}
                       onClick={() => handleUpgrade('basic')}
                     >
-                      {tenant?.subscription_plan === 'basic' ? 'Tu Plan Actual' : 'Seleccionar Básico'}
+                      {upgrading === 'basic' ? 'Procesando...' : tenant?.subscription_plan === 'basic' ? 'Tu Plan Actual' : 'Seleccionar Básico'}
                     </button>
                   </div>
 
@@ -1808,10 +1797,10 @@ export default function SettingsPage() {
                     <button 
                       className="btn btn-primary btn-sm"
                       style={{ marginTop: '24px', width: '100%', background: 'var(--color-primary)', color: '#000', fontWeight: 700 }}
-                      disabled={tenant?.subscription_plan === 'professional'}
+                      disabled={tenant?.subscription_plan === 'professional' || upgrading === 'professional'}
                       onClick={() => handleUpgrade('professional')}
                     >
-                      {tenant?.subscription_plan === 'professional' ? 'Tu Plan Actual' : 'Seleccionar Profesional'}
+                      {upgrading === 'professional' ? 'Procesando...' : tenant?.subscription_plan === 'professional' ? 'Tu Plan Actual' : 'Seleccionar Profesional'}
                     </button>
                   </div>
 
@@ -1863,10 +1852,10 @@ export default function SettingsPage() {
                     <button 
                       className="btn btn-ghost btn-sm"
                       style={{ marginTop: '24px', width: '100%', borderColor: 'var(--border-color)' }}
-                      disabled={tenant?.subscription_plan === 'enterprise'}
+                      disabled={tenant?.subscription_plan === 'enterprise' || upgrading === 'enterprise'}
                       onClick={() => handleUpgrade('enterprise')}
                     >
-                      {tenant?.subscription_plan === 'enterprise' ? 'Tu Plan Actual' : 'Seleccionar Empresa'}
+                      {upgrading === 'enterprise' ? 'Procesando...' : tenant?.subscription_plan === 'enterprise' ? 'Tu Plan Actual' : 'Seleccionar Empresa'}
                     </button>
                   </div>
                   

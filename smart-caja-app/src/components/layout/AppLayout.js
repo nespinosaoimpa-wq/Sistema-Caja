@@ -523,7 +523,6 @@ export default function AppLayout({ children }) {
             const isActive = pathname?.startsWith(item.href)
             const itemPlanWeight = PLAN_WEIGHTS[item.minPlan]
             const isLocked = userPlanWeight < itemPlanWeight
-            const IconComponent = item.icon
 
             return (
               <Link 
@@ -533,7 +532,7 @@ export default function AppLayout({ children }) {
                 style={isLocked || (isSuspended && !isActive) ? { opacity: 0.6, cursor: isLocked ? 'not-allowed' : 'pointer' } : {}}
               >
                 <span className="icon" style={{ opacity: isActive ? 1 : 0.6, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {isLocked ? <Lock size={18} /> : <IconComponent size={18} />}
+                  {isLocked ? <Lock size={18} /> : <span style={{ fontSize: '18px', lineHeight: 1 }}>{item.icon}</span>}
                 </span>
                 {item.label}
               </Link>

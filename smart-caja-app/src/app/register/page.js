@@ -185,7 +185,10 @@ function RegisterContent() {
         toast.success('¡Cuenta creada! Bienvenido a Smart Caja')
       }
 
-      router.push('/dashboard')
+      // Small delay to allow Supabase auth state and profile propagation
+      // before the app layout tries to load them via onAuthStateChange
+      await new Promise(resolve => setTimeout(resolve, 500))
+      router.replace('/dashboard')
     } catch (err) {
       toast.error(err.message || 'Error al registrarse')
     } finally {

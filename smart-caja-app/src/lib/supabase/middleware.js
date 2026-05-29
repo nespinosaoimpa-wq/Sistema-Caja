@@ -7,9 +7,9 @@ export async function updateSession(request) {
 
   try {
     // Public routes that don't require auth
-    const publicRoutes = ['/', '/login', '/register', '/api/webhooks']
+    const publicRoutes = ['/', '/login', '/register', '/api/webhooks', '/billing', '/api/billing/webhook']
     const isPublicRoute = publicRoutes.some(route =>
-      pathname === route || pathname.startsWith('/api/webhooks')
+      pathname === route || pathname.startsWith('/api/webhooks') || pathname.startsWith('/billing') || pathname.startsWith('/api/billing/webhook')
     )
 
     // 1. Optimize for Next.js Prefetches
@@ -75,9 +75,9 @@ export async function updateSession(request) {
   } catch (err) {
     console.error('Middleware execution error caught:', err)
     // If it's a private route, redirect to /login to be safe, else let it pass
-    const publicRoutes = ['/', '/login', '/register', '/api/webhooks']
+    const publicRoutes = ['/', '/login', '/register', '/api/webhooks', '/billing', '/api/billing/webhook']
     const isPublicRoute = publicRoutes.some(route =>
-      pathname === route || pathname.startsWith('/api/webhooks')
+      pathname === route || pathname.startsWith('/api/webhooks') || pathname.startsWith('/billing') || pathname.startsWith('/api/billing/webhook')
     )
     if (!isPublicRoute) {
       const url = request.nextUrl.clone()
