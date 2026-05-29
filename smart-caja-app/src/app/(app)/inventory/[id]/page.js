@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
-import { Trash2, Save, Camera, Package, Plus, Minus, Check, AlertTriangle } from 'lucide-react'
+import { Trash2, Save, Camera, Package, Plus, Minus, Check, AlertTriangle, ImagePlus, X } from 'lucide-react'
 
 const UNIT_LABELS = {
   unit: [{ value: 'un', label: 'Unidad (un)' }],
@@ -54,6 +54,13 @@ export default function EditProductPage() {
   })
   const [errors, setErrors] = useState({})
 
+  // Image upload state
+  const imageInputRef = useRef(null)
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null) // URL string: existing or local blob
+  const [uploadingImage, setUploadingImage] = useState(false)
+  const [removeImage, setRemoveImage] = useState(false) // true = user wants to delete existing image
+
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [newCategory, setNewCategory] = useState({ name: '', icon: '📦', color: '#10B981' })
   const [creatingCategory, setCreatingCategory] = useState(false)
@@ -95,6 +102,10 @@ export default function EditProductPage() {
         unit_type: data.unit_type || 'unit',
         unit_label: data.unit_label || 'un',
       })
+      // Load existing image
+      if (data.image_url) {
+        setImagePreview(data.image_url)
+      }
     } catch (err) {
       toast.error('Error cargando producto')
       router.push('/inventory')
@@ -141,6 +152,45 @@ export default function EditProductPage() {
     return (((sale - cost) / sale) * 100).toFixed(1)
   }
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      toast.warning('La imagen no puede superar los 5 MB')
+      return
+    }
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+    setRemoveImage(false)
+  }
+
+  const handleRemoveImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    setRemoveImage(true)
+    if (imageInputRef.current) imageInputRef.current.value = ''
+  }
+
+  const uploadImage = async () => {
+    if (!imageFile) return null
+    setUploadingImage(true)
+    try {
+      const ext = imageFile.name.split('.').pop()
+      const fileName = `${tenant.id}/${Date.now()}.${ext}`
+      const { error } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, imageFile, { upsert: true, contentType: imageFile.type })
+      if (error) throw error
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName)
+      return urlData.publicUrl
+    } catch (err) {
+      toast.error('Error al subir imagen: ' + err.message)
+      return null
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   const handleSave = async () => {
     const errs = {}
     if (!form.name.trim()) errs.name = 'Requerido'
@@ -159,22 +209,33 @@ export default function EditProductPage() {
     setSaving(true)
 
     try {
+      // Handle image
+      let newImageUrl = undefined // undefined = don't change
+      if (imageFile) {
+        newImageUrl = await uploadImage() // new file uploaded
+      } else if (removeImage) {
+        newImageUrl = null // explicitly remove
+      }
+
       const isDecimalStock = form.unit_type === 'weight' || form.unit_type === 'volume'
+      const updatePayload = {
+        name: form.name,
+        description: form.description,
+        barcode: form.barcode || null,
+        reference_code: form.reference_code || null,
+        category_id: form.category_id || null,
+        cost_price: parseFloat(form.cost_price),
+        sale_price: parseFloat(form.sale_price),
+        stock_quantity: isDecimalStock ? parseFloat(form.stock_quantity || 0) : parseInt(form.stock_quantity || 0),
+        min_stock_alert: isDecimalStock ? parseFloat(form.min_stock_alert || 5) : parseInt(form.min_stock_alert || 5),
+        unit_type: form.unit_type,
+        unit_label: form.unit_label,
+      }
+      if (newImageUrl !== undefined) updatePayload.image_url = newImageUrl
+
       const { error } = await supabase
         .from('products')
-        .update({
-          name: form.name,
-          description: form.description,
-          barcode: form.barcode || null,
-          reference_code: form.reference_code || null,
-          category_id: form.category_id || null,
-          cost_price: parseFloat(form.cost_price),
-          sale_price: parseFloat(form.sale_price),
-          stock_quantity: isDecimalStock ? parseFloat(form.stock_quantity || 0) : parseInt(form.stock_quantity || 0),
-          min_stock_alert: isDecimalStock ? parseFloat(form.min_stock_alert || 5) : parseInt(form.min_stock_alert || 5),
-          unit_type: form.unit_type,
-          unit_label: form.unit_label,
-        })
+        .update(updatePayload)
         .eq('id', id)
         .eq('tenant_id', tenant.id)
 
@@ -381,6 +442,71 @@ export default function EditProductPage() {
               <span className="card-title">Información Básica</span>
             </div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              
+              {/* Image Upload */}
+              <div className="form-group">
+                <label className="form-label">Imagen del Producto</label>
+                <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
+                  <div
+                    onClick={() => !imagePreview && imageInputRef.current?.click()}
+                    style={{
+                      width: '96px', height: '96px', borderRadius: 'var(--radius-lg)',
+                      border: imagePreview ? '2px solid var(--color-primary)' : '2px dashed var(--border-color)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, overflow: 'hidden', cursor: imagePreview ? 'default' : 'pointer',
+                      background: 'var(--bg-input)', position: 'relative',
+                      transition: 'border-color 0.2s',
+                    }}
+                  >
+                    {imagePreview ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleRemoveImage() }}
+                          style={{
+                            position: 'absolute', top: '4px', right: '4px',
+                            background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%',
+                            width: '22px', height: '22px', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
+                          }}
+                        >
+                          <X size={12} />
+                        </button>
+                      </>
+                    ) : (
+                      <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <ImagePlus size={24} style={{ marginBottom: '4px', opacity: 0.5 }} />
+                        <div style={{ fontSize: '0.625rem', lineHeight: 1.3 }}>Subir foto</div>
+                      </div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => imageInputRef.current?.click()}
+                      style={{ border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}
+                    >
+                      <ImagePlus size={15} />
+                      {imagePreview ? 'Cambiar imagen' : 'Elegir imagen'}
+                    </button>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                      JPG, PNG o WebP · Máx. 5 MB<br />
+                      Si no subís imagen, se usará el ícono de la categoría.
+                    </p>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: 'none' }}
+                      onChange={handleImageSelect}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="form-group">
                 <label className="form-label required">Nombre del producto</label>
                 <input

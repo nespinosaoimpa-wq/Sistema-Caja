@@ -374,11 +374,17 @@ export default function InventoryPage() {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 'var(--space-4)' }}>
                       <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
                         <div style={{ 
-                          width: '40px', height: '40px', borderRadius: 'var(--radius-md)', 
+                          width: '48px', height: '48px', borderRadius: 'var(--radius-md)', 
                           background: 'var(--glass-bg)', border: '1px solid var(--border-color)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem'
+                          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.2rem',
+                          overflow: 'hidden', flexShrink: 0
                         }}>
-                          {product.categories?.icon || '📦'}
+                          {product.image_url ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                          ) : (
+                            product.categories?.icon || '📦'
+                          )}
                         </div>
                         <div>
                           <div style={{ fontWeight: 600, color: '#fff', fontSize: '1rem', lineHeight: 1.2 }}>{product.name}</div>

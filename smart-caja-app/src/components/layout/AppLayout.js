@@ -16,21 +16,22 @@ import {
   Settings,
   LogOut,
   Lock,
-  ListTodo,
-  Store,
-  MessageSquare
+  Users,
+  ShoppingBag,
+  MessageSquare,
+  TrendingUp,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
-  { href: '/dashboard', label: 'Dashboard', icon: '📊', minPlan: 'basic' },
-  { href: '/pos', label: 'Caja', icon: '💰', minPlan: 'basic' },
-  { href: '/inventory', label: 'Inventario', icon: '📦', minPlan: 'basic' },
-  { href: '/shifts', label: 'Turnos', icon: '⏱️', minPlan: 'basic' },
-  { href: '/sales', label: 'Ventas', icon: '🧾', minPlan: 'basic' },
-  { href: '/customers', label: 'Clientes', icon: '👥', minPlan: 'professional' },
-  { href: '/analytics', label: 'Estadísticas', icon: '📈', minPlan: 'professional' },
-  { href: '/installments', label: 'Cuotas', icon: '📋', minPlan: 'professional' },
-  { href: '/purchases', label: 'Compras', icon: '🛒', minPlan: 'enterprise' },
+  { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, minPlan: 'basic' },
+  { href: '/pos', label: 'Caja', icon: ShoppingCart, minPlan: 'basic' },
+  { href: '/inventory', label: 'Inventario', icon: Package, minPlan: 'basic' },
+  { href: '/shifts', label: 'Turnos', icon: Clock, minPlan: 'basic' },
+  { href: '/sales', label: 'Ventas', icon: Receipt, minPlan: 'basic' },
+  { href: '/customers', label: 'Clientes', icon: Users, minPlan: 'professional' },
+  { href: '/analytics', label: 'Estadísticas', icon: TrendingUp, minPlan: 'professional' },
+  { href: '/installments', label: 'Cuotas', icon: CreditCard, minPlan: 'professional' },
+  { href: '/purchases', label: 'Compras', icon: ShoppingBag, minPlan: 'enterprise' },
 ]
 
 const PLAN_WEIGHTS = {
@@ -552,6 +553,7 @@ export default function AppLayout({ children }) {
             const isActive = pathname?.startsWith(item.href)
             const itemPlanWeight = PLAN_WEIGHTS[item.minPlan]
             const isLocked = userPlanWeight < itemPlanWeight
+            const IconComponent = item.icon
 
             return (
               <Link 
@@ -560,8 +562,8 @@ export default function AppLayout({ children }) {
                 className={`sidebar-nav-item ${isActive ? 'active' : ''} ${isLocked ? 'locked' : ''}`}
                 style={isLocked || (isSuspended && !isActive) ? { opacity: 0.6, cursor: isLocked ? 'not-allowed' : 'pointer' } : {}}
               >
-                <span className="icon" style={{ opacity: isActive ? 1 : 0.6, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {isLocked ? <Lock size={18} /> : <span style={{ fontSize: '18px', lineHeight: 1 }}>{item.icon}</span>}
+                <span className="icon" style={{ opacity: isActive ? 1 : 0.7, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {isLocked ? <Lock size={18} /> : <IconComponent size={18} />}
                 </span>
                 {item.label}
               </Link>

@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
-import { Save, Camera, Plus } from 'lucide-react'
+import { Save, Camera, Plus, ImagePlus, X } from 'lucide-react'
 
 export default function NewProductPage() {
   const { tenant, profile } = useAuth()
@@ -13,6 +13,7 @@ export default function NewProductPage() {
   const toast = useToast()
   const supabase = createClient()
   const barcodeInputRef = useRef(null)
+  const imageInputRef = useRef(null)
 
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
@@ -30,6 +31,11 @@ export default function NewProductPage() {
     min_stock_alert: '5',
   })
   const [errors, setErrors] = useState({})
+  
+  // Image upload state
+  const [imageFile, setImageFile] = useState(null)
+  const [imagePreview, setImagePreview] = useState(null)
+  const [uploadingImage, setUploadingImage] = useState(false)
   
   const [showCategoryModal, setShowCategoryModal] = useState(false)
   const [newCategory, setNewCategory] = useState({ name: '', icon: '📦', color: '#10B981' })
@@ -70,6 +76,43 @@ export default function NewProductPage() {
     return (((sale - cost) / sale) * 100).toFixed(1)
   }
 
+  const handleImageSelect = (e) => {
+    const file = e.target.files[0]
+    if (!file) return
+    if (file.size > 5 * 1024 * 1024) {
+      toast.warning('La imagen no puede superar los 5 MB')
+      return
+    }
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  const handleRemoveImage = () => {
+    setImageFile(null)
+    setImagePreview(null)
+    if (imageInputRef.current) imageInputRef.current.value = ''
+  }
+
+  const uploadImage = async () => {
+    if (!imageFile) return null
+    setUploadingImage(true)
+    try {
+      const ext = imageFile.name.split('.').pop()
+      const fileName = `${tenant.id}/${Date.now()}.${ext}`
+      const { error } = await supabase.storage
+        .from('product-images')
+        .upload(fileName, imageFile, { upsert: true, contentType: imageFile.type })
+      if (error) throw error
+      const { data: urlData } = supabase.storage.from('product-images').getPublicUrl(fileName)
+      return urlData.publicUrl
+    } catch (err) {
+      toast.error('Error al subir imagen: ' + err.message)
+      return null
+    } finally {
+      setUploadingImage(false)
+    }
+  }
+
   const handleSave = async () => {
     // Validate
     const errs = {}
@@ -94,6 +137,12 @@ export default function NewProductPage() {
     setLoading(true)
 
     try {
+      // Upload image first if selected
+      let imageUrl = null
+      if (imageFile) {
+        imageUrl = await uploadImage()
+      }
+
       const { error } = await supabase
         .from('products')
         .insert({
@@ -109,6 +158,7 @@ export default function NewProductPage() {
           unit_label: form.unit_label,
           stock_quantity: parseFloat(form.stock_quantity || 0),
           min_stock_alert: parseFloat(form.min_stock_alert || 5),
+          image_url: imageUrl,
           is_active: true
         })
 
@@ -216,6 +266,73 @@ export default function NewProductPage() {
               <span className="card-title">Información Básica</span>
             </div>
             <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              
+              {/* Image Upload */}
+              <div className="form-group">
+                <label className="form-label">Imagen del Producto (opcional)</label>
+                <div style={{ display: 'flex', gap: 'var(--space-4)', alignItems: 'flex-start' }}>
+                  {/* Preview or placeholder */}
+                  <div
+                    onClick={() => !imagePreview && imageInputRef.current?.click()}
+                    style={{
+                      width: '96px', height: '96px', borderRadius: 'var(--radius-lg)',
+                      border: imagePreview ? '2px solid var(--color-primary)' : '2px dashed var(--border-color)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0, overflow: 'hidden', cursor: imagePreview ? 'default' : 'pointer',
+                      background: 'var(--bg-input)', position: 'relative',
+                      transition: 'border-color 0.2s',
+                    }}
+                  >
+                    {imagePreview ? (
+                      <>
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={imagePreview} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        <button
+                          type="button"
+                          onClick={(e) => { e.stopPropagation(); handleRemoveImage() }}
+                          style={{
+                            position: 'absolute', top: '4px', right: '4px',
+                            background: 'rgba(0,0,0,0.7)', border: 'none', borderRadius: '50%',
+                            width: '22px', height: '22px', cursor: 'pointer',
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff'
+                          }}
+                        >
+                          <X size={12} />
+                        </button>
+                      </>
+                    ) : (
+                      <div style={{ textAlign: 'center', color: 'var(--text-muted)' }}>
+                        <ImagePlus size={24} style={{ marginBottom: '4px', opacity: 0.5 }} />
+                        <div style={{ fontSize: '0.625rem', lineHeight: 1.3 }}>Subir foto</div>
+                      </div>
+                    )}
+                  </div>
+                  {/* Upload button and info */}
+                  <div style={{ flex: 1 }}>
+                    <button
+                      type="button"
+                      className="btn btn-ghost"
+                      onClick={() => imageInputRef.current?.click()}
+                      style={{ border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' }}
+                    >
+                      <ImagePlus size={15} />
+                      {imagePreview ? 'Cambiar imagen' : 'Elegir imagen'}
+                    </button>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
+                      JPG, PNG o WebP · Máx. 5 MB<br />
+                      Si no subís imagen, se usará el ícono de la categoría.
+                    </p>
+                    <input
+                      ref={imageInputRef}
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      style={{ display: 'none' }}
+                      onChange={handleImageSelect}
+                    />
+                  </div>
+                </div>
+              </div>
+
               <div className="form-group">
                 <label className="form-label required">Nombre del producto</label>
                 <input 

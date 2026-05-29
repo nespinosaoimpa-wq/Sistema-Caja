@@ -53,7 +53,7 @@ export default function POSPage() {
 
   // Installment/Accounts Receivable states
   const [showInstallmentModal, setShowInstallmentModal] = useState(false)
-  const [installmentForm, setInstallmentForm] = useState({ customer_name: '', customer_phone: '', total_installments: 1 })
+  const [installmentForm, setInstallmentForm] = useState({ customer_name: '', customer_phone: '', total_installments: 1, interest_rate: 0 })
 
   // Order (Pedido) modal state
   const [showOrderModal, setShowOrderModal] = useState(false)
@@ -66,10 +66,12 @@ export default function POSPage() {
       return
     }
     setShowInstallmentModal(false)
+    const interestRate = parseFloat(installmentForm.interest_rate) || 0
     await executeSaveSale(null, null, {
       customer_name: installmentForm.customer_name,
       customer_phone: installmentForm.customer_phone,
-      total_installments: parseInt(installmentForm.total_installments) || 1
+      total_installments: parseInt(installmentForm.total_installments) || 1,
+      interest_rate: interestRate
     })
   }
 
@@ -646,7 +648,9 @@ export default function POSPage() {
 
       // Insert into installment_plans if paymentMethod === 'installment'
       if (paymentMethod === 'installment' && installmentDetails) {
-        const totalAmount = finalTotal
+        const baseAmount = finalTotal
+        const interestRate = parseFloat(installmentDetails.interest_rate) || 0
+        const totalAmount = interestRate > 0 ? baseAmount * (1 + interestRate / 100) : baseAmount
         const totalInstallments = installmentDetails.total_installments
         const installmentAmount = totalAmount / totalInstallments
 
@@ -789,7 +793,8 @@ export default function POSPage() {
       setInstallmentForm({ 
         customer_name: selectedCustomer ? selectedCustomer.name : '', 
         customer_phone: selectedCustomer ? (selectedCustomer.phone || '') : '', 
-        total_installments: 1 
+        total_installments: 1,
+        interest_rate: 0
       })
       setShowInstallmentModal(true)
     } else if (paymentMethod === 'debit' || paymentMethod === 'credit') {
@@ -1774,14 +1779,14 @@ export default function POSPage() {
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           zIndex: 9999, padding: 'var(--space-4)'
         }}>
-          <div className="card" style={{ maxWidth: '440px', width: '100%', padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+          <div className="card" style={{ maxWidth: '460px', width: '100%', padding: 'var(--space-6)', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
             <h2 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.25rem', fontWeight: 700, marginBottom: 'var(--space-4)', color: '#fff' }}>
               📋 Registrar Plan de Cuotas (Fiado)
             </h2>
             <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>
-              Completa los datos del cliente para crear el saldo pendiente en Cuentas Corrientes.
+              Completá los datos del cliente para crear el saldo pendiente en Cuentas Corrientes.
             </p>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: 'var(--space-6)' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px', marginBottom: 'var(--space-4)' }}>
               <div className="form-group">
                 <label className="form-label required">Nombre del Cliente</label>
                 <input 
@@ -1790,6 +1795,7 @@ export default function POSPage() {
                   placeholder="Ej: Juan Pérez"
                   value={installmentForm.customer_name}
                   onChange={e => setInstallmentForm(prev => ({ ...prev, customer_name: e.target.value }))}
+                  autoFocus
                 />
               </div>
               <div className="form-group">
@@ -1802,21 +1808,80 @@ export default function POSPage() {
                   onChange={e => setInstallmentForm(prev => ({ ...prev, customer_phone: e.target.value }))}
                 />
               </div>
-              <div className="form-group">
-                <label className="form-label">Cantidad de Cuotas</label>
-                <select 
-                  className="form-select"
-                  value={installmentForm.total_installments}
-                  onChange={e => setInstallmentForm(prev => ({ ...prev, total_installments: parseInt(e.target.value) || 1 }))}
-                >
-                  <option value={1}>1 Pago (Al Fiado)</option>
-                  <option value={2}>2 Cuotas</option>
-                  <option value={3}>3 Cuotas</option>
-                  <option value={6}>6 Cuotas</option>
-                  <option value={12}>12 Cuotas</option>
-                </select>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div className="form-group">
+                  <label className="form-label">Cantidad de Cuotas</label>
+                  <select 
+                    className="form-select"
+                    value={installmentForm.total_installments}
+                    onChange={e => setInstallmentForm(prev => ({ ...prev, total_installments: parseInt(e.target.value) || 1 }))}
+                  >
+                    <option value={1}>1 Pago (Al Fiado)</option>
+                    <option value={2}>2 Cuotas</option>
+                    <option value={3}>3 Cuotas</option>
+                    <option value={4}>4 Cuotas</option>
+                    <option value={6}>6 Cuotas</option>
+                    <option value={12}>12 Cuotas</option>
+                  </select>
+                </div>
+                <div className="form-group">
+                  <label className="form-label">Interés (%)</label>
+                  <div className="form-input-icon">
+                    <span className="input-icon" style={{ color: 'var(--color-tertiary)' }}>%</span>
+                    <input
+                      type="number"
+                      className="form-input"
+                      min="0"
+                      max="200"
+                      step="0.5"
+                      placeholder="0"
+                      value={installmentForm.interest_rate === 0 ? '' : installmentForm.interest_rate}
+                      onChange={e => setInstallmentForm(prev => ({ ...prev, interest_rate: parseFloat(e.target.value) || 0 }))}
+                    />
+                  </div>
+                </div>
               </div>
             </div>
+            
+            {/* Live calculation summary */}
+            {(() => {
+              const interestRate = parseFloat(installmentForm.interest_rate) || 0
+              const baseTotal = cartTotal
+              const totalWithInterest = interestRate > 0 ? baseTotal * (1 + interestRate / 100) : baseTotal
+              const numCuotas = parseInt(installmentForm.total_installments) || 1
+              const perCuota = totalWithInterest / numCuotas
+              return (
+                <div style={{
+                  background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)',
+                  borderRadius: 'var(--radius-md)', padding: '12px 16px',
+                  marginBottom: 'var(--space-4)', display: 'flex', flexDirection: 'column', gap: '6px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                    <span style={{ color: 'var(--text-secondary)' }}>Total venta:</span>
+                    <span style={{ fontWeight: 600 }}>{formatCurrency(baseTotal)}</span>
+                  </div>
+                  {interestRate > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                      <span style={{ color: 'var(--color-tertiary)' }}>+ Interés ({interestRate}%):</span>
+                      <span style={{ color: 'var(--color-tertiary)', fontWeight: 600 }}>+ {formatCurrency(totalWithInterest - baseTotal)}</span>
+                    </div>
+                  )}
+                  <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: '6px', display: 'flex', justifyContent: 'space-between' }}>
+                    <span style={{ fontWeight: 700, color: '#fff' }}>Total a cobrar:</span>
+                    <span style={{ fontWeight: 800, fontSize: '1rem', color: interestRate > 0 ? 'var(--color-tertiary)' : 'var(--color-secondary)' }}>
+                      {formatCurrency(totalWithInterest)}
+                    </span>
+                  </div>
+                  {numCuotas > 1 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Por cuota:</span>
+                      <span style={{ fontWeight: 600 }}>{formatCurrency(perCuota)} × {numCuotas}</span>
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
+
             <div style={{ display: 'flex', gap: '12px' }}>
               <button 
                 className="btn btn-ghost" 
@@ -1830,7 +1895,7 @@ export default function POSPage() {
               </button>
               <button 
                 className="btn btn-primary" 
-                style={{ flex: 1 }}
+                style={{ flex: 1, fontWeight: 700 }}
                 onClick={confirmInstallmentSale}
               >
                 Confirmar
