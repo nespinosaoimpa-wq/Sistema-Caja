@@ -1,23 +1,91 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
 import UpgradePrompt from '@/components/ui/UpgradePrompt'
-
-const MOCK_PURCHASES = [
-  { id: 1, provider: 'Distribuidora Arcor', itemsCount: 14, total: 45000, date: '2026-05-24', status: 'Pagado' },
-  { id: 2, provider: 'Coca-Cola FEMSA', itemsCount: 8, total: 32000, date: '2026-05-26', status: 'Pendiente' },
-  { id: 3, provider: 'Cervecería Quilmes', itemsCount: 22, total: 87400, date: '2026-05-27', status: 'Pagado' },
-  { id: 4, provider: 'Lácteos La Serenísima', itemsCount: 6, total: 18900, date: '2026-05-28', status: 'Pendiente' },
-  { id: 5, provider: 'Papelera San Andrés', itemsCount: 12, total: 12500, date: '2026-05-22', status: 'Pagado' },
-]
 
 export default function PurchasesPage() {
   const { tenant } = useAuth()
   const [search, setSearch] = useState('')
-  const [purchases, setPurchases] = useState(MOCK_PURCHASES)
+  const [purchases, setPurchases] = useState([])
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({
+    provider: '',
+    date: new Date().toISOString().split('T')[0],
+    itemsCount: '1',
+    total: '',
+    status: 'Pagado'
+  })
 
   const isGated = tenant?.subscription_plan !== 'enterprise'
+  const cacheKey = tenant?.id ? `smartcaja_purchases_${tenant.id}` : null
+
+  // Load from localStorage on mount
+  useEffect(() => {
+    if (cacheKey) {
+      const cached = localStorage.getItem(cacheKey)
+      if (cached) {
+        try {
+          setPurchases(JSON.parse(cached))
+        } catch (e) {
+          console.error(e)
+        }
+      }
+    }
+  }, [cacheKey])
+
+  // Helper to save to state and localStorage
+  const savePurchasesList = (list) => {
+    setPurchases(list)
+    if (cacheKey) {
+      localStorage.setItem(cacheKey, JSON.stringify(list))
+    }
+  }
+
+  const handleRegisterPayment = (id) => {
+    const updated = purchases.map(p => 
+      p.id === id ? { ...p, status: 'Pagado' } : p
+    )
+    savePurchasesList(updated)
+  }
+
+  const handleDeletePurchase = (id) => {
+    if (confirm('¿Estás seguro de que querés eliminar esta orden de compra?')) {
+      const updated = purchases.filter(p => p.id !== id)
+      savePurchasesList(updated)
+    }
+  }
+
+  const handleOpenModal = () => {
+    setForm({
+      provider: '',
+      date: new Date().toISOString().split('T')[0],
+      itemsCount: '1',
+      total: '',
+      status: 'Pagado'
+    })
+    setShowModal(true)
+  }
+
+  const handleSubmit = (e) => {
+    e.preventDefault()
+    if (!form.provider.trim()) return
+    const totalNum = parseFloat(form.total) || 0
+    const itemsCountNum = parseInt(form.itemsCount) || 1
+
+    const newPurchase = {
+      id: Date.now(),
+      provider: form.provider.trim(),
+      date: form.date,
+      itemsCount: itemsCountNum,
+      total: totalNum,
+      status: form.status
+    }
+
+    const updated = [newPurchase, ...purchases]
+    savePurchasesList(updated)
+    setShowModal(false)
+  }
 
   const filteredPurchases = purchases.filter(p => 
     p.provider.toLowerCase().includes(search.toLowerCase())
@@ -37,7 +105,7 @@ export default function PurchasesPage() {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', maxWidth: '1000px', margin: '0 auto' }}>
       
       {/* Header */}
-      <div style={{ display: 'flex', justifyInContent: 'space-between', alignItems: 'center', display: 'flex', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <div>
           <h1 style={{ fontSize: '1.75rem', fontWeight: 700, letterSpacing: '-0.03em', color: '#fff' }}>
             Compras y Proveedores
@@ -46,7 +114,11 @@ export default function PurchasesPage() {
             Registrá la entrada de mercadería y controlá las cuentas de tus proveedores de forma centralizada
           </p>
         </div>
-        <button className="btn btn-secondary" style={{ padding: '10px 18px', borderRadius: 'var(--radius-md)', background: 'var(--color-secondary)' }}>
+        <button 
+          onClick={handleOpenModal}
+          className="btn btn-secondary" 
+          style={{ padding: '10px 18px', borderRadius: 'var(--radius-md)', background: 'var(--color-secondary)', display: 'flex', alignItems: 'center', gap: '6px' }}
+        >
           🛒 Nueva Orden de Compra
         </button>
       </div>
@@ -109,17 +181,29 @@ export default function PurchasesPage() {
                     </span>
                   </td>
                   <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                    <button className="btn btn-ghost btn-sm" style={{ marginRight: '8px' }}>👁️ Detalle</button>
                     {pur.status === 'Pendiente' && (
-                      <button className="btn btn-primary btn-sm" style={{ padding: '6px 12px' }}>💰 Registrar Pago</button>
+                      <button 
+                        onClick={() => handleRegisterPayment(pur.id)}
+                        className="btn btn-secondary btn-sm" 
+                        style={{ padding: '6px 12px', marginRight: '8px' }}
+                      >
+                        💰 Registrar Pago
+                      </button>
                     )}
+                    <button 
+                      onClick={() => handleDeletePurchase(pur.id)}
+                      className="btn btn-ghost btn-sm" 
+                      style={{ color: 'var(--color-error)', borderColor: 'rgba(255,180,171,0.2)' }}
+                    >
+                      🗑️ Eliminar
+                    </button>
                   </td>
                 </tr>
               ))}
               {filteredPurchases.length === 0 && (
                 <tr>
                   <td colSpan={6} style={{ padding: '32px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                    No se encontraron órdenes de compra registradas.
+                    No se encontraron órdenes de compra registradas. ¡Agregá una con el botón de arriba!
                   </td>
                 </tr>
               )}
@@ -127,6 +211,109 @@ export default function PurchasesPage() {
           </table>
         </div>
       </div>
+
+      {/* New Purchase Modal */}
+      {showModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999, padding: '16px'
+        }}>
+          <div className="card" style={{
+            width: '100%', maxWidth: '440px', padding: 'var(--space-6)',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.5)', background: 'var(--bg-card)'
+          }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-4)' }}>
+              <h2 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>🛒 Nueva Orden de Compra</h2>
+              <button 
+                onClick={() => setShowModal(false)}
+                style={{ fontSize: '1.25rem', color: 'var(--text-muted)', cursor: 'pointer' }}
+              >✕</button>
+            </div>
+
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <div>
+                <label className="form-label required">Proveedor</label>
+                <input 
+                  className="form-input" 
+                  placeholder="Ej: Distribuidora Arcor"
+                  value={form.provider}
+                  onChange={e => setForm({...form, provider: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="form-label required">Fecha de Compra</label>
+                <input 
+                  className="form-input" 
+                  type="date"
+                  value={form.date}
+                  onChange={e => setForm({...form, date: e.target.value})}
+                  required
+                />
+              </div>
+
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <div>
+                  <label className="form-label required">Artículos</label>
+                  <input 
+                    className="form-input" 
+                    type="number"
+                    min="1"
+                    value={form.itemsCount}
+                    onChange={e => setForm({...form, itemsCount: e.target.value})}
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="form-label required">Total ($)</label>
+                  <input 
+                    className="form-input" 
+                    type="number"
+                    min="0"
+                    placeholder="0"
+                    value={form.total}
+                    onChange={e => setForm({...form, total: e.target.value})}
+                    required
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="form-label required">Estado</label>
+                <select 
+                  className="form-select"
+                  value={form.status}
+                  onChange={e => setForm({...form, status: e.target.value})}
+                >
+                  <option value="Pagado">Pagado</option>
+                  <option value="Pendiente">Pendiente (Cuenta Corriente)</option>
+                </select>
+              </div>
+
+              <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+                <button 
+                  type="button"
+                  className="btn btn-ghost" 
+                  style={{ flex: 1 }}
+                  onClick={() => setShowModal(false)}
+                >
+                  Cancelar
+                </button>
+                <button 
+                  type="submit"
+                  className="btn btn-primary" 
+                  style={{ flex: 1, background: 'var(--color-secondary)' }}
+                >
+                  Guardar Orden
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

@@ -55,6 +55,7 @@ export default function POSPage() {
   const [posnetCardBrand, setPosnetCardBrand] = useState('VISA')
   const [posnetVoucher, setPosnetVoucher] = useState('')
   const [manualVoucher, setManualVoucher] = useState('')
+  const [showCatalog, setShowCatalog] = useState(true)
 
   // Installment/Accounts Receivable states
   const [showInstallmentModal, setShowInstallmentModal] = useState(false)
@@ -838,6 +839,24 @@ export default function POSPage() {
             {/* Controls: Fullscreen and Lector selector */}
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button 
+                type="button"
+                onClick={() => setShowCatalog(!showCatalog)}
+                className="btn btn-ghost"
+                style={{ 
+                  padding: '10px 16px', 
+                  borderRadius: 'var(--radius-md)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  fontWeight: 600,
+                  fontSize: '0.875rem' 
+                }}
+              >
+                {showCatalog ? '👁️ Ocultar Catálogo' : '👁️ Mostrar Catálogo'}
+              </button>
+
+              <button 
+                type="button"
                 onClick={toggleFullscreen}
                 className="btn btn-ghost"
                 style={{ 
@@ -856,6 +875,7 @@ export default function POSPage() {
 
               <div style={{ display: 'flex', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '3px' }}>
                 <button
+                  type="button"
                   onClick={() => setPosnetMode('integrated')}
                   style={{
                     padding: '6px 12px',
@@ -874,6 +894,7 @@ export default function POSPage() {
                   <Zap size={14} /> POSnet Simulado
                 </button>
                 <button
+                  type="button"
                   onClick={() => setPosnetMode('manual')}
                   style={{
                     padding: '6px 12px',
@@ -894,96 +915,105 @@ export default function POSPage() {
               </div>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', flex: 1 }}>
-              {uniqueCategories.map(cat => (
-                <button
-                  key={cat}
-                  onClick={() => setActiveCategory(cat)}
-                  style={{
-                    padding: '8px 20px',
-                    borderRadius: 'var(--radius-md)',
-                    background: activeCategory === cat ? 'var(--bg-card-hover)' : 'var(--bg-card)',
-                    border: `1px solid ${activeCategory === cat ? 'var(--color-primary)' : 'var(--border-color)'}`,
-                    color: activeCategory === cat ? '#fff' : 'var(--text-secondary)',
-                    fontWeight: 600,
-                    fontSize: '0.875rem',
-                    transition: 'var(--transition)',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  {cat}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div style={{ flex: 1, overflowY: 'auto', paddingRight: 'var(--space-2)' }}>
-            {loading ? (
-              <div style={{ color: 'var(--text-muted)' }}>Cargando inventario...</div>
-            ) : (
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
-                {filteredProductsByCategory.map(product => (
-                  <div 
-                    key={product.id} 
-                    onClick={() => addToCart(product)}
+            {showCatalog && (
+              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '4px', flex: 1 }}>
+                {uniqueCategories.map(cat => (
+                  <button
+                    key={cat}
+                    type="button"
+                    onClick={() => setActiveCategory(cat)}
                     style={{
-                      background: 'var(--bg-card)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: 'var(--radius-lg)',
-                      padding: 'var(--space-5)',
-                      cursor: 'pointer',
+                      padding: '8px 20px',
+                      borderRadius: 'var(--radius-md)',
+                      background: activeCategory === cat ? 'var(--bg-card-hover)' : 'var(--bg-card)',
+                      border: `1px solid ${activeCategory === cat ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                      color: activeCategory === cat ? '#fff' : 'var(--text-secondary)',
+                      fontWeight: 600,
+                      fontSize: '0.875rem',
                       transition: 'var(--transition)',
-                      textAlign: 'center',
-                      position: 'relative',
-                      opacity: product.stock_quantity <= 0 ? 0.5 : 1,
-                      display: 'flex',
-                      flexDirection: 'column',
-                      alignItems: 'center'
-                    }}
-                    onMouseOver={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--color-primary-border)'
-                      e.currentTarget.style.transform = 'translateY(-2px)'
-                      e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)'
-                    }}
-                    onMouseOut={(e) => {
-                      e.currentTarget.style.borderColor = 'var(--border-color)'
-                      e.currentTarget.style.transform = 'translateY(0)'
-                      e.currentTarget.style.boxShadow = 'none'
+                      whiteSpace: 'nowrap'
                     }}
                   >
-                    {/* Category Badge */}
-                    {product.categories?.name && (
-                      <div style={{ 
-                        position: 'absolute', top: '0', right: '16px', 
-                        background: 'rgba(78, 222, 163, 0.1)', color: 'var(--color-secondary)',
-                        padding: '4px 12px', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px',
-                        fontSize: '0.6875rem', fontWeight: 600
-                      }}>
-                        {product.categories.name}
-                      </div>
-                    )}
-                    
-                    <div style={{ 
-                      width: '64px', height: '64px', borderRadius: '50%', 
-                      background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: '2rem', marginBottom: '16px', marginTop: '12px',
-                      border: '1px solid var(--border-highlight)'
-                    }}>
-                      {product.categories?.icon || '📦'}
-                    </div>
-
-                    <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px', minHeight: '40px' }} className="truncate">
-                      {product.name}
-                    </div>
-
-                    <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-secondary)' }}>
-                      {formatCurrency(product.sale_price)}
-                    </div>
-                  </div>
+                    {cat}
+                  </button>
                 ))}
               </div>
             )}
           </div>
+
+          {showCatalog && (
+            <div style={{ flex: 1, overflowY: 'auto', paddingRight: 'var(--space-2)' }}>
+              {loading ? (
+                <div style={{ color: 'var(--text-muted)' }}>Cargando inventario...</div>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))', gap: 'var(--space-4)' }}>
+                  {filteredProductsByCategory.map(product => (
+                    <div 
+                      key={product.id} 
+                      onClick={() => addToCart(product)}
+                      style={{
+                        background: 'var(--bg-card)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-lg)',
+                        padding: 'var(--space-5)',
+                        cursor: 'pointer',
+                        transition: 'var(--transition)',
+                        textAlign: 'center',
+                        position: 'relative',
+                        opacity: product.stock_quantity <= 0 ? 0.5 : 1,
+                        display: 'flex',
+                        flexDirection: 'column',
+                        alignItems: 'center'
+                      }}
+                      onMouseOver={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--color-primary-border)'
+                        e.currentTarget.style.transform = 'translateY(-2px)'
+                        e.currentTarget.style.boxShadow = '0 8px 24px rgba(0,0,0,0.3)'
+                      }}
+                      onMouseOut={(e) => {
+                        e.currentTarget.style.borderColor = 'var(--border-color)'
+                        e.currentTarget.style.transform = 'translateY(0)'
+                        e.currentTarget.style.boxShadow = 'none'
+                      }}
+                    >
+                      {/* Category Badge */}
+                      {product.categories?.name && (
+                        <div style={{ 
+                          position: 'absolute', top: '0', right: '16px', 
+                          background: 'rgba(78, 222, 163, 0.1)', color: 'var(--color-secondary)',
+                          padding: '4px 12px', borderBottomLeftRadius: '8px', borderBottomRightRadius: '8px',
+                          fontSize: '0.6875rem', fontWeight: 600
+                        }}>
+                          {product.categories.name}
+                        </div>
+                      )}
+                      
+                      <div style={{ 
+                        width: '64px', height: '64px', borderRadius: '50%', 
+                        background: 'var(--bg-surface)', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '2rem', marginBottom: '16px', marginTop: '12px',
+                        border: '1px solid var(--border-highlight)'
+                      }}>
+                        {product.image_url ? (
+                          <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                        ) : (
+                          product.categories?.icon || '📦'
+                        )}
+                      </div>
+
+                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)', marginBottom: '8px', minHeight: '40px' }} className="truncate">
+                        {product.name}
+                      </div>
+
+                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-secondary)' }}>
+                        {formatCurrency(product.sale_price)}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
         </div>
 
         {/* RIGHT SIDE - Checkout Panel */}
