@@ -122,6 +122,35 @@ export default function AppLayout({ children }) {
     return () => clearTimeout(timer)
   }, [loading, user, profileLoaded, profileError, reloadProfile])
 
+  // Auto-recover when returning to the tab (visibility change to visible)
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return
+
+    const handleVisibilityChange = async () => {
+      if (document.visibilityState === 'visible') {
+        console.log('[AppLayout] Tab became active — checking connection state')
+        
+        // Reset local timeout states
+        setLoadingTimeout(false)
+        setVerifyTimeout(false)
+        
+        // If there was an error or it hasn't loaded yet, trigger reload
+        if (profileError || (!loading && user && !profileLoaded)) {
+          console.log('[AppLayout] Auto-recovering from slow/failed state on visibility change')
+          try {
+            await reloadProfile()
+          } catch (e) {
+            console.error('[AppLayout] Auto-recovery reload failed:', e)
+          }
+        }
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
+  }, [loading, user, profileLoaded, profileError, reloadProfile])
+
+
   if (loading) {
     if (loadingTimeout) {
       return (
