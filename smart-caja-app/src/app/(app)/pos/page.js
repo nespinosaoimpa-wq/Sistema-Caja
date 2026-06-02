@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
@@ -12,7 +12,7 @@ import {
 
 export default function POSPage() {
   const { tenant, profile } = useAuth()
-  const supabase = createClient()
+  const supabase = useMemo(() => createClient(), [])
   const toast = useToast()
   
   const barcodeInputRef = useRef(null)

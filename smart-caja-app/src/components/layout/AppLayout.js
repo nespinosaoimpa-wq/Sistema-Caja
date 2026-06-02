@@ -78,7 +78,10 @@ export default function AppLayout({ children }) {
 
   // Reset logo error status if the logo url changes
   useEffect(() => {
-    setLogoError(false)
+    const timer = setTimeout(() => {
+      setLogoError(false)
+    }, 0)
+    return () => clearTimeout(timer)
   }, [tenant?.logo_url])
 
   // Safety net: if initial auth loading stays true for more than 8 seconds, show timeout options

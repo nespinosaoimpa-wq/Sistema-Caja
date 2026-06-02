@@ -26,7 +26,11 @@ export default function PurchasesPage() {
       const cached = localStorage.getItem(cacheKey)
       if (cached) {
         try {
-          setPurchases(JSON.parse(cached))
+          const parsed = JSON.parse(cached)
+          const timer = setTimeout(() => {
+            setPurchases(parsed)
+          }, 0)
+          return () => clearTimeout(timer)
         } catch (e) {
           console.error(e)
         }

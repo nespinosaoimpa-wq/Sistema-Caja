@@ -7,7 +7,7 @@ import { useAuth } from '@/lib/hooks/useAuth'
 function CheckoutContent() {
   const searchParams = useSearchParams()
   const router = useRouter()
-  const { tenant, profile } = useAuth()
+  const { tenant, profile, loading: authLoading } = useAuth()
   const [error, setError] = useState(null)
 
   const planId = searchParams.get('planId') || 'basic'
@@ -15,8 +15,8 @@ function CheckoutContent() {
   const price = searchParams.get('price') || '20000'
 
   useEffect(() => {
-    // Only proceed if we have auth data loaded
-    if (tenant === undefined) return
+    // Wait until auth has fully resolved
+    if (authLoading) return
     if (!tenant || !profile) {
       router.push('/login')
       return
@@ -57,7 +57,7 @@ function CheckoutContent() {
     createSubscription()
 
     return () => { isSubscribed = false }
-  }, [tenant, profile, router, planId])
+  }, [authLoading, tenant, profile, router, planId])
 
   return (
     <div style={{

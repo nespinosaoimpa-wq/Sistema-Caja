@@ -6,10 +6,12 @@ export async function updateSession(request) {
   const pathname = request.nextUrl.pathname
 
   try {
-    // Public routes that don't require auth
-    const publicRoutes = ['/', '/login', '/register', '/api/webhooks', '/billing', '/api/billing/webhook']
+    const publicRoutes = ['/', '/login', '/register', '/api/webhooks', '/billing', '/api/billing']
     const isPublicRoute = publicRoutes.some(route =>
-      pathname === route || pathname.startsWith('/api/webhooks') || pathname.startsWith('/billing') || pathname.startsWith('/api/billing/webhook')
+      pathname === route ||
+      pathname.startsWith('/api/webhooks') ||
+      pathname.startsWith('/billing') ||
+      pathname.startsWith('/api/billing')
     )
 
     // 1. Optimize for Next.js Prefetches
@@ -74,10 +76,12 @@ export async function updateSession(request) {
     return supabaseResponse
   } catch (err) {
     console.error('Middleware execution error caught:', err)
-    // If it's a private route, redirect to /login to be safe, else let it pass
-    const publicRoutes = ['/', '/login', '/register', '/api/webhooks', '/billing', '/api/billing/webhook']
+    const publicRoutes = ['/', '/login', '/register', '/api/webhooks', '/billing', '/api/billing']
     const isPublicRoute = publicRoutes.some(route =>
-      pathname === route || pathname.startsWith('/api/webhooks') || pathname.startsWith('/billing') || pathname.startsWith('/api/billing/webhook')
+      pathname === route ||
+      pathname.startsWith('/api/webhooks') ||
+      pathname.startsWith('/billing') ||
+      pathname.startsWith('/api/billing')
     )
     if (!isPublicRoute) {
       const url = request.nextUrl.clone()
