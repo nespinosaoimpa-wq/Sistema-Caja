@@ -27,7 +27,9 @@ import {
   Building,
   Activity,
   Globe,
-  Settings
+  Settings,
+  ShoppingBag,
+  Scale
 } from 'lucide-react'
 
 export default function SettingsPage() {
@@ -56,6 +58,10 @@ export default function SettingsPage() {
     tax_name: 'IVA',
     logo_url: '',
     background_preset: 'matte',
+    ecommerce_enabled: false,
+    ecommerce_description: '',
+    ecommerce_whatsapp: '',
+    ecommerce_delivery_modes: ['pickup'],
   })
 
   // Team & Branch states
@@ -89,6 +95,10 @@ export default function SettingsPage() {
           tax_name: tenant.theme_config?.tax_name || 'IVA',
           logo_url: tenant.logo_url || '',
           background_preset: tenant.theme_config?.background_preset || 'matte',
+          ecommerce_enabled: tenant.ecommerce_enabled || false,
+          ecommerce_description: tenant.ecommerce_description || '',
+          ecommerce_whatsapp: tenant.ecommerce_whatsapp || '',
+          ecommerce_delivery_modes: tenant.ecommerce_delivery_modes || ['pickup'],
         })
       }, 0)
       return () => clearTimeout(timer)
@@ -314,6 +324,10 @@ export default function SettingsPage() {
         address: form.address,
         phone: form.phone,
         logo_url: form.logo_url,
+        ecommerce_enabled: form.ecommerce_enabled,
+        ecommerce_description: form.ecommerce_description,
+        ecommerce_whatsapp: form.ecommerce_whatsapp,
+        ecommerce_delivery_modes: form.ecommerce_delivery_modes,
         theme_config: {
           primary_color: form.primary_color,
           secondary_color: form.secondary_color,
@@ -434,6 +448,8 @@ export default function SettingsPage() {
     { id: 'general', label: 'General', desc: 'Identificación y formatos', icon: Store },
     { id: 'appearance', label: 'Apariencia', desc: 'Logos, temas y preview', icon: Palette },
     { id: 'users', label: 'Equipo', desc: 'Colaboradores y roles', icon: Users },
+    { id: 'store', label: 'Tienda Online', desc: 'Catálogo y pedidos', icon: ShoppingBag },
+    { id: 'hardware', label: 'Periféricos', desc: 'Balanza y scanners', icon: Scale },
     { id: 'branches', label: 'Sucursales', desc: 'Puntos de venta', icon: MapPin },
     { id: 'payments', label: 'Mercado Pago', desc: 'Pasarela de cobro', icon: CreditCard },
     { id: 'billing', label: 'Suscripción', desc: 'Planes y facturación', icon: Receipt },
@@ -736,6 +752,187 @@ export default function SettingsPage() {
                       />
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB TIENDA ONLINE */}
+          {activeTab === 'store' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div className="card">
+                <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <ShoppingBag size={18} style={{ color: 'var(--color-primary)' }} />
+                    <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Tienda Online</h3>
+                  </div>
+                  {tenant?.slug && (
+                    <a 
+                      href={`/tienda/${tenant.slug}`} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="btn btn-secondary"
+                      style={{ fontSize: '0.8125rem', padding: '6px 12px', textDecoration: 'none' }}
+                    >
+                      Ver mi tienda ↗
+                    </a>
+                  )}
+                </div>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '20px' }}>
+                  
+                  {tenant?.subscription_plan === 'basic' ? (
+                    <UpgradePrompt
+                      title="Tienda Online Integrada"
+                      description="Habilitá un catálogo público para tus clientes. Recibí pedidos directamente en tu sistema y coordiná por WhatsApp."
+                      requiredPlan="professional"
+                    />
+                  ) : (
+                    <>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                        <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flex: 1 }}>
+                          <input 
+                            type="checkbox" 
+                            checked={form.ecommerce_enabled}
+                            onChange={(e) => updateForm('ecommerce_enabled', e.target.checked)}
+                            style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                          />
+                          <div>
+                            <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Habilitar tienda pública</div>
+                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Tus clientes podrán ver tus productos (marcados como visibles) y hacer pedidos online.</div>
+                          </div>
+                        </label>
+                      </div>
+
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Descripción del Comercio</label>
+                        <textarea 
+                          className="form-input" 
+                          value={form.ecommerce_description} 
+                          onChange={e => updateForm('ecommerce_description', e.target.value)} 
+                          placeholder="Breve descripción que verán tus clientes al entrar a tu tienda online..." 
+                          rows={3}
+                          style={{ marginTop: '6px', resize: 'vertical' }}
+                        />
+                      </div>
+
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>WhatsApp para Pedidos</label>
+                          <input 
+                            className="form-input" 
+                            value={form.ecommerce_whatsapp} 
+                            onChange={e => updateForm('ecommerce_whatsapp', e.target.value)} 
+                            placeholder="Ej: 5493415555555" 
+                            style={{ marginTop: '6px' }}
+                          />
+                          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>
+                            Número (con código de país) donde recibirás alertas de nuevos pedidos.
+                          </p>
+                        </div>
+
+                        <div className="form-group">
+                          <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Opciones de Entrega</label>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.875rem' }}>
+                              <input 
+                                type="checkbox" 
+                                checked={form.ecommerce_delivery_modes.includes('pickup')}
+                                onChange={(e) => {
+                                  const modes = new Set(form.ecommerce_delivery_modes)
+                                  if (e.target.checked) modes.add('pickup')
+                                  else modes.delete('pickup')
+                                  updateForm('ecommerce_delivery_modes', Array.from(modes))
+                                }}
+                                style={{ accentColor: 'var(--color-primary)' }}
+                              />
+                              Retiro en el local
+                            </label>
+                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.875rem' }}>
+                              <input 
+                                type="checkbox" 
+                                checked={form.ecommerce_delivery_modes.includes('delivery')}
+                                onChange={(e) => {
+                                  const modes = new Set(form.ecommerce_delivery_modes)
+                                  if (e.target.checked) modes.add('delivery')
+                                  else modes.delete('delivery')
+                                  updateForm('ecommerce_delivery_modes', Array.from(modes))
+                                }}
+                                style={{ accentColor: 'var(--color-primary)' }}
+                              />
+                              Envío a domicilio (Delivery)
+                            </label>
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB HARDWARE */}
+          {activeTab === 'hardware' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div className="card">
+                <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Scale size={18} style={{ color: 'var(--color-primary)' }} />
+                    <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Balanza Digital</h3>
+                  </div>
+                </div>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '20px' }}>
+                  
+                  <div style={{ background: 'rgba(59, 130, 246, 0.1)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid rgba(59, 130, 246, 0.2)' }}>
+                    <p style={{ fontSize: '0.875rem', color: '#60A5FA', lineHeight: 1.5, margin: 0 }}>
+                      <strong style={{ color: '#93C5FD' }}>ℹ️ Conexión Web Serial API:</strong> Smart Caja puede leer el peso automáticamente desde balanzas digitales conectadas por USB/RS-232 a tu computadora (Ej: Systel, Kretz). 
+                      Solo funciona en navegadores Chrome/Edge de escritorio.
+                    </p>
+                  </div>
+
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Baud Rate (Velocidad de puerto)</label>
+                      <select 
+                        className="form-select form-input" 
+                        defaultValue="9600"
+                        style={{ marginTop: '6px' }}
+                      >
+                        <option value="4800">4800</option>
+                        <option value="9600">9600 (Recomendado)</option>
+                        <option value="19200">19200</option>
+                        <option value="38400">38400</option>
+                      </select>
+                      <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>
+                        Depende de la configuración interna de tu balanza.
+                      </p>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Formato de lectura</label>
+                      <select 
+                        className="form-select form-input" 
+                        defaultValue="auto"
+                        style={{ marginTop: '6px' }}
+                      >
+                        <option value="auto">Automático (Detecta Systel / Kretz)</option>
+                        <option value="raw">Raw</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                    <button type="button" className="btn btn-secondary" onClick={() => {
+                      if (!('serial' in navigator)) {
+                        toast.error('Tu navegador no soporta Web Serial API. Usá Chrome en PC.')
+                        return
+                      }
+                      navigator.serial.requestPort().then(() => toast.success('Puerto autorizado.')).catch(() => toast.error('Conexión cancelada.'))
+                    }}>
+                      Autorizar puerto serial
+                    </button>
+                  </div>
+
                 </div>
               </div>
             </div>

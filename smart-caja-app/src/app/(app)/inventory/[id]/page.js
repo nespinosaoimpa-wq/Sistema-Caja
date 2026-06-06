@@ -51,6 +51,8 @@ export default function EditProductPage() {
     min_stock_alert: '5',
     unit_type: 'unit',
     unit_label: 'un',
+    show_in_store: true,
+    has_variants: false,
   })
   const [errors, setErrors] = useState({})
 
@@ -101,6 +103,8 @@ export default function EditProductPage() {
         min_stock_alert: data.min_stock_alert?.toString() || '5',
         unit_type: data.unit_type || 'unit',
         unit_label: data.unit_label || 'un',
+        show_in_store: data.show_in_store !== false,
+        has_variants: data.has_variants || false,
       })
       // Load existing image
       if (data.image_url) {
@@ -230,6 +234,8 @@ export default function EditProductPage() {
         min_stock_alert: isDecimalStock ? parseFloat(form.min_stock_alert || 5) : parseInt(form.min_stock_alert || 5),
         unit_type: form.unit_type,
         unit_label: form.unit_label,
+        show_in_store: form.show_in_store,
+        has_variants: form.has_variants,
       }
       if (newImageUrl !== undefined) updatePayload.image_url = newImageUrl
 
@@ -555,6 +561,51 @@ export default function EditProductPage() {
                   style={{ resize: 'vertical' }}
                 />
               </div>
+
+              {tenant?.ecommerce_enabled && (
+                <div className="form-group" style={{ marginTop: 'var(--space-2)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={form.show_in_store}
+                      onChange={(e) => updateForm('show_in_store', e.target.checked)}
+                      style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Mostrar en Tienda Online</div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>El producto será visible para los clientes en el catálogo público.</div>
+                    </div>
+                  </label>
+                </div>
+              )}
+
+              <div className="form-group" style={{ marginTop: 'var(--space-2)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', cursor: 'pointer', background: 'var(--bg-input)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={form.has_variants}
+                      onChange={(e) => updateForm('has_variants', e.target.checked)}
+                      style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>El producto tiene variantes</div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Talles, colores, etc.</div>
+                    </div>
+                  </div>
+                  {form.has_variants && (
+                    <button
+                      className="btn btn-secondary btn-sm"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        router.push(`/inventory/${id}/variants`)
+                      }}
+                    >
+                      Administrar Variantes →
+                    </button>
+                  )}
+                </label>
+              </div>
             </div>
           </div>
 
@@ -668,15 +719,18 @@ export default function EditProductPage() {
             <div className="card-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
                 <div className="form-group">
-                  <label className="form-label">Stock Actual</label>
+                  <label className="form-label">Stock Global</label>
                   <input
                     className="form-input"
                     type="number"
                     step={isDecimalStock ? '0.001' : '1'}
                     value={form.stock_quantity}
                     onChange={e => updateForm('stock_quantity', e.target.value)}
+                    disabled={form.has_variants}
+                    title={form.has_variants ? "El stock global es calculado automáticamente desde las variantes." : ""}
                   />
-                  {isDecimalStock && (
+                  {form.has_variants && <span className="form-hint" style={{ color: 'var(--color-warning)' }}>El stock se calcula por las variantes.</span>}
+                  {isDecimalStock && !form.has_variants && (
                     <span className="form-hint">Permite decimales para {form.unit_type === 'weight' ? 'peso' : 'volumen'}.</span>
                   )}
                 </div>

@@ -35,6 +35,8 @@ export default function NewProductPage() {
     unit_label: 'un',
     stock_quantity: '0',
     min_stock_alert: '5',
+    show_in_store: true,
+    has_variants: false,
   })
   const [errors, setErrors] = useState({})
   
@@ -165,7 +167,9 @@ export default function NewProductPage() {
           stock_quantity: parseFloat(form.stock_quantity || 0),
           min_stock_alert: parseFloat(form.min_stock_alert || 5),
           image_url: imageUrl,
-          is_active: true
+          is_active: true,
+          show_in_store: form.show_in_store,
+          has_variants: form.has_variants
         })
 
       if (error) {
@@ -388,6 +392,38 @@ export default function NewProductPage() {
                 />
               </div>
 
+              {tenant?.ecommerce_enabled && (
+                <div className="form-group" style={{ marginTop: 'var(--space-2)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', background: 'rgba(255,255,255,0.03)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={form.show_in_store}
+                      onChange={(e) => updateForm('show_in_store', e.target.checked)}
+                      style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Mostrar en Tienda Online</div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>El producto será visible para los clientes en el catálogo público.</div>
+                    </div>
+                  </label>
+                </div>
+              )}
+
+              <div className="form-group" style={{ marginTop: 'var(--space-2)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', background: 'var(--bg-input)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={form.has_variants}
+                    onChange={(e) => updateForm('has_variants', e.target.checked)}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                  />
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>El producto tiene variantes</div>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Talles, colores, etc. Podrás gestionarlas después de guardar el producto.</div>
+                  </div>
+                </label>
+              </div>
+
               <div className="form-group" style={{ marginTop: 'var(--space-2)' }}>
                 <label className="form-label">Tipo de Unidad</label>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
@@ -509,14 +545,17 @@ export default function NewProductPage() {
             <div className="card-body">
               <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
                 <div className="form-group">
-                  <label className="form-label">Stock Actual ({form.unit_label})</label>
+                  <label className="form-label">Stock Global ({form.unit_label})</label>
                   <input 
                     className="form-input"
                     type="number"
                     step={form.unit_type === 'unit' ? '1' : '0.001'}
                     value={form.stock_quantity}
                     onChange={e => updateForm('stock_quantity', e.target.value)}
+                    disabled={form.has_variants}
+                    title={form.has_variants ? "El stock global se calculará automáticamente a partir de las variantes." : ""}
                   />
+                  {form.has_variants && <span className="form-hint" style={{ color: 'var(--color-warning)' }}>El stock se calculará por las variantes.</span>}
                 </div>
 
                 <div className="form-group">

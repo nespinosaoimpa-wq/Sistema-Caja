@@ -13,6 +13,8 @@ import dynamic from 'next/dynamic'
 import QuickProductModal from '@/components/ui/QuickProductModal'
 
 const BarcodeScanner = dynamic(() => import('@/components/ui/BarcodeScanner'), { ssr: false })
+import useScale from '@/lib/hooks/useScale'
+import VariantPickerModal from '@/components/ui/VariantPickerModal'
 
 export default function POSPage() {
   const { tenant, profile } = useAuth()
@@ -74,7 +76,12 @@ export default function POSPage() {
   // Order (Pedido) modal state
   const [showOrderModal, setShowOrderModal] = useState(false)
   const [orderForm, setOrderForm] = useState({ customer_name: '', customer_phone: '', delivery_date: '', advance_payment: '' })
-  const [savingOrder, setSavingOrder] = useState(false)
+  // Scale state
+  const { isSupported: scaleSupported, isConnected: scaleConnected, weight: scaleWeight, error: scaleError, connect: connectScale, disconnect: disconnectScale } = useScale()
+
+  // Variant picker state
+  const [showVariantPicker, setShowVariantPicker] = useState(false)
+  const [selectedProductForVariants, setSelectedProductForVariants] = useState(null)
 
   const confirmInstallmentSale = async () => {
     if (!installmentForm.customer_name.trim()) {
@@ -378,7 +385,7 @@ export default function POSPage() {
     // Not found → open quick product creation
     setQuickProductBarcode(barcode)
     setShowQuickProduct(true)
-  }, [products, addToCart, toast])
+  }, [products, toast]) // Note: removed addToCart from dependencies to avoid loop, it's safe to call directly in component scope if not wrapped
 
   // Handle saving a quick product (from camera scan)
   const handleQuickProductSaved = useCallback((product, addToCartFlag) => {
@@ -402,17 +409,36 @@ export default function POSPage() {
     return product.unit_type === 'weight' || product.unit_type === 'volume'
   }
 
-  const addToCart = (product) => {
+  const addToCart = (product, variant = null) => {
+    if (product.has_variants && !variant) {
+      setSelectedProductForVariants(product)
+      setShowVariantPicker(true)
+      return
+    }
+
     setCart(prev => {
-      const existing = prev.find(item => item.id === product.id)
+      const existing = prev.find(item => item.id === product.id && (!variant || item.variant_id === variant.id))
+      const unitPrice = variant ? (Number(product.sale_price) + Number(variant.extra_price || 0)) : Number(product.sale_price)
+      
       if (existing) {
-        const increment = isDecimalProduct(product) ? 1 : 1
-        const newQty = existing.qty + increment
+        // If scale is connected and it's a weight product, override qty with scale weight
+        const increment = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : (isDecimalProduct(product) ? 1 : 1)
+        const newQty = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : existing.qty + increment
         return prev.map(item => 
-          item.id === product.id ? { ...item, qty: newQty, subtotal: newQty * item.sale_price } : item
+          (item.id === product.id && (!variant || item.variant_id === variant.id)) ? { ...item, qty: newQty, subtotal: newQty * unitPrice } : item
         )
       }
-      return [...prev, { ...product, qty: 1, subtotal: product.sale_price }]
+
+      const initialQty = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : 1
+      return [...prev, { 
+        ...product, 
+        qty: initialQty, 
+        sale_price: unitPrice, // Overwrite sale_price if variant has extra_price
+        subtotal: initialQty * unitPrice,
+        variant_id: variant?.id || null,
+        variant_label: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
+        variant_stock_quantity: variant ? variant.stock_quantity : null
+      }]
     })
   }
 
@@ -701,7 +727,8 @@ export default function POSPage() {
         quantity: item.qty, 
         unit_price: item.sale_price, 
         cost_price: item.cost_price, 
-        subtotal: item.subtotal
+        subtotal: item.subtotal,
+        variant_id: item.variant_id || null
       }))
 
       const { error: itemsError } = await supabase.from('sale_items').insert(itemsToInsert)
@@ -743,10 +770,19 @@ export default function POSPage() {
           await supabase
             .from('products')
             .update({ 
-              stock_quantity: item.stock_quantity - item.qty,
+              stock_quantity: Math.max(0, item.stock_quantity - item.qty),
               last_sold_at: new Date().toISOString()
             })
             .eq('id', item.id)
+
+          if (item.variant_id && typeof item.variant_stock_quantity !== 'undefined') {
+            await supabase
+              .from('product_variants')
+              .update({
+                stock_quantity: Math.max(0, item.variant_stock_quantity - item.qty)
+              })
+              .eq('id', item.variant_id)
+          }
         }
       }
 
@@ -816,9 +852,12 @@ export default function POSPage() {
     if (!activeShift) return toast.error('Debes abrir un turno de caja primero')
 
     // 1b. Stock validation before checkout
-    const outOfStock = cart.filter(item => item.qty > item.stock_quantity)
+    const outOfStock = cart.filter(item => {
+      const stockToCheck = item.variant_id ? item.variant_stock_quantity : item.stock_quantity
+      return item.qty > (stockToCheck || 0)
+    })
     if (outOfStock.length > 0) {
-      const names = outOfStock.map(i => `"${i.name}" (pedido: ${i.qty}, stock: ${i.stock_quantity})`).join(', ')
+      const names = outOfStock.map(i => `"${i.name}${i.variant_label ? ' ' + i.variant_label : ''}" (pedido: ${i.qty}, stock: ${i.variant_id ? i.variant_stock_quantity : i.stock_quantity})`).join(', ')
       toast.error(`Stock insuficiente para: ${names}`)
       return
     }
@@ -1096,7 +1135,12 @@ export default function POSPage() {
                     key={product.id} 
                     className="autocomplete-item"
                     onClick={() => {
-                      addToCart(product)
+                      if (product.has_variants) {
+                        setSelectedProductForVariants(product)
+                        setShowVariantPicker(true)
+                      } else {
+                        addToCart(product)
+                      }
                       setSearchTerm('')
                     }}
                   >
@@ -1159,7 +1203,10 @@ export default function POSPage() {
                           )}
                         </div>
                         <div>
-                          <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9375rem' }}>{item.name}</div>
+                          <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.9375rem' }}>
+                            {item.name}
+                            {item.variant_label && <span style={{ fontSize: '0.7rem', background: 'var(--bg-card)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', marginLeft: '6px' }}>{item.variant_label}</span>}
+                          </div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
                             {item.categories?.name || 'Sin Categoría'} · Stock: {item.stock_quantity}
                           </div>
@@ -1177,12 +1224,23 @@ export default function POSPage() {
                                 step="0.001"
                                 value={item.qty}
                                 onChange={(e) => updateQtyDirect(item.id, e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    updateQtyDirect(item.id, e.target.value)
+                                  } else if (e.key === 't' && item.unit_type === 'weight' && scaleConnected && scaleWeight > 0) {
+                                    e.preventDefault()
+                                    updateQtyDirect(item.id, scaleWeight)
+                                  }
+                                }}
                                 style={{
                                   width: '70px', padding: '6px', textAlign: 'center',
                                   background: 'transparent', border: 'none',
                                   color: '#fff', fontWeight: 600, fontSize: '0.875rem'
                                 }}
                               />
+                              <div style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.7rem', color: 'var(--text-muted)', pointerEvents: 'none' }}>
+                                {item.unit_label || 'un'}
+                              </div>
                             </div>
                           ) : (
                             <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
@@ -1247,7 +1305,14 @@ export default function POSPage() {
                   {filteredProductsByCategory.map(product => (
                     <div 
                       key={product.id} 
-                      onClick={() => addToCart(product)}
+                      onClick={() => {
+                        if (product.has_variants) {
+                          setSelectedProductForVariants(product)
+                          setShowVariantPicker(true)
+                        } else {
+                          addToCart(product)
+                        }
+                      }}
                       style={{
                         background: 'var(--bg-card)',
                         border: '1px solid var(--border-color)',
@@ -1974,6 +2039,27 @@ export default function POSPage() {
               )}
             </div>
 
+            <div style={{ display: 'flex', gap: '8px' }}>
+              {scaleSupported && (
+                <button 
+                  className={`btn ${scaleConnected ? 'btn-primary' : 'btn-secondary'}`}
+                  onClick={() => scaleConnected ? disconnectScale() : connectScale()}
+                  title={scaleConnected ? "Desconectar Balanza" : "Conectar Balanza Digital"}
+                  style={{ padding: '0 12px', fontSize: '0.875rem' }}
+                >
+                  ⚖️ {scaleConnected ? `${scaleWeight || '0.000'} kg` : 'Balanza'}
+                </button>
+              )}
+              <button 
+                className="btn btn-secondary" 
+                onClick={() => setIsFullscreen(!isFullscreen)}
+                title="Pantalla Completa"
+                style={{ padding: '0 12px' }}
+              >
+                {isFullscreen ? <Minimize size={16} /> : <Maximize size={16} />}
+              </button>
+            </div>
+
             <div style={{ display: 'flex', gap: '12px' }}>
               {posnetStep !== 3 && (
                 <button
@@ -2328,22 +2414,29 @@ export default function POSPage() {
         </div>
       )}
 
+      {/* Modals */}
+      <VariantPickerModal 
+        isOpen={showVariantPicker} 
+        product={selectedProductForVariants} 
+        onSelect={(product, variant) => addToCart(product, variant)} 
+        onClose={() => { setShowVariantPicker(false); setSelectedProductForVariants(null) }} 
+      />
+
+      {showQuickProduct && (
+        <QuickProductModal 
+          isOpen={showQuickProduct} 
+          onClose={() => setShowQuickProduct(false)} 
+          initialBarcode={quickProductBarcode} 
+          onSaved={handleQuickProductSaved} 
+        />
+      )}
+
       {/* ===== CAMERA BARCODE SCANNER ===== */}
       <BarcodeScanner
         isOpen={showCameraScanner}
         onScan={handleCameraScan}
         onClose={() => setShowCameraScanner(false)}
         title="Escanear Código de Barras"
-      />
-
-      {/* ===== QUICK PRODUCT MODAL (barcode not found) ===== */}
-      <QuickProductModal
-        isOpen={showQuickProduct}
-        barcode={quickProductBarcode}
-        onClose={() => { setShowQuickProduct(false); setQuickProductBarcode('') }}
-        onSaved={handleQuickProductSaved}
-        mode="pos"
-      />
     </>
   )
 }
