@@ -6,7 +6,9 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
 import { Save, Camera, Plus, ImagePlus, X } from 'lucide-react'
-import BarcodeScanner from '@/components/ui/BarcodeScanner'
+import dynamic from 'next/dynamic'
+
+const BarcodeScanner = dynamic(() => import('@/components/ui/BarcodeScanner'), { ssr: false })
 
 export default function NewProductPage() {
   const { tenant, profile } = useAuth()

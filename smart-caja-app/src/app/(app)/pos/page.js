@@ -9,8 +9,10 @@ import {
   Maximize, Minimize, Search, Zap, Edit, Banknote, CreditCard, Landmark, Split, Calendar, 
   ShoppingCart, User, Clock, Trash2, Printer, Package, ArrowLeftRight, CheckCircle
 } from 'lucide-react'
-import BarcodeScanner from '@/components/ui/BarcodeScanner'
+import dynamic from 'next/dynamic'
 import QuickProductModal from '@/components/ui/QuickProductModal'
+
+const BarcodeScanner = dynamic(() => import('@/components/ui/BarcodeScanner'), { ssr: false })
 
 export default function POSPage() {
   const { tenant, profile } = useAuth()

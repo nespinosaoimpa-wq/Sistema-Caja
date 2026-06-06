@@ -7,8 +7,10 @@ import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
 import { formatCurrency, formatDateTime } from '@/lib/utils/formatters'
 import { Package, Upload, Tag, AlertTriangle, DollarSign, FileText } from 'lucide-react'
-import BarcodeScanner from '@/components/ui/BarcodeScanner'
+import dynamic from 'next/dynamic'
 import QuickProductModal from '@/components/ui/QuickProductModal'
+
+const BarcodeScanner = dynamic(() => import('@/components/ui/BarcodeScanner'), { ssr: false })
 
 export default function InventoryPage() {
   const { tenant } = useAuth()
