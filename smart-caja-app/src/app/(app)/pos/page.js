@@ -11,10 +11,10 @@ import {
 } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import QuickProductModal from '@/components/ui/QuickProductModal'
-
-const BarcodeScanner = dynamic(() => import('@/components/ui/BarcodeScanner'), { ssr: false })
 import useScale from '@/lib/hooks/useScale'
 import VariantPickerModal from '@/components/ui/VariantPickerModal'
+
+const BarcodeScanner = dynamic(() => import('@/components/ui/BarcodeScanner'), { ssr: false })
 
 export default function POSPage() {
   const { tenant, profile } = useAuth()
@@ -76,6 +76,7 @@ export default function POSPage() {
   // Order (Pedido) modal state
   const [showOrderModal, setShowOrderModal] = useState(false)
   const [orderForm, setOrderForm] = useState({ customer_name: '', customer_phone: '', delivery_date: '', advance_payment: '' })
+  const [savingOrder, setSavingOrder] = useState(false)
   // Scale state
   const { isSupported: scaleSupported, isConnected: scaleConnected, weight: scaleWeight, error: scaleError, connect: connectScale, disconnect: disconnectScale } = useScale()
 
@@ -2437,6 +2438,7 @@ export default function POSPage() {
         onScan={handleCameraScan}
         onClose={() => setShowCameraScanner(false)}
         title="Escanear Código de Barras"
+      />
     </>
   )
 }
