@@ -159,19 +159,24 @@ export default function BarcodeScanner({ isOpen, onScan, onClose, title = 'Escan
           }
         }
 
-        // Fallback to ZXing @zxing/browser if Native BarcodeDetector isn't available
-        const { BrowserMultiFormatReader } = await import('@zxing/browser')
-        const { DecodeHintType, BarcodeFormat } = await import('@zxing/library')
+        // Fallback to ZXing using UMD script injection to bypass Webpack minification bugs
+        if (!window.ZXing) {
+          await new Promise((resolve, reject) => {
+            const script = document.createElement('script')
+            script.src = 'https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js'
+            script.async = true
+            script.onload = resolve
+            script.onerror = reject
+            document.head.appendChild(script)
+          })
+        }
+        
+        const BrowserMultiFormatReader = window.ZXing.BrowserMultiFormatReader
         
         if (!mounted) return
 
-        const hints = new Map()
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
-          BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
-          BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.QR_CODE, BarcodeFormat.ITF
-        ])
-        // Removed TRY_HARDER to improve FPS on fallback
-        const codeReader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 200 })
+        // window.ZXing.BrowserMultiFormatReader defaults to scanning all formats if no hints are provided
+        const codeReader = new BrowserMultiFormatReader(null, { delayBetweenScanAttempts: 200 })
         codeReaderRef.current = codeReader
 
         if (!videoRef.current) return
