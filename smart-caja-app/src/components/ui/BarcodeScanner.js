@@ -99,72 +99,89 @@ export default function BarcodeScanner({ isOpen, onScan, onClose, title = 'Escan
         setIsLoading(true)
         setError(null)
 
-        // Dynamic import to avoid SSR issues
+        const constraints = {
+          video: {
+            facingMode: 'environment',
+            width: { ideal: 1280 },
+            height: { ideal: 720 }
+          }
+        }
+
+        // Try Native BarcodeDetector first (Ultra-fast ML Kit on Chrome/Android)
+        if ('BarcodeDetector' in window) {
+          try {
+            const barcodeDetector = new window.BarcodeDetector({ 
+              formats: ['ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39', 'qr_code', 'itf'] 
+            })
+            
+            const stream = await navigator.mediaDevices.getUserMedia(constraints)
+            if (!mounted) {
+              stream.getTracks().forEach(t => t.stop())
+              return
+            }
+            
+            if (videoRef.current) {
+              videoRef.current.srcObject = stream
+              // Need to wait for video to play
+              await new Promise(resolve => {
+                videoRef.current.onloadedmetadata = () => {
+                  videoRef.current.play().then(resolve).catch(resolve)
+                }
+              })
+            }
+            
+            controlsRef.current = { stop: () => stream.getTracks().forEach(t => t.stop()) }
+            setIsLoading(false)
+
+            const detectLoop = async () => {
+              if (!mounted) return
+              if (videoRef.current && videoRef.current.readyState >= 2 && !scanCooldown.current) {
+                try {
+                  const barcodes = await barcodeDetector.detect(videoRef.current)
+                  if (barcodes.length > 0) {
+                    handleScan(barcodes[0].rawValue)
+                  }
+                } catch(e) {}
+              }
+              if (mounted) requestAnimationFrame(detectLoop)
+            }
+            detectLoop()
+            
+            // Check flash support
+            try {
+              const track = stream.getVideoTracks()[0]
+              if (track?.getCapabilities?.()?.torch) setHasFlash(true)
+            } catch(e) {}
+
+            return // Native detector running successfully
+          } catch(e) {
+            console.error("Native BarcodeDetector failed, falling back to ZXing", e)
+          }
+        }
+
+        // Fallback to ZXing @zxing/browser if Native BarcodeDetector isn't available
         const { BrowserMultiFormatReader } = await import('@zxing/browser')
         const { DecodeHintType, BarcodeFormat } = await import('@zxing/library')
         
         if (!mounted) return
 
-        // Set up hints to improve detection rate (TRY_HARDER + explicit formats)
         const hints = new Map()
-        const formats = [
-          BarcodeFormat.EAN_13,
-          BarcodeFormat.EAN_8,
-          BarcodeFormat.UPC_A,
-          BarcodeFormat.UPC_E,
-          BarcodeFormat.CODE_128,
-          BarcodeFormat.CODE_39,
-          BarcodeFormat.QR_CODE,
-          BarcodeFormat.ITF,
-        ]
-        hints.set(DecodeHintType.POSSIBLE_FORMATS, formats)
-        hints.set(DecodeHintType.TRY_HARDER, true)
-
-        const codeReader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 300 })
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, [
+          BarcodeFormat.EAN_13, BarcodeFormat.EAN_8, BarcodeFormat.UPC_A, BarcodeFormat.UPC_E,
+          BarcodeFormat.CODE_128, BarcodeFormat.CODE_39, BarcodeFormat.QR_CODE, BarcodeFormat.ITF
+        ])
+        // Removed TRY_HARDER to improve FPS on fallback
+        const codeReader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 200 })
         codeReaderRef.current = codeReader
 
-        // Get available cameras
-        const devices = await BrowserMultiFormatReader.listVideoInputDevices()
-        
-        if (!mounted) return
-        
-        if (!devices || devices.length === 0) {
-          setError('No se encontró ninguna cámara en este dispositivo.')
-          setIsLoading(false)
-          return
-        }
-
-        // Prefer back camera
-        const backCamera = devices.find(d => 
-          d.label.toLowerCase().includes('back') || 
-          d.label.toLowerCase().includes('rear') ||
-          d.label.toLowerCase().includes('trasera') ||
-          d.label.toLowerCase().includes('environment')
-        ) || devices[devices.length - 1] // last camera is usually the back one
-
         if (!videoRef.current) return
-
-        const constraints = {
-          video: {
-            deviceId: backCamera.deviceId,
-            width: { ideal: 1920, min: 1280 },
-            height: { ideal: 1080, min: 720 },
-            facingMode: 'environment'
-          }
-        }
 
         const controls = await codeReader.decodeFromConstraints(
           constraints,
           videoRef.current,
           (result, err) => {
             if (!mounted) return
-            if (result) {
-              handleScan(result.getText())
-            }
-            // NotFoundException is normal (no barcode in frame), suppress it
-            if (err && err.name !== 'NotFoundException') {
-              // Only log unexpected errors
-            }
+            if (result) handleScan(result.getText())
           }
         )
 
@@ -176,13 +193,12 @@ export default function BarcodeScanner({ isOpen, onScan, onClose, title = 'Escan
         controlsRef.current = controls
         setIsLoading(false)
 
-        // Check flash/torch support
+        // Check flash/torch support for ZXing stream
         try {
           const stream = videoRef.current?.srcObject
           if (stream) {
             const track = stream.getVideoTracks()[0]
-            const capabilities = track?.getCapabilities?.()
-            if (capabilities?.torch) setHasFlash(true)
+            if (track?.getCapabilities?.()?.torch) setHasFlash(true)
           }
         } catch(e) {}
 
