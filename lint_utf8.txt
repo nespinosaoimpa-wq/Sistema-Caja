@@ -1,0 +1,471 @@
+﻿
+> smart-caja-app@0.1.0 lint
+> eslint
+
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\app\(app)\analytics\page.js
+  33:7  error  Error: Cannot access variable before it is declared
+
+`loadData` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  31 |   useEffect(() => {
+  32 |     if (tenant?.id && tenant?.subscription_plan !== 'basic') {
+> 33 |       loadData()
+     |       ^^^^^^^^ `loadData` accessed before it is declared
+  34 |     }
+  35 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  36 |   }, [tenant?.id, timeRange])
+
+   36 |   }, [tenant?.id, timeRange])
+   37 |
+>  38 |   async function loadData() {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  39 |     setLoading(true)
+      | ^^^^^^^^^^^^^^^^^^^^
+>  40 |     try {
+      ÔÇª
+      | ^^^^^^^^^^^^^^^^^^^^
+> 151 |     setLoading(false)
+      | ^^^^^^^^^^^^^^^^^^^^
+> 152 |   }
+      | ^^^^ `loadData` is declared here
+  153 |
+  154 |   return (
+  155 |     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)' }}>  react-hooks/immutability
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\app\(app)\branches\page.js
+  20:7  error    Error: Cannot access variable before it is declared
+
+`loadBranches` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  18 |   useEffect(() => {
+  19 |     if (tenant?.id && tenant.subscription_plan === 'enterprise') {
+> 20 |       loadBranches()
+     |       ^^^^^^^^^^^^ `loadBranches` accessed before it is declared
+  21 |     } else {
+  22 |       setLoading(false)
+  23 |     }
+
+  24 |   }, [tenant])
+  25 |
+> 26 |   const loadBranches = async () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 27 |     setLoading(true)
+     | ^^^^^^^^^^^^^^^^^^^^
+> 28 |     const { data, error } = await supabase
+     ÔÇª
+     | ^^^^^^^^^^^^^^^^^^^^
+> 35 |     setLoading(false)
+     | ^^^^^^^^^^^^^^^^^^^^
+> 36 |   }
+     | ^^^^ `loadBranches` is declared here
+  37 |
+  38 |   // Verificaci├│n de Plan
+  39 |   if (loading) return <div style={{ padding: 'var(--space-8)' }}>Cargando...</div>  react-hooks/immutability
+  22:7  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  20 |       loadBranches()
+  21 |     } else {
+> 22 |       setLoading(false)
+     |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  23 |     }
+  24 |   }, [tenant])
+  25 |                                                                    react-hooks/set-state-in-effect
+  24:6  warning  React Hook useEffect has a missing dependency: 'loadBranches'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           react-hooks/exhaustive-deps
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\app\(app)\dashboard\page.js
+   32:7   error    Error: Cannot access variable before it is declared
+
+`loadStats` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  30 |   useEffect(() => {
+  31 |     if (tenant?.id) {
+> 32 |       loadStats()
+     |       ^^^^^^^^^ `loadStats` accessed before it is declared
+  33 |     }
+  34 |   }, [tenant?.id])
+  35 |
+
+   34 |   }, [tenant?.id])
+   35 |
+>  36 |   const loadStats = async () => {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  37 |     setLoading(true)
+      | ^^^^^^^^^^^^^^^^^^^^
+>  38 |     
+      ÔÇª
+      | ^^^^^^^^^^^^^^^^^^^^
+> 151 |     }
+      | ^^^^^^^^^^^^^^^^^^^^
+> 152 |   }
+      | ^^^^ `loadStats` is declared here
+  153 |
+  154 |   // Verification of quickstart onboarding steps
+  155 |   // 1. Configured details if address or custom values set                                                                                                                                                react-hooks/immutability
+   34:6   warning  React Hook useEffect has a missing dependency: 'loadStats'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     react-hooks/exhaustive-deps
+  483:48  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  481 |                   ) : (
+  482 |                     recentSales.map((sale, i) => {
+> 483 |                       const mins = Math.floor((Date.now() - new Date(sale.created_at).getTime()) / 60000)
+      |                                                ^^^^^^^^^^ Cannot call impure function
+  484 |                       const timeAgo = mins < 1 ? 'Ahora' : mins < 60 ? `Hace ${mins} min` : mins < 1440 ? `Hace ${Math.floor(mins/60)}h` : `Hace ${Math.floor(mins/1440)}d`
+  485 |                       const pmIcons = { cash: '­ƒÆÁ', debit: '­ƒÆ│', credit: '­ƒÆ│', transfer: '­ƒô▓', combined: '­ƒöÇ', installment: '­ƒôï' }
+  486 |                       return (  react-hooks/purity
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\app\(app)\installments\page.js
+  21:7  error    Error: Cannot access variable before it is declared
+
+`loadPlans` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  19 |   useEffect(() => {
+  20 |     if (tenant?.id && tenant?.subscription_plan !== 'basic') {
+> 21 |       loadPlans()
+     |       ^^^^^^^^^ `loadPlans` accessed before it is declared
+  22 |     }
+  23 |   }, [tenant?.id])
+  24 |
+
+  23 |   }, [tenant?.id])
+  24 |
+> 25 |   const loadPlans = async () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 26 |     setLoading(true)
+     | ^^^^^^^^^^^^^^^^^^^^
+> 27 |     const { data } = await supabase
+     ÔÇª
+     | ^^^^^^^^^^^^^^^^^^^^
+> 34 |     setLoading(false)
+     | ^^^^^^^^^^^^^^^^^^^^
+> 35 |   }
+     | ^^^^ `loadPlans` is declared here
+  36 |
+  37 |   const handlePayInstallment = async (planId, amount) => {
+  38 |     try {  react-hooks/immutability
+  23:6  warning  React Hook useEffect has missing dependencies: 'loadPlans' and 'tenant?.subscription_plan'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\app\(app)\inventory\[id]\page.js
+  71:7  error  Error: Cannot access variable before it is declared
+
+`loadProduct` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  69 |   useEffect(() => {
+  70 |     if (tenant?.id && id) {
+> 71 |       loadProduct()
+     |       ^^^^^^^^^^^ `loadProduct` accessed before it is declared
+  72 |       loadCategories()
+  73 |     }
+  74 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+
+   75 |   }, [tenant?.id, id])
+   76 |
+>  77 |   async function loadProduct() {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  78 |     setLoading(true)
+      | ^^^^^^^^^^^^^^^^^^^^
+>  79 |     try {
+      ÔÇª
+      | ^^^^^^^^^^^^^^^^^^^^
+> 111 |     }
+      | ^^^^^^^^^^^^^^^^^^^^
+> 112 |   }
+      | ^^^^ `loadProduct` is declared here
+  113 |
+  114 |   async function loadCategories() {
+  115 |     const { data } = await supabase                                                                                                                                                                                                                                                                                                                                                                                                          react-hooks/immutability
+  72:7  error  Error: Cannot access variable before it is declared
+
+`loadCategories` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  70 |     if (tenant?.id && id) {
+  71 |       loadProduct()
+> 72 |       loadCategories()
+     |       ^^^^^^^^^^^^^^ `loadCategories` accessed before it is declared
+  73 |     }
+  74 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  75 |   }, [tenant?.id, id])
+
+  112 |   }
+  113 |
+> 114 |   async function loadCategories() {
+      |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 115 |     const { data } = await supabase
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 116 |       .from('categories')
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 117 |       .select('*')
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 118 |       .eq('tenant_id', tenant.id)
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 119 |       .order('name')
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 120 |
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 121 |     setCategories(data || [])
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 122 |   }
+      | ^^^^ `loadCategories` is declared here
+  123 |
+  124 |   const updateForm = (key, value) => {
+  125 |     setForm(prev => ({ ...prev, [key]: value }))  react-hooks/immutability
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\app\(app)\inventory\new\page.js
+  40:7  error  Error: Cannot access variable before it is declared
+
+`loadCategories` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  38 |   useEffect(() => {
+  39 |     if (tenant?.id) {
+> 40 |       loadCategories()
+     |       ^^^^^^^^^^^^^^ `loadCategories` accessed before it is declared
+  41 |     }
+  42 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  43 |   }, [tenant?.id])
+
+  43 |   }, [tenant?.id])
+  44 |
+> 45 |   async function loadCategories() {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 46 |     const { data } = await supabase
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 47 |       .from('categories')
+     ÔÇª
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 55 |     }
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 56 |   }
+     | ^^^^ `loadCategories` is declared here
+  57 |
+  58 |   const updateForm = (key, value) => {
+  59 |     setForm(prev => ({ ...prev, [key]: value }))  react-hooks/immutability
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\app\(app)\inventory\page.js
+  94:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  92 |   useEffect(() => {
+  93 |     if (tenant?.id) {
+> 94 |       loadInventory()
+     |       ^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  95 |     }
+  96 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  97 |   }, [tenant?.id])  react-hooks/set-state-in-effect
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\app\(app)\orders\page.js
+  28:7  error    Error: Cannot access variable before it is declared
+
+`loadOrders` is accessed before it is declared, which prevents the earlier access from updating when this value changes over time.
+
+  26 |     // Orders feature available for Professional and Enterprise
+  27 |     if (tenant?.id && (tenant.subscription_plan === 'professional' || tenant.subscription_plan === 'enterprise')) {
+> 28 |       loadOrders()
+     |       ^^^^^^^^^^ `loadOrders` accessed before it is declared
+  29 |     } else {
+  30 |       setLoading(false)
+  31 |     }
+
+  32 |   }, [tenant])
+  33 |
+> 34 |   const loadOrders = async () => {
+     |   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 35 |     setLoading(true)
+     | ^^^^^^^^^^^^^^^^^^^^
+> 36 |     const { data, error } = await supabase
+     ÔÇª
+     | ^^^^^^^^^^^^^^^^^^^^
+> 43 |     setLoading(false)
+     | ^^^^^^^^^^^^^^^^^^^^
+> 44 |   }
+     | ^^^^ `loadOrders` is declared here
+  45 |
+  46 |   const moveOrder = async (orderId, newStatus) => {
+  47 |     const { error } = await supabase  react-hooks/immutability
+  30:7  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  28 |       loadOrders()
+  29 |     } else {
+> 30 |       setLoading(false)
+     |       ^^^^^^^^^^ Avoid calling setState() directly within an effect
+  31 |     }
+  32 |   }, [tenant])
+  33 |                                                                                                                                 react-hooks/set-state-in-effect
+  32:6  warning  React Hook useEffect has a missing dependency: 'loadOrders'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        react-hooks/exhaustive-deps
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\app\(app)\pos\page.js
+  236:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  234 |   useEffect(() => {
+  235 |     if (tenant?.id) {
+> 236 |       loadData()
+      |       ^^^^^^^^ Avoid calling setState() directly within an effect
+  237 |     }
+  238 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  239 |   }, [tenant?.id])  react-hooks/set-state-in-effect
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\app\(app)\sales\page.js
+  21:33  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `tenant.id`, but the source dependencies were [sales.length, supabase, tenant?.id]. Inferred different dependency than source.
+
+  19 |   const [paymentFilter, setPaymentFilter] = useState('all')
+  20 |
+> 21 |   const loadSales = useCallback(async (reset = false) => {
+     |                                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 22 |     if (reset) {
+     | ^^^^^^^^^^^^^^^^
+> 23 |       setLoading(true)
+     ÔÇª
+     | ^^^^^^^^^^^^^^^^
+> 50 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+     | ^^^^^^^^^^^^^^^^
+> 51 |   }, [sales.length, supabase, tenant?.id])
+     | ^^^^ Could not preserve existing manual memoization
+  52 |
+  53 |   useEffect(() => {
+  54 |     if (tenant?.id) {  react-hooks/preserve-manual-memoization
+  50:5   warning  Unused eslint-disable directive (no problems were reported from 'react-hooks/exhaustive-deps')
+  55:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  53 |   useEffect(() => {
+  54 |     if (tenant?.id) {
+> 55 |       loadSales(true)
+     |       ^^^^^^^^^ Avoid calling setState() directly within an effect
+  56 |     }
+  57 |     // eslint-disable-next-line react-hooks/exhaustive-deps
+  58 |   }, [tenant?.id])                                                                                                                     react-hooks/set-state-in-effect
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\app\(app)\settings\page.js
+    75:7    error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  73 |   useEffect(() => {
+  74 |     if (tenant) {
+> 75 |       setForm({
+     |       ^^^^^^^ Avoid calling setState() directly within an effect
+  76 |         name: tenant.name || '',
+  77 |         business_type: tenant.business_type || '',
+  78 |         address: tenant.address || '',                                                                                                                                                       react-hooks/set-state-in-effect
+   104:9    error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  102 |       
+  103 |       if (isSuspended) {
+> 104 |         setActiveTab('billing')
+      |         ^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  105 |       } else if (tabParam) {
+  106 |         setActiveTab(tabParam)
+  107 |       }                                                                                                                                                                                      react-hooks/set-state-in-effect
+   129:6    warning  React Hook useCallback has missing dependencies: 'supabase' and 'toast'. Either include them or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 react-hooks/exhaustive-deps
+   148:6    warning  React Hook useCallback has a missing dependency: 'supabase'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/exhaustive-deps
+   153:7    error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  151 |   useEffect(() => {
+  152 |     if (activeTab === 'users') {
+> 153 |       fetchTeamMembers()
+      |       ^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  154 |     } else if (activeTab === 'branches') {
+  155 |       fetchBranches()
+  156 |     }                                                                                                                                                                   react-hooks/set-state-in-effect
+   850:25   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @next/next/no-img-element
+   986:27   warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     @next/next/no-img-element
+  1645:166  error    Error: Cannot call impure function during render
+
+`Date.now` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  1643 |                       Tu negocio est├í en el plan <strong style={{ textTransform: 'capitalize', color: '#fff' }}>{tenant?.subscription_plan || 'B├ísico'}</strong>. 
+  1644 |                       {tenant?.subscription_status === 'trial' && tenant?.trial_ends_at && (
+> 1645 |                         <> Vence el {new Date(tenant.trial_ends_at).toLocaleDateString()} (Quedan {Math.max(0, Math.ceil((new Date(tenant.trial_ends_at).getTime() - Date.now()) / (24 * 60 * 60 * 1000)))} d├¡as).</>
+       |                                                                                                                                                                      ^^^^^^^^^^ Cannot call impure function
+  1646 |                       )}
+  1647 |                     </p>
+  1648 |                   </div>  react-hooks/purity
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\app\page.js
+  397:48  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  397:58  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\app\register\page.js
+  38:7  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  36 |   useEffect(() => {
+  37 |     if (inviteTenant) {
+> 38 |       setStep(2)
+     |       ^^^^^^^ Avoid calling setState() directly within an effect
+  39 |       setForm(prev => ({
+  40 |         ...prev,
+  41 |         email: inviteEmail,  react-hooks/set-state-in-effect
+
+C:\Users\Notebook4-OIMPA\Desktop\Smart Caja\smart-caja-app\src\components\layout\AppLayout.js
+   87:7   error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  85 |   useEffect(() => {
+  86 |     if (!loading) {
+> 87 |       setLoadingTimeout(false)
+     |       ^^^^^^^^^^^^^^^^^ Avoid calling setState() directly within an effect
+  88 |       return
+  89 |     }
+  90 |  react-hooks/set-state-in-effect
+  492:13  warning  Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   @next/next/no-img-element
+
+Ô£û 33 problems (23 errors, 10 warnings)
+  0 errors and 1 warning potentially fixable with the `--fix` option.
+

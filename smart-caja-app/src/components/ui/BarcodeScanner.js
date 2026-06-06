@@ -137,7 +137,7 @@ export default function BarcodeScanner({ isOpen, onScan, onClose, title = 'Escan
               handleScan(result.getText())
             }
             // NotFoundException is normal (no barcode in frame), suppress it
-            if (err && !(err instanceof NotFoundException) && !(err?.name === 'NotFoundException')) {
+            if (err && err.name !== 'NotFoundException') {
               // Only log unexpected errors
             }
           }
