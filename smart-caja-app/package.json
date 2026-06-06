@@ -24,6 +24,7 @@
   },
   "devDependencies": {
     "eslint": "^9",
-    "eslint-config-next": "16.2.6"
+    "eslint-config-next": "16.2.6",
+    "puppeteer": "^25.1.0"
   }
 }
