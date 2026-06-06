@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
@@ -44,6 +44,20 @@ export default function AppLayout({ children }) {
   const pathname = usePathname()
   const router = useRouter()
   const { user, tenant, profile, loading, profileLoaded, profileError, signOut, reloadProfile } = useAuth()
+
+  // Mobile drawer state
+  const [drawerOpen, setDrawerOpen] = useState(false)
+  const closeDrawer = useCallback(() => setDrawerOpen(false), [])
+
+  // Close drawer on route change
+  useEffect(() => { setDrawerOpen(false) }, [pathname])
+
+  // Prevent body scroll when drawer open
+  useEffect(() => {
+    if (typeof document === 'undefined') return
+    document.body.style.overflow = drawerOpen ? 'hidden' : ''
+    return () => { document.body.style.overflow = '' }
+  }, [drawerOpen])
 
   useEffect(() => {
     if (!loading && !user) {
@@ -517,10 +531,48 @@ export default function AppLayout({ children }) {
   const isSettingsPage = pathname === '/settings'
   const showBlocker = isSuspended && !isSettingsPage
 
+  // Quick-access bottom tab items for mobile
+  const BOTTOM_TABS = [
+    { href: '/pos', label: 'Caja', icon: '🛒' },
+    { href: '/inventory', label: 'Inventario', icon: '📦' },
+    { href: '/sales', label: 'Ventas', icon: '🧾' },
+    { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+  ]
+
   return (
     <div className="app-layout">
-      {/* Sidebar */}
-      <aside className="app-sidebar">
+      {/* ===== MOBILE HEADER ===== */}
+      <div className="mobile-header">
+        <button
+          className={`hamburger-btn ${drawerOpen ? 'open' : ''}`}
+          onClick={() => setDrawerOpen(d => !d)}
+          aria-label={drawerOpen ? 'Cerrar menú' : 'Abrir menú'}
+        >
+          <span /><span /><span />
+        </button>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          {tenant?.logo_url ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={tenant.logo_url} alt="Logo" style={{ width: '28px', height: '28px', borderRadius: '6px', objectFit: 'cover' }} />
+          ) : (
+            <div style={{ width: '28px', height: '28px', borderRadius: '6px', background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))', display: 'flex', alignItems: 'center', justifyContent: 'center', fontWeight: 800, color: '#fff', fontSize: '0.8rem' }}>
+              {tenant?.name ? tenant.name.substring(0,2).toUpperCase() : 'SC'}
+            </div>
+          )}
+          <span style={{ fontWeight: 700, fontSize: '1rem', color: '#fff' }}>
+            {tenant?.name || 'Smart Caja'}
+          </span>
+        </div>
+        <div style={{ width: '40px' }} />{/* spacer for centering */}
+      </div>
+
+      {/* ===== SIDEBAR BACKDROP (mobile) ===== */}
+      {drawerOpen && (
+        <div className="sidebar-backdrop" onClick={closeDrawer} />
+      )}
+
+      {/* ===== SIDEBAR ===== */}
+      <aside className={`app-sidebar ${drawerOpen ? 'drawer-open' : ''}`}>
         <div className="sidebar-logo">
           {tenant?.logo_url && !logoError ? (
             <img 
@@ -600,6 +652,23 @@ export default function AppLayout({ children }) {
           </button>
         </div>
       </aside>
+
+      {/* ===== BOTTOM TAB BAR (mobile) ===== */}
+      <nav className="bottom-tab-bar">
+        {BOTTOM_TABS.map(tab => {
+          const isActive = pathname?.startsWith(tab.href)
+          return (
+            <Link
+              key={tab.href}
+              href={isSuspended ? '/settings' : tab.href}
+              className={`bottom-tab-item ${isActive ? 'active' : ''}`}
+            >
+              <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{tab.icon}</span>
+              {tab.label}
+            </Link>
+          )
+        })}
+      </nav>
 
       {/* Main Content */}
       <main className="app-main">

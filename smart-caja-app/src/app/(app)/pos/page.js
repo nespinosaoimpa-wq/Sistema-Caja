@@ -9,6 +9,8 @@ import {
   Maximize, Minimize, Search, Zap, Edit, Banknote, CreditCard, Landmark, Split, Calendar, 
   ShoppingCart, User, Clock, Trash2, Printer, Package, ArrowLeftRight, CheckCircle
 } from 'lucide-react'
+import BarcodeScanner from '@/components/ui/BarcodeScanner'
+import QuickProductModal from '@/components/ui/QuickProductModal'
 
 export default function POSPage() {
   const { tenant, profile } = useAuth()
@@ -37,6 +39,11 @@ export default function POSPage() {
   const [mixedCash, setMixedCash] = useState('')
   const [mixedCard, setMixedCard] = useState('')
   const [mixedMP, setMixedMP] = useState('')
+
+  // Camera barcode scanner state
+  const [showCameraScanner, setShowCameraScanner] = useState(false)
+  const [quickProductBarcode, setQuickProductBarcode] = useState('')
+  const [showQuickProduct, setShowQuickProduct] = useState(false)
 
   // Receipt modal state
   const [receiptData, setReceiptData] = useState(null)
@@ -342,9 +349,52 @@ export default function POSPage() {
       addToCart(matches[0])
       setSearchTerm('')
     } else {
-      toast.warning('Producto no encontrado')
+      // If it looks like a barcode (mostly digits/alphanumeric, short), offer to create product
+      const looksLikeBarcode = /^[a-zA-Z0-9\-]{4,20}$/.test(searchTerm.trim())
+      if (looksLikeBarcode) {
+        setQuickProductBarcode(searchTerm.trim())
+        setShowQuickProduct(true)
+        setSearchTerm('')
+      } else {
+        toast.warning('Producto no encontrado')
+      }
     }
   }
+
+  // Handle camera scan result
+  const handleCameraScan = useCallback((barcode) => {
+    setShowCameraScanner(false)
+    
+    // First try exact match
+    const exactMatch = products.find(p => p.barcode === barcode || p.reference_code === barcode)
+    if (exactMatch) {
+      addToCart(exactMatch)
+      toast.success(`"${exactMatch.name}" agregado al carrito`)
+      return
+    }
+
+    // Not found → open quick product creation
+    setQuickProductBarcode(barcode)
+    setShowQuickProduct(true)
+  }, [products, addToCart, toast])
+
+  // Handle saving a quick product (from camera scan)
+  const handleQuickProductSaved = useCallback((product, addToCartFlag) => {
+    setShowQuickProduct(false)
+    setQuickProductBarcode('')
+    
+    // Add the new product to the local products list
+    setProducts(prev => {
+      const exists = prev.find(p => p.id === product.id)
+      if (exists) return prev
+      return [...prev, product]
+    })
+
+    if (addToCartFlag) {
+      addToCart(product)
+      toast.success(`"${product.name}" creado y agregado al carrito`)
+    }
+  }, [addToCart, toast])
 
   const isDecimalProduct = (product) => {
     return product.unit_type === 'weight' || product.unit_type === 'volume'
@@ -1002,27 +1052,39 @@ export default function POSPage() {
             </div>
           </div>
 
-          {/* Search bar with Autocomplete Dropdown */}
+          {/* Search bar with Camera Scan button and Autocomplete Dropdown */}
           <div className="search-wrapper">
-            <form onSubmit={handleBarcodeSubmit} style={{ width: '100%' }}>
-              <div className="form-input-icon">
-                <span className="input-icon" style={{ top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
-                  <Search size={18} />
-                </span>
-                <input 
-                  id="barcode-scanner"
-                  ref={barcodeInputRef}
-                  className="form-input" 
-                  placeholder="Buscar por nombre, rubro, código o escanear código de barras..."
-                  value={searchTerm}
-                  onChange={e => setSearchTerm(e.target.value)}
-                  onFocus={() => setShowDropdown(true)}
-                  onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
-                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '1rem', padding: '14px 16px 14px 42px' }}
-                  autoFocus
-                />
-              </div>
-            </form>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
+              <form onSubmit={handleBarcodeSubmit} style={{ flex: 1 }}>
+                <div className="form-input-icon">
+                  <span className="input-icon" style={{ top: '50%', transform: 'translateY(-50%)', display: 'flex', alignItems: 'center' }}>
+                    <Search size={18} />
+                  </span>
+                  <input 
+                    id="barcode-scanner"
+                    ref={barcodeInputRef}
+                    className="form-input" 
+                    placeholder="Buscar por nombre, rubro, código o escanear código de barras..."
+                    value={searchTerm}
+                    onChange={e => setSearchTerm(e.target.value)}
+                    onFocus={() => setShowDropdown(true)}
+                    onBlur={() => setTimeout(() => setShowDropdown(false), 200)}
+                    style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: '#fff', fontSize: '1rem', padding: '14px 16px 14px 42px' }}
+                    autoFocus
+                  />
+                </div>
+              </form>
+              {/* Camera scan button */}
+              <button
+                type="button"
+                className="scan-cam-btn"
+                onClick={() => setShowCameraScanner(true)}
+                title="Escanear código de barras con cámara"
+              >
+                📷 <span style={{ display: 'none' }}>Escanear</span>
+                <span style={{ fontSize: '0.8125rem' }}>Cámara</span>
+              </button>
+            </div>
 
             {/* Dropdown list */}
             {showDropdown && searchTerm.trim() !== '' && filteredProducts.length > 0 && (
@@ -2263,6 +2325,23 @@ export default function POSPage() {
           </div>
         </div>
       )}
+
+      {/* ===== CAMERA BARCODE SCANNER ===== */}
+      <BarcodeScanner
+        isOpen={showCameraScanner}
+        onScan={handleCameraScan}
+        onClose={() => setShowCameraScanner(false)}
+        title="Escanear Código de Barras"
+      />
+
+      {/* ===== QUICK PRODUCT MODAL (barcode not found) ===== */}
+      <QuickProductModal
+        isOpen={showQuickProduct}
+        barcode={quickProductBarcode}
+        onClose={() => { setShowQuickProduct(false); setQuickProductBarcode('') }}
+        onSaved={handleQuickProductSaved}
+        mode="pos"
+      />
     </>
   )
 }

@@ -641,3 +641,205 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   color: #060e20;
   font-size: 0.875rem;
 }
+
+/* ============================================================
+   RESPONSIVE — Mobile Layout (< 768px)
+   ============================================================ */
+
+/* Mobile top header bar */
+.mobile-header {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0;
+  height: 60px;
+  background: var(--bg-sidebar);
+  border-bottom: 1px solid var(--border-color);
+  z-index: 200;
+  align-items: center;
+  padding: 0 16px;
+  justify-content: space-between;
+}
+
+/* Hamburger button */
+.hamburger-btn {
+  width: 40px; height: 40px;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 5px; cursor: pointer;
+  background: transparent; border: none; padding: 4px;
+  border-radius: var(--radius-md);
+  transition: background 0.2s;
+}
+.hamburger-btn:hover { background: rgba(255,255,255,0.06); }
+.hamburger-btn span {
+  display: block; width: 22px; height: 2px;
+  background: var(--text-primary);
+  border-radius: 2px;
+  transition: all 0.3s cubic-bezier(0.16,1,0.3,1);
+}
+.hamburger-btn.open span:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+.hamburger-btn.open span:nth-child(2) { opacity: 0; transform: scaleX(0); }
+.hamburger-btn.open span:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+/* Sidebar drawer backdrop */
+.sidebar-backdrop {
+  display: none;
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 149;
+  backdrop-filter: blur(2px);
+  animation: fadeIn 0.25s ease;
+}
+
+/* Bottom tab bar (mobile navigation) */
+.bottom-tab-bar {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  height: 64px;
+  background: var(--bg-card);
+  border-top: 1px solid var(--border-color);
+  z-index: 150;
+  align-items: stretch;
+  justify-content: space-around;
+  padding: 0;
+  box-shadow: 0 -4px 20px rgba(0,0,0,0.3);
+}
+
+.bottom-tab-item {
+  flex: 1;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  gap: 3px; cursor: pointer;
+  color: var(--text-muted);
+  font-size: 0.625rem; font-weight: 600;
+  text-decoration: none;
+  transition: color 0.2s;
+  text-transform: uppercase; letter-spacing: 0.03em;
+  border: none; background: transparent;
+  padding: 8px 0 4px;
+  position: relative;
+}
+.bottom-tab-item.active { color: var(--color-primary); }
+.bottom-tab-item.active::before {
+  content: '';
+  position: absolute; top: 0; left: 20%; right: 20%;
+  height: 2px;
+  background: var(--color-primary);
+  border-radius: 0 0 4px 4px;
+}
+.bottom-tab-item svg { width: 22px; height: 22px; }
+
+/* Floating Action Button */
+.fab {
+  position: fixed;
+  bottom: 80px; right: 20px;
+  width: 56px; height: 56px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #b76dff, #ddb7ff);
+  border: none;
+  box-shadow: 0 6px 20px rgba(183,109,255,0.45);
+  display: none;
+  align-items: center; justify-content: center;
+  font-size: 1.5rem; cursor: pointer;
+  z-index: 140;
+  transition: transform 0.2s, box-shadow 0.2s;
+  animation: fabPop 0.4s cubic-bezier(0.16,1,0.3,1);
+}
+.fab:hover { transform: scale(1.08); box-shadow: 0 8px 28px rgba(183,109,255,0.6); }
+.fab:active { transform: scale(0.95); }
+
+@keyframes fabPop {
+  from { transform: scale(0) rotate(-45deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0deg); opacity: 1; }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* Camera scan button */
+.scan-cam-btn {
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  padding: 0 16px; height: 48px;
+  background: rgba(221,183,255,0.1);
+  border: 1px solid rgba(221,183,255,0.3);
+  border-radius: var(--radius-md);
+  color: var(--color-primary);
+  font-weight: 700; font-size: 0.875rem;
+  cursor: pointer; white-space: nowrap;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+.scan-cam-btn:hover {
+  background: rgba(221,183,255,0.18);
+  border-color: rgba(221,183,255,0.5);
+  transform: translateY(-1px);
+}
+.scan-cam-btn:active { transform: translateY(0); }
+
+/* Add to cart flash animation */
+@keyframes cartFlash {
+  0%   { box-shadow: 0 0 0 0 rgba(78,222,163,0.6); }
+  50%  { box-shadow: 0 0 0 12px rgba(78,222,163,0); }
+  100% { box-shadow: 0 0 0 0 rgba(78,222,163,0); }
+}
+.cart-item-added { animation: cartFlash 0.4s ease; }
+
+@media (max-width: 768px) {
+  /* Show mobile header & bottom bar, hide desktop sidebar */
+  .mobile-header { display: flex; }
+  .bottom-tab-bar { display: flex; }
+  .fab { display: flex; }
+
+  /* Sidebar becomes a drawer */
+  .app-sidebar {
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.16,1,0.3,1);
+    z-index: 200;
+    box-shadow: none;
+  }
+  .app-sidebar.drawer-open {
+    transform: translateX(0);
+    box-shadow: 8px 0 40px rgba(0,0,0,0.5);
+  }
+  .sidebar-backdrop { display: block; }
+
+  /* Main content: full width, with top & bottom padding for fixed bars */
+  .app-main {
+    margin-left: 0;
+    padding-top: 60px; /* mobile header height */
+    padding-bottom: 64px; /* bottom tab bar height */
+  }
+
+  /* App header & content padding reduced */
+  .app-header {
+    height: auto;
+    min-height: 60px;
+    padding: 12px 16px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .app-content {
+    padding: 0 16px 24px 16px;
+  }
+  .app-content > * { padding-top: var(--space-4); }
+}
+
+@media (max-width: 480px) {
+  .app-header { padding: 10px 12px; }
+  .app-content { padding: 0 12px 20px 12px; }
+}
+
+/* Glow effects used in POS */
+.glow-primary:not(:disabled):hover {
+  box-shadow: 0 0 20px rgba(183,109,255,0.4);
+}
+.glow-secondary:not(:disabled):hover {
+  box-shadow: 0 0 16px rgba(78,222,163,0.3);
+}
+/* truncate utility */
+.truncate {
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+

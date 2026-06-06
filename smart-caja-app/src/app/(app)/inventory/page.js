@@ -1,12 +1,14 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
 import { formatCurrency, formatDateTime } from '@/lib/utils/formatters'
 import { Package, Upload, Tag, AlertTriangle, DollarSign, FileText } from 'lucide-react'
+import BarcodeScanner from '@/components/ui/BarcodeScanner'
+import QuickProductModal from '@/components/ui/QuickProductModal'
 
 export default function InventoryPage() {
   const { tenant } = useAuth()
@@ -26,6 +28,40 @@ export default function InventoryPage() {
   const [creatingCategory, setCreatingCategory] = useState(false)
   const [categoryError, setCategoryError] = useState(null)
   const [importingFile, setImportingFile] = useState(false)
+
+  // Camera scanner state
+  const [showCameraScanner, setShowCameraScanner] = useState(false)
+  const [quickProductBarcode, setQuickProductBarcode] = useState('')
+  const [showQuickProduct, setShowQuickProduct] = useState(false)
+
+  // Handle camera scan in inventory context
+  const handleCameraScan = useCallback((barcode) => {
+    setShowCameraScanner(false)
+    // Search for the product in current inventory
+    const found = products.find(p => p.barcode === barcode || p.reference_code === barcode)
+    if (found) {
+      // Navigate to product edit page
+      router.push(`/inventory/${found.id}`)
+      toast.success(`Producto encontrado: "${found.name}"`)
+    } else {
+      // Not found — open quick create
+      setQuickProductBarcode(barcode)
+      setShowQuickProduct(true)
+    }
+  }, [products, router, toast])
+
+  // Handle quick product saved from scan
+  const handleQuickProductSaved = useCallback((product) => {
+    setShowQuickProduct(false)
+    setQuickProductBarcode('')
+    // Add to local product list
+    setProducts(prev => {
+      const exists = prev.find(p => p.id === product.id)
+      if (exists) return prev
+      return [product, ...prev]
+    })
+    toast.success(`"${product.name}" agregado al inventario`)
+  }, [toast])
 
   async function loadInventory() {
     const cacheKeyCats = `smartcaja_categories_${tenant.id}`
@@ -254,15 +290,24 @@ export default function InventoryPage() {
             Gestioná tus productos, precios y stock
           </p>
         </div>
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: '12px', alignItems: 'center' }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
+          {/* Camera scan button - visible on desktop too */}
+          <button
+            className="scan-cam-btn"
+            onClick={() => setShowCameraScanner(true)}
+            title="Escanear código de barras con cámara"
+            style={{ height: '40px' }}
+          >
+            📷 Cámara
+          </button>
           <button className="btn btn-ghost" onClick={() => setShowImportModal(true)} style={{ border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Upload size={16} /> Importar CSV
+            <Upload size={16} /> <span style={{ display: 'none', whiteSpace: 'nowrap' }}>Importar CSV</span><span className="truncate">CSV</span>
           </button>
           <button className="btn btn-ghost" onClick={() => setShowCategoryModal(true)} style={{ border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <Tag size={16} /> Categorías
+            <Tag size={16} /> <span style={{ display: 'none', whiteSpace: 'nowrap' }}>Categorías</span><span className="truncate">Cats.</span>
           </button>
-          <button className="btn btn-primary" onClick={() => router.push('/inventory/new')}>
-            + Nuevo Producto
+          <button className="btn btn-primary" onClick={() => router.push('/inventory/new')} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+            + <span style={{ whiteSpace: 'nowrap' }}>Nuevo Producto</span>
           </button>
         </div>
       </div>
@@ -308,7 +353,7 @@ export default function InventoryPage() {
         {/* Filters */}
         <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
           <div className="card-body" style={{ padding: 'var(--space-4)', display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap', alignItems: 'center' }}>
-            <div className="form-input-icon" style={{ flex: '1', minWidth: '250px' }}>
+            <div className="form-input-icon" style={{ flex: '1', minWidth: '220px' }}>
               <span className="input-icon">🔍</span>
               <input 
                 className="form-input" 
@@ -317,6 +362,14 @@ export default function InventoryPage() {
                 onChange={e => setSearchTerm(e.target.value)}
               />
             </div>
+            {/* Camera scan shortcut in filter bar */}
+            <button
+              className="scan-cam-btn btn-sm"
+              onClick={() => setShowCameraScanner(true)}
+              style={{ height: '48px', paddingLeft: '14px', paddingRight: '14px' }}
+            >
+              📷
+            </button>
             <select 
               className="form-select" 
               style={{ width: 'auto', minWidth: '200px' }}
@@ -603,6 +656,33 @@ export default function InventoryPage() {
       <style>{`
         @keyframes spin { to { transform: rotate(360deg); } }
       `}</style>
+
+      {/* ===== FAB - Mobile New Product ===== */}
+      <button
+        className="fab"
+        onClick={() => router.push('/inventory/new')}
+        title="Nuevo Producto"
+        aria-label="Agregar nuevo producto"
+      >
+        +
+      </button>
+
+      {/* ===== CAMERA BARCODE SCANNER ===== */}
+      <BarcodeScanner
+        isOpen={showCameraScanner}
+        onScan={handleCameraScan}
+        onClose={() => setShowCameraScanner(false)}
+        title="Buscar Producto"
+      />
+
+      {/* ===== QUICK PRODUCT MODAL (barcode not found in inventory) ===== */}
+      <QuickProductModal
+        isOpen={showQuickProduct}
+        barcode={quickProductBarcode}
+        onClose={() => { setShowQuickProduct(false); setQuickProductBarcode('') }}
+        onSaved={handleQuickProductSaved}
+        mode="inventory"
+      />
     </div>
   )
 }

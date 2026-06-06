@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
 import { Save, Camera, Plus, ImagePlus, X } from 'lucide-react'
+import BarcodeScanner from '@/components/ui/BarcodeScanner'
 
 export default function NewProductPage() {
   const { tenant, profile } = useAuth()
@@ -14,6 +15,9 @@ export default function NewProductPage() {
   const supabase = createClient()
   const barcodeInputRef = useRef(null)
   const imageInputRef = useRef(null)
+
+  // Camera scanner state
+  const [showCameraScanner, setShowCameraScanner] = useState(false)
 
   const [categories, setCategories] = useState([])
   const [loading, setLoading] = useState(false)
@@ -533,14 +537,12 @@ export default function NewProductPage() {
                   <label className="form-label flex items-center justify-between">
                     <span>Código de Barras</span>
                     <button 
-                      className="btn btn-ghost btn-sm" 
-                      style={{ padding: '2px 8px', fontSize: '0.6875rem' }}
-                      onClick={() => {
-                        toast.info('Poné el cursor en el campo y escaneá')
-                        barcodeInputRef.current?.focus()
-                      }}
+                      type="button"
+                      className="btn btn-ghost btn-sm scan-cam-btn"
+                      style={{ padding: '4px 10px', fontSize: '0.6875rem', height: '28px' }}
+                      onClick={() => setShowCameraScanner(true)}
                     >
-                      <Camera size={14} style={{ marginRight: '6px' }} /> Escanear
+                      <Camera size={14} style={{ marginRight: '4px' }} /> Escanear
                     </button>
                   </label>
                   <input 
@@ -664,6 +666,23 @@ export default function NewProductPage() {
           </div>
         </div>
       )}
+
+      {/* ===== CAMERA BARCODE SCANNER for barcode field ===== */}
+      <BarcodeScanner
+        isOpen={showCameraScanner}
+        onScan={(barcode) => {
+          setShowCameraScanner(false)
+          updateForm('barcode', barcode)
+          toast.success(`Código escaneado: ${barcode}`)
+          // Focus name field after scanning
+          setTimeout(() => {
+            const nameInput = document.querySelector('input[placeholder*="Coca Cola"], input[placeholder*="producto"]')
+            if (nameInput) nameInput.focus()
+          }, 300)
+        }}
+        onClose={() => setShowCameraScanner(false)}
+        title="Escanear Código del Producto"
+      />
 
     </div>
   )
