@@ -1,8 +1,6 @@
 'use client'
 
 import { useEffect, useRef, useState, useCallback } from 'react'
-import { BrowserMultiFormatReader } from '@zxing/browser'
-import { DecodeHintType, BarcodeFormat } from '@zxing/library'
 
 /**
  * BarcodeScanner — Componente de escáner de código de barras por cámara
@@ -161,7 +159,9 @@ export default function BarcodeScanner({ isOpen, onScan, onClose, title = 'Escan
           }
         }
 
-        // Removed dynamic imports, using static imports from top of file
+        // Fallback to ZXing @zxing/browser if Native BarcodeDetector isn't available
+        const { BrowserMultiFormatReader } = await import('@zxing/browser')
+        const { DecodeHintType, BarcodeFormat } = await import('@zxing/library')
         
         if (!mounted) return
 
