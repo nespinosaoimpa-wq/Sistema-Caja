@@ -336,6 +336,43 @@ export default function POSPage() {
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
 
+  const isDecimalProduct = (product) => {
+    return product.unit_type === 'weight' || product.unit_type === 'volume'
+  }
+
+  const addToCart = (product, variant = null) => {
+    if (product.has_variants && !variant) {
+      setSelectedProductForVariants(product)
+      setShowVariantPicker(true)
+      return
+    }
+
+    setCart(prev => {
+      const existing = prev.find(item => item.id === product.id && (!variant || item.variant_id === variant.id))
+      const unitPrice = variant ? (Number(product.sale_price) + Number(variant.extra_price || 0)) : Number(product.sale_price)
+      
+      if (existing) {
+        // If scale is connected and it's a weight product, override qty with scale weight
+        const increment = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : (isDecimalProduct(product) ? 1 : 1)
+        const newQty = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : existing.qty + increment
+        return prev.map(item => 
+          (item.id === product.id && (!variant || item.variant_id === variant.id)) ? { ...item, qty: newQty, subtotal: newQty * unitPrice } : item
+        )
+      }
+
+      const initialQty = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : 1
+      return [...prev, { 
+        ...product, 
+        qty: initialQty, 
+        sale_price: unitPrice, // Overwrite sale_price if variant has extra_price
+        subtotal: initialQty * unitPrice,
+        variant_id: variant?.id || null,
+        variant_label: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
+        variant_stock_quantity: variant ? variant.stock_quantity : null
+      }]
+    })
+  }
+
   const handleBarcodeSubmit = (e) => {
     e.preventDefault()
     if (!searchTerm) return
@@ -403,43 +440,6 @@ export default function POSPage() {
       toast.success(`"${product.name}" creado y agregado al carrito`)
     }
   }, [addToCart, toast])
-
-  const isDecimalProduct = (product) => {
-    return product.unit_type === 'weight' || product.unit_type === 'volume'
-  }
-
-  const addToCart = (product, variant = null) => {
-    if (product.has_variants && !variant) {
-      setSelectedProductForVariants(product)
-      setShowVariantPicker(true)
-      return
-    }
-
-    setCart(prev => {
-      const existing = prev.find(item => item.id === product.id && (!variant || item.variant_id === variant.id))
-      const unitPrice = variant ? (Number(product.sale_price) + Number(variant.extra_price || 0)) : Number(product.sale_price)
-      
-      if (existing) {
-        // If scale is connected and it's a weight product, override qty with scale weight
-        const increment = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : (isDecimalProduct(product) ? 1 : 1)
-        const newQty = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : existing.qty + increment
-        return prev.map(item => 
-          (item.id === product.id && (!variant || item.variant_id === variant.id)) ? { ...item, qty: newQty, subtotal: newQty * unitPrice } : item
-        )
-      }
-
-      const initialQty = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : 1
-      return [...prev, { 
-        ...product, 
-        qty: initialQty, 
-        sale_price: unitPrice, // Overwrite sale_price if variant has extra_price
-        subtotal: initialQty * unitPrice,
-        variant_id: variant?.id || null,
-        variant_label: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
-        variant_stock_quantity: variant ? variant.stock_quantity : null
-      }]
-    })
-  }
 
   const updateQty = (id, delta) => {
     setCart(prev => prev.map(item => {
@@ -2425,7 +2425,7 @@ export default function POSPage() {
         <QuickProductModal 
           isOpen={showQuickProduct} 
           onClose={() => setShowQuickProduct(false)} 
-          initialBarcode={quickProductBarcode} 
+          barcode={quickProductBarcode} 
           onSaved={handleQuickProductSaved} 
         />
       )}

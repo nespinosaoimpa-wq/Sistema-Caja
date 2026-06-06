@@ -9,11 +9,11 @@ const puppeteer = require('puppeteer');
   });
   
   page.on('pageerror', err => {
-    console.log('PAGE ERROR:', err.toString());
+    console.log('PAGE ERROR STACK:', err.stack || err.toString());
   });
 
   try {
-    await page.goto('http://localhost:3001/pos', { waitUntil: 'networkidle0' });
+    await page.goto('http://localhost:3000/pos', { waitUntil: 'networkidle0' });
   } catch (err) {
     console.log('GOTO ERROR:', err);
   }
