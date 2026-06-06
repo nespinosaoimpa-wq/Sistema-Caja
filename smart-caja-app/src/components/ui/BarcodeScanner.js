@@ -100,11 +100,27 @@ export default function BarcodeScanner({ isOpen, onScan, onClose, title = 'Escan
         setError(null)
 
         // Dynamic import to avoid SSR issues
-        const { BrowserMultiFormatReader, NotFoundException } = await import('@zxing/browser')
+        const { BrowserMultiFormatReader } = await import('@zxing/browser')
+        const { DecodeHintType, BarcodeFormat } = await import('@zxing/library')
         
         if (!mounted) return
 
-        const codeReader = new BrowserMultiFormatReader()
+        // Set up hints to improve detection rate (TRY_HARDER + explicit formats)
+        const hints = new Map()
+        const formats = [
+          BarcodeFormat.EAN_13,
+          BarcodeFormat.EAN_8,
+          BarcodeFormat.UPC_A,
+          BarcodeFormat.UPC_E,
+          BarcodeFormat.CODE_128,
+          BarcodeFormat.CODE_39,
+          BarcodeFormat.QR_CODE,
+          BarcodeFormat.ITF,
+        ]
+        hints.set(DecodeHintType.POSSIBLE_FORMATS, formats)
+        hints.set(DecodeHintType.TRY_HARDER, true)
+
+        const codeReader = new BrowserMultiFormatReader(hints, { delayBetweenScanAttempts: 300 })
         codeReaderRef.current = codeReader
 
         // Get available cameras
@@ -128,8 +144,17 @@ export default function BarcodeScanner({ isOpen, onScan, onClose, title = 'Escan
 
         if (!videoRef.current) return
 
-        const controls = await codeReader.decodeFromVideoDevice(
-          backCamera.deviceId,
+        const constraints = {
+          video: {
+            deviceId: backCamera.deviceId,
+            width: { ideal: 1920, min: 1280 },
+            height: { ideal: 1080, min: 720 },
+            facingMode: 'environment'
+          }
+        }
+
+        const controls = await codeReader.decodeFromConstraints(
+          constraints,
           videoRef.current,
           (result, err) => {
             if (!mounted) return
