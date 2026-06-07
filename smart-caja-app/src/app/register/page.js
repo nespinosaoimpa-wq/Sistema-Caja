@@ -124,7 +124,7 @@ function RegisterContent() {
         // 2. Insertar perfil vinculado al tenant de la invitación
         const { error: profileError } = await supabase
           .from('profiles')
-          .upsert({
+          .insert({
             id: userId,
             tenant_id: inviteTenant,
             full_name: form.full_name,
@@ -157,7 +157,7 @@ function RegisterContent() {
         // 3. Crear perfil de dueño
         const { error: profileError } = await supabase
           .from('profiles')
-          .upsert({
+          .insert({
             id: userId,
             tenant_id: tenantData.id,
             full_name: form.full_name,
