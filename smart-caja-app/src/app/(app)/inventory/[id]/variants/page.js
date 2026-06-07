@@ -72,6 +72,7 @@ export default function ProductVariantsPage() {
 
     const payload = {
       product_id: id,
+      tenant_id: tenant.id,
       sku: newSku.trim() || null,
       size: newSize.trim() || null,
       color: newColor.trim() || null,
