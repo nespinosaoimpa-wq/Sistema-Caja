@@ -33,7 +33,6 @@ const NAV_ITEMS = [
   { href: '/analytics', label: 'Estadísticas', icon: TrendingUp, minPlan: 'professional' },
   { href: '/installments', label: 'Cuotas', icon: CreditCard, minPlan: 'professional' },
   { href: '/purchases', label: 'Compras', icon: ShoppingBag, minPlan: 'enterprise' },
-  { href: '/tutorials', label: 'Tutoriales', icon: HelpCircle, minPlan: 'basic' },
 ]
 
 const PLAN_WEIGHTS = {
@@ -628,6 +627,12 @@ export default function AppLayout({ children }) {
         </nav>
 
         <div style={{ padding: 'var(--space-6) 0', marginTop: 'auto' }}>
+          <Link href="/tutorials" className={`sidebar-nav-item ${pathname === '/tutorials' ? 'active' : ''}`} style={{ marginBottom: '4px' }}>
+             <span className="icon" style={{ opacity: 0.7, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <HelpCircle size={18} />
+             </span>
+             Tutoriales
+          </Link>
           <Link href="/settings" className={`sidebar-nav-item ${pathname === '/settings' ? 'active' : ''}`}>
              <span className="icon" style={{ opacity: 0.6, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                <Settings size={18} />
