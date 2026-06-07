@@ -160,7 +160,7 @@ export default function BarcodeScanner({ isOpen, onScan, onClose, title = 'Escan
         }
 
         // Fallback to ZXing using UMD script injection to bypass Webpack minification bugs
-        if (!window.ZXing) {
+        if (!window.ZXingBrowser) {
           await new Promise((resolve, reject) => {
             const script = document.createElement('script')
             script.src = 'https://unpkg.com/@zxing/browser@0.1.5/umd/zxing-browser.min.js'
@@ -171,11 +171,11 @@ export default function BarcodeScanner({ isOpen, onScan, onClose, title = 'Escan
           })
         }
         
-        const BrowserMultiFormatReader = window.ZXing.BrowserMultiFormatReader
+        const BrowserMultiFormatReader = window.ZXingBrowser.BrowserMultiFormatReader
         
         if (!mounted) return
 
-        // window.ZXing.BrowserMultiFormatReader defaults to scanning all formats if no hints are provided
+        // window.ZXingBrowser.BrowserMultiFormatReader defaults to scanning all formats if no hints are provided
         const codeReader = new BrowserMultiFormatReader(null, { delayBetweenScanAttempts: 200 })
         codeReaderRef.current = codeReader
 
