@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { generateSlug } from '@/lib/utils/formatters'
 import { useToast } from '@/lib/hooks/useToast'
+import { getInitialCategories } from '@/lib/config/rubroConfig'
 
 function RegisterContent() {
   const router = useRouter()
@@ -49,11 +50,15 @@ function RegisterContent() {
 
   const businessTypes = [
     { value: 'general', label: 'General / Kiosco', desc: 'Almacén, kiosco, minimarket' },
-    { value: 'supermercado', label: 'Supermercado', desc: 'Cadena o comercio grande' },
-    { value: 'ropa', label: 'Ropa / Indumentaria', desc: 'Tienda de ropa y calzado' },
-    { value: 'lubricentro', label: 'Lubricentro', desc: 'Productos para vehículos' },
-    { value: 'farmacia', label: 'Farmacia', desc: 'Medicamentos y salud' },
-    { value: 'ferreteria', label: 'Ferretería', desc: 'Herramientas y materiales' },
+    { value: 'supermercado', label: 'Supermercado', desc: 'Cadena o de cercanía' },
+    { value: 'ropa', label: 'Ropa / Indumentaria', desc: 'Tienda de ropa, talle y color' },
+    { value: 'lubricentro', label: 'Lubricentro', desc: 'Aceites sueltos, filtros' },
+    { value: 'farmacia', label: 'Farmacia', desc: 'Medicamentos y perfumería' },
+    { value: 'ferreteria', label: 'Ferretería', desc: 'Tornillos, herramientas' },
+    { value: 'carniceria', label: 'Carnicería / Fiambrería', desc: 'Vacuno, cerdo, pollo, fiambres' },
+    { value: 'verduleria', label: 'Verdulería / Frutería', desc: 'Venta al peso, frutas y verduras' },
+    { value: 'panaderia', label: 'Panadería / Pastelería', desc: 'Panes, facturas, sandwiches' },
+    { value: 'ecommerce', label: 'E-commerce', desc: 'Tienda online con pedidos' },
     { value: 'otro', label: 'Otro', desc: 'Cualquier otro rubro' },
   ]
 
@@ -73,7 +78,12 @@ function RegisterContent() {
   const validateStep2 = () => {
     const errs = {}
     if (!form.full_name.trim()) errs.full_name = 'Ingresá tu nombre'
-    if (!form.email.includes('@')) errs.email = 'Email inválido'
+    const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/
+    if (!form.email.trim()) {
+      errs.email = 'Ingresá tu email'
+    } else if (!emailRegex.test(form.email.trim())) {
+      errs.email = 'Email inválido. Ej: usuario@dominio.com'
+    }
     
     // Solo validar teléfono si es un registro de nuevo negocio
     if (!inviteTenant) {
@@ -168,15 +178,18 @@ function RegisterContent() {
 
         if (profileError) throw profileError
 
-        // 4. Crear categoría inicial por defecto
+        // 4. Crear categorías iniciales correspondientes al rubro
+        const initialCategories = getInitialCategories(form.business_type)
+        const categoriesToInsert = initialCategories.map(cat => ({
+          tenant_id: tenantData.id,
+          name: cat.name,
+          icon: cat.icon,
+          color: cat.color || '#7C3AED',
+        }))
+
         const { error: catError } = await supabase
           .from('categories')
-          .insert({
-            tenant_id: tenantData.id,
-            name: 'General',
-            icon: '📦',
-            color: '#7C3AED',
-          })
+          .insert(categoriesToInsert)
 
         if (catError) {
           console.error('[Register] Error creating default category:', catError)
