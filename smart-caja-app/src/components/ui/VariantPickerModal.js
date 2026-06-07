@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { getRubroSizes } from '@/lib/config/rubroConfig'
@@ -12,23 +13,47 @@ import { getRubroSizes } from '@/lib/config/rubroConfig'
 export default function VariantPickerModal({ isOpen, product, onSelect, onClose }) {
   const { tenant } = useAuth()
   const supabase = createClient()
+  const router = useRouter()
   const [variants, setVariants] = useState([])
   const [loading, setLoading] = useState(true)
+  const [hasNoVariantsAtAll, setHasNoVariantsAtAll] = useState(false)
   const [selectedSize, setSelectedSize] = useState(null)
   const [selectedColor, setSelectedColor] = useState(null)
 
   const loadVariants = useCallback(async () => {
     if (!product?.id) return
     setLoading(true)
-    const { data } = await supabase
-      .from('product_variants')
-      .select('*')
-      .eq('product_id', product.id)
-      .eq('is_active', true)
-      .gt('stock_quantity', 0)
-      .order('size')
-    setVariants(data || [])
-    setLoading(false)
+    setHasNoVariantsAtAll(false)
+
+    try {
+      // First, check if there are ANY variants at all in the database (even inactive or out of stock)
+      const { data: allVars, error: countError } = await supabase
+        .from('product_variants')
+        .select('id')
+        .eq('product_id', product.id)
+        .limit(1)
+        
+      if (!countError && (!allVars || allVars.length === 0)) {
+        setHasNoVariantsAtAll(true)
+        setVariants([])
+        setLoading(false)
+        return
+      }
+
+      // If there are variants, load the active ones with stock
+      const { data } = await supabase
+        .from('product_variants')
+        .select('*')
+        .eq('product_id', product.id)
+        .eq('is_active', true)
+        .gt('stock_quantity', 0)
+        .order('size')
+      setVariants(data || [])
+    } catch (err) {
+      console.error('Error loading variants:', err)
+    } finally {
+      setLoading(false)
+    }
   }, [product?.id, supabase])
 
   useEffect(() => {
@@ -54,6 +79,22 @@ export default function VariantPickerModal({ isOpen, product, onSelect, onClose 
   const handleConfirm = () => {
     if (!selectedVariant) return
     onSelect(product, selectedVariant)
+    onClose()
+  }
+
+  const handleSellAsSimple = async () => {
+    try {
+      // Automatically disable variants in database to heal data consistency
+      await supabase
+        .from('products')
+        .update({ has_variants: false })
+        .eq('id', product.id)
+    } catch (err) {
+      console.error('Error auto-healing has_variants column:', err)
+    }
+
+    // Call onSelect with variant = null to sell it as a regular product
+    onSelect({ ...product, has_variants: false }, null)
     onClose()
   }
 
@@ -95,6 +136,42 @@ export default function VariantPickerModal({ isOpen, product, onSelect, onClose 
         {loading ? (
           <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
             Cargando variantes...
+          </div>
+        ) : hasNoVariantsAtAll ? (
+          <div style={{ textAlign: 'center', padding: '16px 8px', color: 'var(--text-muted)' }}>
+            <div style={{ fontSize: '2.5rem', marginBottom: '16px' }}>⚠️</div>
+            <h4 style={{ color: 'var(--text-primary)', fontWeight: 600, fontSize: '1rem', marginBottom: '8px' }}>
+              Este producto no tiene variantes configuradas
+            </h4>
+            <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: '1.4' }}>
+              Tiene activada la opción "tiene variantes", pero no agregaste ninguna talle o color. ¿Deseas venderlo como un producto simple o ir a configurar sus variantes?
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <button 
+                onClick={handleSellAsSimple}
+                className="btn btn-primary"
+                style={{ width: '100%', justifyContent: 'center', fontWeight: 700 }}
+              >
+                Vender como producto simple
+              </button>
+              <button 
+                onClick={() => {
+                  onClose()
+                  router.push(`/inventory/${product.id}/variants`)
+                }}
+                className="btn btn-secondary"
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                Configurar variantes
+              </button>
+              <button 
+                onClick={onClose}
+                className="btn btn-ghost"
+                style={{ width: '100%', justifyContent: 'center' }}
+              >
+                Cancelar
+              </button>
+            </div>
           </div>
         ) : variants.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '32px', color: 'var(--text-muted)' }}>
