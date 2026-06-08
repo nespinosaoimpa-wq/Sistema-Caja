@@ -40,6 +40,21 @@ export function AuthProvider({ children }) {
         const errData = await res.json().catch(() => ({}))
         const errMsg = errData.error || `HTTP error ${res.status}`
         console.error('Error loading profile from API:', errMsg)
+        
+        // Auto-recover if session is unauthorized or expired
+        if (res.status === 401 || errMsg === 'No autenticado') {
+          console.warn('[useAuth] Session expired or unauthorized server-side — signing out')
+          try {
+            await supabase.auth.signOut()
+          } catch (e) {}
+          setUser(null)
+          setProfile(null)
+          setTenant(null)
+          setProfileLoaded(false)
+          setProfileError(null)
+          return
+        }
+
         setProfileError(errMsg)
         setProfileLoaded(false)
         return

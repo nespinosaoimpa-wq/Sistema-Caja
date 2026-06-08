@@ -135,7 +135,7 @@ export default function AppLayout({ children }) {
         console.warn('[AppLayout] profileLoaded still false after retries — showing timeout error')
         setVerifyTimeout(true)
       }
-    }, 12000)
+    }, 25000)
 
     return () => clearTimeout(timer)
   }, [loading, user, profileLoaded, profileError, reloadProfile])
@@ -264,29 +264,17 @@ export default function AppLayout({ children }) {
       }
       console.log('Paso 1 Completado. Tenant ID:', tenantData.id)
 
-      // 2. Create or Update Profile
+      // 2. Create or Update Profile using upsert to avoid primary key constraint violations
       console.log('2. Insertando/actualizando perfil...')
-      let profileSaveError;
-      if (!profile) {
-        const { error } = await supabase
-          .from('profiles')
-          .insert({
-            id: user.id,
-            tenant_id: tenantData.id,
-            full_name: user.user_metadata?.full_name || 'Propietario',
-            email: user.email,
-            role: 'owner',
-          })
-        profileSaveError = error;
-      } else {
-        const { error } = await supabase
-          .from('profiles')
-          .update({
-            tenant_id: tenantData.id,
-          })
-          .eq('id', user.id)
-        profileSaveError = error;
-      }
+      const { error: profileSaveError } = await supabase
+        .from('profiles')
+        .upsert({
+          id: user.id,
+          tenant_id: tenantData.id,
+          full_name: profile?.full_name || user.user_metadata?.full_name || 'Propietario',
+          email: profile?.email || user.email,
+          role: profile?.role || 'owner',
+        })
 
       if (profileSaveError) {
         console.error('Error en Paso 2 (Profile):', profileSaveError)

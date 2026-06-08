@@ -22,7 +22,7 @@ export async function POST(req) {
     }
 
     const data = await resend.emails.send({
-      from: 'Smart Caja <hola@smartcaja.com.ar>', // Cambiar a tu dominio verificado
+      from: 'Smart Caja <hola@cajasmart.com.ar>', // Cambiar a tu dominio verificado
       to: [to],
       subject: subject,
       html: html,

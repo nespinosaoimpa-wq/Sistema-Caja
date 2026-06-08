@@ -13,7 +13,7 @@ Debes configurar las siguientes variables de entorno en tu plataforma de hosting
 | `NEXT_PUBLIC_SUPABASE_URL` | Pública (Client) | URL del proyecto de Supabase. | `https://your-project.supabase.co` |
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Pública (Client) | Clave anónima pública de Supabase. | Clave API `anon` de Supabase |
 | `SUPABASE_SERVICE_ROLE_KEY` | Privada (Server) | Clave de servicio para omitir políticas de RLS en operaciones administrativas (como invitaciones por email). | **¡Mantener en secreto!** (Clave `service_role`) |
-| `NEXT_PUBLIC_APP_URL` | Pública (Client) | URL base de la aplicación en producción. | `https://www.smartcaja.com` |
+| `NEXT_PUBLIC_APP_URL` | Pública (Client) | URL base de la aplicación en producción. | `https://www.cajasmart.com.ar` |
 | `NEXT_PUBLIC_SUPPORT_WHATSAPP` | Pública (Client) | Número de soporte para el botón flotante (con código de país sin +). | `543425162372` (Ejemplo de Argentina) |
 | `MERCADOPAGO_ACCESS_TOKEN` | Privada (Server) | Access Token de Mercado Pago (Credenciales de Producción o Sandbox). | `APP_USR-XXXXXX-XXXXXX-...` |
 | `RESEND_API_KEY` | Privada (Server) | Clave API de Resend para el envío de correos electrónicos. | `re_XXXXXX...` |
@@ -22,26 +22,26 @@ Debes configurar las siguientes variables de entorno en tu plataforma de hosting
 
 ## 2. Configuración de Dominio Personalizado en Vercel
 
-Si vas a migrar o lanzar el sitio bajo un dominio propio como `smartcaja.com` en Vercel, sigue estos pasos:
+Si vas a migrar o lanzar el sitio bajo un dominio propio como `cajasmart.com.ar` en Vercel, sigue estos pasos:
 
 1. **Agregar el dominio en Vercel**:
    - Ve al panel de control de tu proyecto en Vercel.
    - Navega a **Settings > Domains**.
-   - Ingresa tu dominio (ej. `smartcaja.com`) y haz clic en **Add**.
-   - Vercel te sugerirá agregar tanto `smartcaja.com` como `www.smartcaja.com` (con redirección automática de uno a otro). Se recomienda tener ambos.
+   - Ingresa tu dominio (ej. `cajasmart.com.ar`) y haz clic en **Add**.
+   - Vercel te sugerirá agregar tanto `cajasmart.com.ar` como `www.cajasmart.com.ar` (con redirección automática de uno a otro). Se recomienda tener ambos.
 
 2. **Configurar los registros DNS**:
    En el proveedor donde compraste tu dominio (ej. Nic.ar, GoDaddy, Namecheap), edita la zona DNS para apuntar a Vercel:
-   - **Registro A** (para el dominio raíz `smartcaja.com`):
+   - **Registro A** (para el dominio raíz `cajasmart.com.ar`):
      - Name: `@`
      - Value: `76.76.21.21`
-   - **Registro CNAME** (para el subdominio `www.smartcaja.com`):
+   - **Registro CNAME** (para el subdominio `www.cajasmart.com.ar`):
      - Name: `www`
      - Value: `cname.vercel-dns.com`
 
 3. **Verificación y SSL**:
    - Vercel validará automáticamente la propagación de los registros DNS y generará un certificado SSL gratuito mediante Let's Encrypt para habilitar **HTTPS** de forma automática y obligatoria.
-   - Una vez propagado (puede tomar de 5 minutos a 24 horas), tu aplicación estará disponible bajo `https://www.smartcaja.com`.
+   - Una vez propagado (puede tomar de 5 minutos a 24 horas), tu aplicación estará disponible bajo `https://www.cajasmart.com.ar`.
 
 ---
 
@@ -52,10 +52,10 @@ Cuando cambies el dominio de la aplicación (de `localhost` o el subdominio prov
 1. Ve a la consola de [Supabase](https://supabase.com).
 2. Selecciona tu proyecto y ve a **Authentication > URL Configuration**.
 3. Modifica la **Site URL**:
-   - Cámbiala al dominio de tu producción: `https://www.smartcaja.com`
+   - Cámbiala al dominio de tu producción: `https://www.cajasmart.com.ar`
 4. En **Redirect URLs**, agrega las URLs de redireccionamiento adicionales para el flujo de autenticación, tales como:
-   - `https://www.smartcaja.com/**`
-   - `https://www.smartcaja.com/login`
+   - `https://www.cajasmart.com.ar/**`
+   - `https://www.cajasmart.com.ar/login`
 5. Si utilizas proveedores OAuth (como Google o Facebook):
    - Ve a **Authentication > Providers** en Supabase.
    - Asegúrate de actualizar las credenciales del cliente en la consola respectiva (Google Cloud, Meta for Developers) y configurar el callback URL provisto por Supabase.
@@ -75,7 +75,7 @@ Mercado Pago notifica a tu servidor cuando un pago es aprobado para actualizar l
 
 1. En el panel de Mercado Pago Developers, ve a **Webhooks** o **Notificaciones IPN**.
 2. Configura la URL de producción del webhook. El endpoint en tu app de Smart Caja es:
-   `https://www.smartcaja.com/api/webhooks/mercadopago`
+   `https://www.cajasmart.com.ar/api/webhooks/mercadopago`
 3. Selecciona los eventos que deseas recibir:
    - `payment` (Pago)
    - `subscription_authorized` (Suscripción autorizada - si aplica)
