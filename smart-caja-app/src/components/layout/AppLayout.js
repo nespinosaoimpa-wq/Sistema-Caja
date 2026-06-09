@@ -250,23 +250,29 @@ export default function AppLayout({ children }) {
       console.log('1. Generando slug e insertando comercio...')
       const slug = setupForm.business_name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.random().toString(36).slice(2, 6)
       
-      // 1. Create Tenant
-      const { data: tenantData, error: tenantError } = await supabase
+      // 1. Create Tenant with client-generated UUID to avoid RLS/select delay
+      const tenantId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+        ? crypto.randomUUID() 
+        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+          });
+
+      const { error: tenantError } = await supabase
         .from('tenants')
         .insert({
+          id: tenantId,
           name: setupForm.business_name,
           slug,
           business_type: setupForm.business_type,
           email: user.email,
         })
-        .select()
-        .single()
 
       if (tenantError) {
         console.error('Error en Paso 1 (Tenant):', tenantError)
         throw new Error(`Error al crear comercio: ${tenantError.message}`)
       }
-      console.log('Paso 1 Completado. Tenant ID:', tenantData.id)
+      console.log('Paso 1 Completado. Tenant ID:', tenantId)
 
       // 2. Create or Update Profile using upsert to avoid primary key constraint violations
       console.log('2. Insertando/actualizando perfil...')
@@ -274,7 +280,7 @@ export default function AppLayout({ children }) {
         .from('profiles')
         .upsert({
           id: user.id,
-          tenant_id: tenantData.id,
+          tenant_id: tenantId,
           full_name: profile?.full_name || user.user_metadata?.full_name || 'Propietario',
           email: profile?.email || user.email,
           role: profile?.role || 'owner',
@@ -291,7 +297,7 @@ export default function AppLayout({ children }) {
       const { error: categoryError } = await supabase
         .from('categories')
         .insert({
-          tenant_id: tenantData.id,
+          tenant_id: tenantId,
           name: 'General',
           icon: '📦',
           color: '#7C3AED',
