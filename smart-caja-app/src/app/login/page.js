@@ -39,10 +39,29 @@ export default function LoginPage() {
       toast.success('¡Bienvenido de vuelta! 👋')
       router.push('/dashboard')
     } catch (err) {
-      toast.error(err.message === 'Invalid login credentials' 
-        ? 'Email o contraseña incorrectos' 
-        : err.message
-      )
+      if (err.message === 'Invalid login credentials') {
+        try {
+          const checkRes = await fetch('/api/auth/check-email', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: form.email })
+          })
+          if (checkRes.ok) {
+            const { registered } = await checkRes.json()
+            if (!registered) {
+              toast.error('El correo electrónico no se encuentra registrado.')
+            } else {
+              toast.error('Contraseña incorrecta. Por favor, verificá e intentá nuevamente.')
+            }
+          } else {
+            toast.error('Email o contraseña incorrectos')
+          }
+        } catch {
+          toast.error('Email o contraseña incorrectos')
+        }
+      } else {
+        toast.error(err.message)
+      }
     } finally {
       setLoading(false)
     }
@@ -92,7 +111,12 @@ export default function LoginPage() {
             </div>
 
             <div className="form-group">
-              <label className="form-label">Contraseña</label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
+                <label className="form-label" style={{ marginBottom: 0 }}>Contraseña</label>
+                <Link href="/forgot-password" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600 }}>
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
               <input
                 className={`form-input ${errors.password ? 'error' : ''}`}
                 type="password"
