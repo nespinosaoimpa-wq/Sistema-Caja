@@ -4,8 +4,9 @@ import { useState, useCallback } from 'react'
 import {
   ShoppingCart, Package, Clock, Receipt, Users, TrendingUp, CreditCard,
   ShoppingBag, Search, ChevronDown, ChevronRight, Keyboard, HelpCircle,
-  Zap, CheckCircle, Printer, Trash2, Plus, Minus, X, ArrowRight
+  Zap, CheckCircle, Printer, Trash2, Plus, Minus, X, ArrowRight, ClipboardList
 } from 'lucide-react'
+
 
 // ─── Datos del simulador ──────────────────────────────────────────────────────
 const DEMO_PRODUCTS = [
@@ -120,6 +121,33 @@ const MODULES = [
       { title: 'Compras a proveedores', body: 'En la sección Compras podés registrar las compras que realizás a tus proveedores. Esto actualiza el stock automáticamente y te permite llevar el seguimiento de pagos pendientes a proveedores.' },
     ],
   },
+  {
+    id: 'store',
+    label: 'Tienda Online',
+    icon: <ShoppingBag size={18} />,
+    emoji: '🌐',
+    description: 'Habilitá un catálogo público y mostrá tus productos al mundo.',
+    steps: [
+      { title: '1. Habilitar la tienda', body: 'Andá a Configuración → pestaña "Tienda Online". Activá la opción "Habilitar tienda pública" para que tu catálogo sea accesible desde internet.' },
+      { title: '2. Configurar WhatsApp', body: 'Completá tu número de teléfono de WhatsApp (con código de país, ej: 54911...). Los pedidos que realicen tus clientes llegarán formateados con un mensaje automático directamente a este número.' },
+      { title: '3. Publicar productos', body: 'En el Inventario, editá cualquier producto y activá el interruptor "Mostrar en Tienda Online". Solo los productos marcados como visibles aparecerán en el catálogo público.' },
+      { title: '4. Enlace personalizado', body: 'El sistema genera una URL única para tu tienda (ej: /tienda/tu-negocio). Podés copiar este enlace para ponerlo en tu perfil de Instagram, enviarlo a clientes o imprimir un código QR.' },
+    ],
+  },
+  {
+    id: 'orders',
+    label: 'Pedidos',
+    icon: <ClipboardList size={18} />,
+    emoji: '📋',
+    description: 'Gestioná los pedidos que llegan de tu tienda, controlá sus estados y notificá a tus clientes.',
+    steps: [
+      { title: '1. Recepción de pedidos', body: 'Cuando un cliente completa su compra en la Tienda Online, el pedido se registra automáticamente en la sección "Pedidos" del panel y se envía la alerta correspondiente por WhatsApp.' },
+      { title: '2. Tablero de control (Kanban)', body: 'En la sección Pedidos, verás las tarjetas organizadas en columnas según su estado: Pendientes, En Preparación, Listos para Entregar y Entregados/Cerrados.' },
+      { title: '3. Cambio de estados', body: 'Arrastrá las tarjetas o usá los botones de acción rápidos dentro del detalle del pedido para avanzar su estado a medida que procesás la orden.' },
+      { title: '4. Notificación y Facturación', body: 'Desde el detalle del pedido, podés hacer clic en "Notificar" para enviarle un mensaje automático de actualización al cliente por WhatsApp, o facturarlo directamente para pasarlo a tus ventas registradas.' },
+      { title: '5. Preventistas e integración', body: 'Los pedidos creados por preventistas en la calle también se consolidan en este módulo bajo la etiqueta del vendedor correspondiente.' },
+    ],
+  },
 ]
 
 // ─── FAQ ──────────────────────────────────────────────────────────────────────
@@ -131,6 +159,8 @@ const FAQS = [
   { q: '¿Puedo tener más de un cajero al mismo tiempo?', a: 'Sí. Cada usuario tiene su propio turno abierto. Varios cajeros pueden operar simultáneamente con sus propios turnos, y al cierre cada uno ve sus propias ventas y arqueo.' },
   { q: '¿Cómo funciona la balanza inteligente?', a: 'Si tenés una balanza conectada al puerto USB/serial de la computadora, Smart Caja puede leer el peso automáticamente cuando agregás un producto de tipo "por peso" al carrito. El peso se toma como cantidad de la unidad vendida (ej. 0.750 kg).' },
   { q: '¿Los datos están seguros en la nube?', a: 'Sí. Los datos se guardan en Supabase (PostgreSQL) con cifrado en tránsito (TLS) y en reposo. Cada comercio tiene sus propios datos completamente aislados de los demás mediante Row-Level Security (RLS).' },
+  { q: '¿Cómo cobro las ventas de la tienda online?', a: 'Actualmente, los clientes arman su pedido en la tienda y te lo envían. El pago y la entrega se coordinan directamente por WhatsApp o al momento de la entrega (efectivo, transferencia bancaria, Mercado Pago, etc.).' },
+  { q: '¿Los pedidos online descuentan stock de inmediato?', a: 'No. Para evitar que el stock quede bloqueado por pedidos falsos o no confirmados, el stock solo se descuenta cuando editás el pedido y hacés clic en "Facturar" desde el panel de control, convirtiéndolo en una venta de caja.' },
 ]
 
 // ─── Componente Principal ─────────────────────────────────────────────────────
