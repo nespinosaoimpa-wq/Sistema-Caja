@@ -131,10 +131,10 @@ function RegisterContent() {
 
       if (inviteTenant) {
         // --- REGISTRO DE COLABORADOR INVITADO ---
-        // 2. Insertar perfil vinculado al tenant de la invitación
+        // 2. Insertar o actualizar perfil vinculado al tenant de la invitación
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
+          .upsert({
             id: userId,
             tenant_id: inviteTenant,
             full_name: form.full_name,
@@ -148,28 +148,34 @@ function RegisterContent() {
         toast.success('¡Registro completado! Te has unido al comercio.')
       } else {
         // --- REGISTRO DE NUEVO PROPIETARIO ---
-        // 2. Crear tenant/negocio
+        // 2. Crear tenant/negocio con UUID autogenerado en el cliente para evitar fallos de RLS/select
+        const tenantId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
+          ? crypto.randomUUID() 
+          : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+              var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+              return v.toString(16);
+            });
+
         const slug = generateSlug(form.business_name) + '-' + Math.random().toString(36).slice(2, 6)
-        const { data: tenantData, error: tenantError } = await supabase
+        const { error: tenantError } = await supabase
           .from('tenants')
           .insert({
+            id: tenantId,
             name: form.business_name,
             slug,
             business_type: form.business_type,
             email: form.email,
             phone: form.phone,
           })
-          .select()
-          .single()
 
         if (tenantError) throw tenantError
 
-        // 3. Crear perfil de dueño
+        // 3. Crear o actualizar perfil de dueño
         const { error: profileError } = await supabase
           .from('profiles')
-          .insert({
+          .upsert({
             id: userId,
-            tenant_id: tenantData.id,
+            tenant_id: tenantId,
             full_name: form.full_name,
             email: form.email,
             role: 'owner',
@@ -181,7 +187,7 @@ function RegisterContent() {
         // 4. Crear categorías iniciales correspondientes al rubro
         const initialCategories = getInitialCategories(form.business_type)
         const categoriesToInsert = initialCategories.map(cat => ({
-          tenant_id: tenantData.id,
+          tenant_id: tenantId,
           name: cat.name,
           icon: cat.icon,
           color: cat.color || '#7C3AED',
