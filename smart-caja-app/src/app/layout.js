@@ -8,6 +8,7 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-jakart
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
 
 export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://smartcaja.com'),
   title: 'Smart Caja — Sistema POS Inteligente',
   description: 'Sistema de gestión de caja, stock y ventas para cualquier tipo de negocio. Fácil, rápido y potente.',
   manifest: '/manifest.json',
@@ -16,7 +17,30 @@ export const metadata = {
     statusBarStyle: 'black-translucent',
     title: 'Smart Caja',
   },
+  openGraph: {
+    title: 'Smart Caja — Sistema POS Inteligente',
+    description: 'Gestioná tu stock, turnos, ventas y tienda online en tiempo real. ¡Probá 5 días gratis!',
+    url: 'https://smartcaja.com',
+    siteName: 'Smart Caja',
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: 'Smart Caja — Sistema POS Inteligente',
+      },
+    ],
+    locale: 'es_AR',
+    type: 'website',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Smart Caja — Sistema POS Inteligente',
+    description: 'Gestioná tu stock, turnos, ventas y tienda online en tiempo real. ¡Probá 5 días gratis!',
+    images: ['/og-image.png'],
+  },
 }
+
 
 export const generateViewport = () => ({
   width: 'device-width',
