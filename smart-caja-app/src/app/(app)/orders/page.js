@@ -16,9 +16,11 @@ const STATUSES = [
 ]
 
 const SOURCES = {
-  online:   { label: 'Tienda online', color: '#7C3AED' },
-  whatsapp: { label: 'WhatsApp',      color: '#25D366' },
-  phone:    { label: 'Teléfono',      color: '#3b82f6' },
+  online:      { label: 'Tienda online', color: '#7C3AED' },
+  whatsapp:    { label: 'WhatsApp',      color: '#25D366' },
+  phone:       { label: 'Teléfono',      color: '#3b82f6' },
+  pos:         { label: 'Caja (POS)',    color: '#10B981' },
+  preventista: { label: 'Preventa',      color: '#F59E0B' },
 }
 
 export default function OrdersPage() {
@@ -305,9 +307,29 @@ export default function OrdersPage() {
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '3px' }}>
                         📞 {order.customer_phone}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '6px' }}>
                         {order.delivery_mode === 'delivery' ? `🚚 Delivery · ${order.customer_address || 'Sin dir.'}` : '🏪 Retira en local'}
                       </div>
+                      
+                      {/* Delivery Date & Advance Payment */}
+                      {(order.delivery_date || (order.advance_payment && order.advance_payment > 0)) && (
+                        <div style={{
+                          fontSize: '0.75rem', color: 'var(--text-muted)',
+                          padding: '6px 8px', background: 'rgba(255,255,255,0.03)',
+                          borderRadius: 'var(--radius-sm)', display: 'flex', flexDirection: 'column', gap: '3px',
+                          marginTop: '8px', border: '1px solid var(--border-color)'
+                        }}>
+                          {order.delivery_date && (
+                            <div>📅 Entrega: <strong style={{ color: 'var(--text-secondary)' }}>{new Date(order.delivery_date).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit', year: 'numeric' })}</strong></div>
+                          )}
+                          {order.advance_payment && order.advance_payment > 0 && (
+                            <div style={{ display: 'flex', justifyContent: 'space-between', flexWrap: 'wrap' }}>
+                              <span>💰 Seña: <strong style={{ color: 'var(--color-secondary)' }}>{formatCurrency(order.advance_payment)}</strong></span>
+                              <span>Pnd: <strong style={{ color: 'var(--color-error)' }}>{formatCurrency(order.total - order.advance_payment)}</strong></span>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
 
                     {/* Items */}

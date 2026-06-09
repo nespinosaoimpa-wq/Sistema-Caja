@@ -108,40 +108,47 @@ export default function POSPage() {
       const total = cartTotal
       const advance = parseFloat(orderForm.advance_payment) || 0
 
+      // Fetch count of orders for the tenant to generate order number
+      const { count, error: countError } = await supabase
+        .from('online_orders')
+        .select('id', { count: 'exact', head: true })
+        .eq('tenant_id', tenant.id)
+
+      if (countError) throw countError
+
+      const orderNumber = `POS-${String((count || 0) + 1).padStart(4, '0')}`
+
       const { data: orderData, error: orderError } = await supabase
-        .from('orders')
+        .from('online_orders')
         .insert({
           tenant_id: tenant.id,
           user_id: profile.id,
+          order_number: orderNumber,
           customer_name: orderForm.customer_name.trim(),
           customer_phone: orderForm.customer_phone.trim() || null,
-          delivery_date: orderForm.delivery_date || null,
-          advance_payment: advance,
+          delivery_mode: 'pickup',
+          items: cart.map(item => ({
+            product_id: item.id,
+            name: item.name,
+            qty: item.qty,
+            unit_price: item.sale_price,
+            variant_id: item.variant_id || null,
+            variant_label: item.variant_label || null,
+            subtotal: item.subtotal
+          })),
+          subtotal: total,
           total: total,
+          notes: `Pedido creado desde Caja. Saldo pendiente: ${formatCurrency(total - advance)}`,
           status: 'pending',
-          notes: `Pedido creado desde Caja. Saldo pendiente: ${formatCurrency(total - advance)}`
+          payment_status: advance > 0 ? 'partial' : 'unpaid',
+          source: 'pos',
+          delivery_date: orderForm.delivery_date || null,
+          advance_payment: advance
         })
         .select()
         .single()
 
       if (orderError) throw orderError
-
-      // Insert order items
-      const orderItems = cart.map(item => ({
-        order_id: orderData.id,
-        tenant_id: tenant.id,
-        product_id: item.id,
-        product_name: item.name,
-        quantity: item.qty,
-        unit_price: item.sale_price,
-        subtotal: item.subtotal
-      }))
-
-      const { error: itemsError } = await supabase
-        .from('order_items')
-        .insert(orderItems)
-
-      if (itemsError) throw itemsError
 
       toast.success(`¡Pedido de ${orderForm.customer_name} guardado! Seña: ${formatCurrency(advance)}`)
       setShowOrderModal(false)

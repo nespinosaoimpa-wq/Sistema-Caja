@@ -21,6 +21,8 @@ import {
   MessageSquare,
   TrendingUp,
   HelpCircle,
+  ClipboardList,
+  Smartphone,
 } from 'lucide-react'
 
 const NAV_ITEMS = [
@@ -29,6 +31,8 @@ const NAV_ITEMS = [
   { href: '/inventory', label: 'Inventario', icon: Package, minPlan: 'basic' },
   { href: '/shifts', label: 'Turnos', icon: Clock, minPlan: 'basic' },
   { href: '/sales', label: 'Ventas', icon: Receipt, minPlan: 'basic' },
+  { href: '/orders', label: 'Pedidos', icon: ClipboardList, minPlan: 'professional' },
+  { href: '/preventista', label: 'Preventa', icon: Smartphone, minPlan: 'professional' },
   { href: '/customers', label: 'Clientes', icon: Users, minPlan: 'professional' },
   { href: '/analytics', label: 'Estadísticas', icon: TrendingUp, minPlan: 'professional' },
   { href: '/installments', label: 'Cuotas', icon: CreditCard, minPlan: 'professional' },
