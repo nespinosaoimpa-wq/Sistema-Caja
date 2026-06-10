@@ -23,6 +23,7 @@ export default function ShiftsPage() {
 
   // Card auditing states
   const [shiftSales, setShiftSales] = useState([])
+  const [shiftMovements, setShiftMovements] = useState([])
   const [checkedVouchers, setCheckedVouchers] = useState({})
   const [editedVouchers, setEditedVouchers] = useState({})
   // Open Shift Modal state
@@ -83,8 +84,19 @@ export default function ShiftsPage() {
           setCheckedVouchers(initialChecked)
           setEditedVouchers(initialEdited)
         }
+
+        // Load cash movements for the active shift
+        const { data: movements } = await supabase
+          .from('cash_movements')
+          .select('*')
+          .eq('shift_id', open.id)
+        
+        if (movements) {
+          setShiftMovements(movements)
+        }
       } else {
         setShiftSales([])
+        setShiftMovements([])
       }
     }
     setLoading(false)
@@ -148,7 +160,22 @@ export default function ShiftsPage() {
 
       const cardDiscrepancy = totalCardTicketsVerified - totalCardSalesExpected
 
-      const notesText = `Conciliación POSnet: Tarjetas registradas ${formatCurrency(totalCardSalesExpected)}, Conciliadas físicamente ${formatCurrency(totalCardTicketsVerified)}. Diferencia de tarjetas: ${formatCurrency(cardDiscrepancy)}. Total Transferencias del turno: ${formatCurrency(transferSalesTotal)}.`
+      const depositsTotal = shiftMovements
+        .filter(m => m.type === 'deposit')
+        .reduce((sum, m) => sum + parseFloat(m.amount || 0), 0)
+
+      const withdrawalsTotal = shiftMovements
+        .filter(m => m.type === 'withdrawal')
+        .reduce((sum, m) => sum + parseFloat(m.amount || 0), 0)
+
+      const cashExpensesTotal = shiftMovements
+        .filter(m => m.type === 'expense' && m.payment_method === 'cash')
+        .reduce((sum, m) => sum + parseFloat(m.amount || 0), 0)
+
+      const expectedCashTotal = (activeShift.opening_cash || 0) + cashSalesTotal + depositsTotal - withdrawalsTotal - cashExpensesTotal
+      const cashDiscrepancy = parseFloat(closingCash) - expectedCashTotal
+
+      const notesText = `Conciliación POSnet: Tarjetas registradas ${formatCurrency(totalCardSalesExpected)}, Conciliadas físicamente ${formatCurrency(totalCardTicketsVerified)}. Diferencia de tarjetas: ${formatCurrency(cardDiscrepancy)}. Total Transferencias del turno: ${formatCurrency(transferSalesTotal)}. Arqueo de efectivo: Esperado ${formatCurrency(expectedCashTotal)}, Real ${formatCurrency(parseFloat(closingCash))}. Diferencia efectivo: ${formatCurrency(cashDiscrepancy)}. Gastos en efectivo del turno: ${formatCurrency(cashExpensesTotal)}.`
 
       // 3. Update shift in Supabase
       const { error } = await supabase
@@ -201,6 +228,24 @@ export default function ShiftsPage() {
     }
   }
 
+  const cashSales = shiftSales
+    .filter(s => s.payment_method === 'cash')
+    .reduce((sum, s) => sum + parseFloat(s.total || 0), 0)
+
+  const deposits = shiftMovements
+    .filter(m => m.type === 'deposit')
+    .reduce((sum, m) => sum + parseFloat(m.amount || 0), 0)
+
+  const withdrawals = shiftMovements
+    .filter(m => m.type === 'withdrawal')
+    .reduce((sum, m) => sum + parseFloat(m.amount || 0), 0)
+
+  const cashExpenses = shiftMovements
+    .filter(m => m.type === 'expense' && m.payment_method === 'cash')
+    .reduce((sum, m) => sum + parseFloat(m.amount || 0), 0)
+
+  const expectedCash = (activeShift?.opening_cash || 0) + cashSales + deposits - withdrawals - cashExpenses
+
   return (
     <div>
       <div className="app-header">
@@ -237,11 +282,29 @@ export default function ShiftsPage() {
                     </div>
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Ventas Efectivo</span>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-secondary)' }}>+{formatCurrency(shiftSales.filter(s => s.payment_method === 'cash').reduce((sum, s) => sum + parseFloat(s.total), 0))}</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-secondary)' }}>+{formatCurrency(cashSales)}</div>
                     </div>
+                    {deposits > 0 && (
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Depósitos</span>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-secondary)' }}>+{formatCurrency(deposits)}</div>
+                      </div>
+                    )}
+                    {withdrawals > 0 && (
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Retiros</span>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-error)' }}>-{formatCurrency(withdrawals)}</div>
+                      </div>
+                    )}
+                    {cashExpenses > 0 && (
+                      <div style={{ textAlign: 'right' }}>
+                        <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Gastos Caja</span>
+                        <div style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-error)' }}>-{formatCurrency(cashExpenses)}</div>
+                      </div>
+                    )}
                     <div style={{ textAlign: 'right' }}>
                       <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Efectivo Esperado</span>
-                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>{formatCurrency((activeShift.opening_cash || 0) + shiftSales.filter(s => s.payment_method === 'cash').reduce((sum, s) => sum + parseFloat(s.total), 0))}</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-primary)' }}>{formatCurrency(expectedCash)}</div>
                     </div>
                   </div>
                 </div>
@@ -345,6 +408,13 @@ export default function ShiftsPage() {
                         </span>
                       </div>
                     )}
+
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem' }}>
+                      <span style={{ color: 'var(--text-secondary)' }}>Efectivo esperado en caja:</span>
+                      <span style={{ fontWeight: 700, color: 'var(--color-primary)' }}>
+                        {formatCurrency(expectedCash)}
+                      </span>
+                    </div>
 
                     <div style={{ borderTop: '1px solid var(--border-color)', margin: '4px 0' }} />
 

@@ -24,6 +24,8 @@ import {
   ClipboardList,
   Smartphone,
   Shield,
+  TrendingDown,
+  Trash2,
 } from 'lucide-react'
 
 
@@ -33,6 +35,8 @@ const NAV_ITEMS = [
   { href: '/inventory', label: 'Inventario', icon: Package, minPlan: 'basic' },
   { href: '/shifts', label: 'Turnos', icon: Clock, minPlan: 'basic' },
   { href: '/sales', label: 'Ventas', icon: Receipt, minPlan: 'basic' },
+  { href: '/expenses', label: 'Gastos', icon: TrendingDown, minPlan: 'professional' },
+  { href: '/waste', label: 'Desperdicios', icon: Trash2, minPlan: 'professional' },
   { href: '/orders', label: 'Pedidos', icon: ClipboardList, minPlan: 'professional' },
   { href: '/preventista', label: 'Preventa', icon: Smartphone, minPlan: 'professional' },
   { href: '/customers', label: 'Clientes', icon: Users, minPlan: 'professional' },

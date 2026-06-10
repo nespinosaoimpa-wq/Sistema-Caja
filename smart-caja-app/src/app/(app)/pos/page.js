@@ -362,17 +362,20 @@ export default function POSPage() {
         // If scale is connected and it's a weight product, override qty with scale weight
         const increment = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : (isDecimalProduct(product) ? 1 : 1)
         const newQty = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : existing.qty + increment
+        const subtotal = newQty * unitPrice
         return prev.map(item => 
-          (item.id === product.id && (!variant || item.variant_id === variant.id)) ? { ...item, qty: newQty, subtotal: newQty * unitPrice } : item
+          (item.id === product.id && (!variant || item.variant_id === variant.id)) ? { ...item, qty: newQty, subtotal, target_amount: subtotal.toFixed(2) } : item
         )
       }
 
       const initialQty = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : 1
+      const subtotal = initialQty * unitPrice
       return [...prev, { 
         ...product, 
         qty: initialQty, 
         sale_price: unitPrice, // Overwrite sale_price if variant has extra_price
-        subtotal: initialQty * unitPrice,
+        subtotal,
+        target_amount: subtotal.toFixed(2),
         variant_id: variant?.id || null,
         variant_label: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
         variant_stock_quantity: variant ? variant.stock_quantity : null
@@ -452,7 +455,8 @@ export default function POSPage() {
     setCart(prev => prev.map(item => {
       if (item.id === id) {
         const newQty = Math.max(isDecimalProduct(item) ? 0.001 : 1, item.qty + delta)
-        return { ...item, qty: newQty, subtotal: newQty * item.sale_price }
+        const subtotal = newQty * item.sale_price
+        return { ...item, qty: newQty, subtotal, target_amount: subtotal.toFixed(2) }
       }
       return item
     }))
@@ -463,7 +467,22 @@ export default function POSPage() {
     if (isNaN(numVal) || numVal <= 0) return
     setCart(prev => prev.map(item => {
       if (item.id === id) {
-        return { ...item, qty: numVal, subtotal: numVal * item.sale_price }
+        const subtotal = numVal * item.sale_price
+        return { ...item, qty: numVal, subtotal, target_amount: subtotal.toFixed(2) }
+      }
+      return item
+    }))
+  }
+
+  const updateQtyByAmount = (id, amountStr) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        const amount = parseFloat(amountStr)
+        if (isNaN(amount) || amount <= 0) {
+          return { ...item, target_amount: amountStr, qty: 0, subtotal: 0 }
+        }
+        const newQty = parseFloat((amount / item.sale_price).toFixed(3))
+        return { ...item, target_amount: amountStr, qty: newQty, subtotal: amount }
       }
       return item
     }))
@@ -1224,28 +1243,48 @@ export default function POSPage() {
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {isDecimalProduct(item) ? (
-                            <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
-                              <input
-                                type="number"
-                                step="0.001"
-                                value={item.qty}
-                                onChange={(e) => updateQtyDirect(item.id, e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter') {
-                                    updateQtyDirect(item.id, e.target.value)
-                                  } else if (e.key === 't' && item.unit_type === 'weight' && scaleConnected && scaleWeight > 0) {
-                                    e.preventDefault()
-                                    updateQtyDirect(item.id, scaleWeight)
-                                  }
-                                }}
-                                style={{
-                                  width: '70px', padding: '6px', textAlign: 'center',
-                                  background: 'transparent', border: 'none',
-                                  color: '#fff', fontWeight: 600, fontSize: '0.875rem'
-                                }}
-                              />
-                              <div style={{ position: 'absolute', right: '6px', top: '50%', transform: 'translateY(-50%)', fontSize: '0.7rem', color: 'var(--text-muted)', pointerEvents: 'none' }}>
-                                {item.unit_label || 'un'}
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
+                              {/* Input de peso */}
+                              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', borderRadius: '6px', border: '1px solid var(--border-color)', position: 'relative', paddingRight: '24px' }}>
+                                <input
+                                  type="number"
+                                  step="0.001"
+                                  value={item.qty}
+                                  onChange={(e) => updateQtyDirect(item.id, e.target.value)}
+                                  onKeyDown={(e) => {
+                                    if (e.key === 'Enter') {
+                                      updateQtyDirect(item.id, e.target.value)
+                                    } else if (e.key === 't' && item.unit_type === 'weight' && scaleConnected && scaleWeight > 0) {
+                                      e.preventDefault()
+                                      updateQtyDirect(item.id, scaleWeight)
+                                    }
+                                  }}
+                                  style={{
+                                    width: '70px', padding: '6px', textAlign: 'center',
+                                    background: 'transparent', border: 'none',
+                                    color: '#fff', fontWeight: 600, fontSize: '0.875rem'
+                                  }}
+                                />
+                                <div style={{ position: 'absolute', right: '6px', fontSize: '0.7rem', color: 'var(--text-muted)', pointerEvents: 'none' }}>
+                                  {item.unit_label || (item.unit_type === 'weight' ? 'kg' : 'l')}
+                                </div>
+                              </div>
+                              
+                              {/* Input de monto inverso */}
+                              <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(78, 222, 163, 0.05)', borderRadius: '6px', border: '1px dashed rgba(78, 222, 163, 0.3)', position: 'relative', paddingLeft: '14px', width: '94px' }}>
+                                <div style={{ position: 'absolute', left: '6px', fontSize: '0.75rem', color: 'var(--color-secondary)', pointerEvents: 'none', fontWeight: 600 }}>$</div>
+                                <input
+                                  type="number"
+                                  placeholder="Monto"
+                                  value={item.target_amount || ''}
+                                  onChange={(e) => updateQtyByAmount(item.id, e.target.value)}
+                                  style={{
+                                    width: '100%', padding: '4px 6px', textAlign: 'center',
+                                    background: 'transparent', border: 'none',
+                                    color: 'var(--color-secondary)', fontWeight: 600, fontSize: '0.8125rem',
+                                    outline: 'none'
+                                  }}
+                                />
                               </div>
                             </div>
                           ) : (
