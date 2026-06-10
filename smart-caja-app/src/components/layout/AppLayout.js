@@ -23,7 +23,9 @@ import {
   HelpCircle,
   ClipboardList,
   Smartphone,
+  Shield,
 } from 'lucide-react'
+
 
 const NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, minPlan: 'basic' },
@@ -622,6 +624,17 @@ export default function AppLayout({ children }) {
               </Link>
             )
           })}
+          {profile?.email === 'nespinosa.oimpa@gmail.com' && (
+            <Link 
+              href="/superadmin"
+              className={`sidebar-nav-item ${pathname?.startsWith('/superadmin') ? 'active' : ''}`}
+            >
+              <span className="icon" style={{ opacity: pathname?.startsWith('/superadmin') ? 1 : 0.7, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <Shield size={18} style={{ color: '#F59E0B' }} />
+              </span>
+              Super Admin
+            </Link>
+          )}
         </nav>
 
         <div style={{ padding: 'var(--space-6) 0', marginTop: 'auto' }}>
