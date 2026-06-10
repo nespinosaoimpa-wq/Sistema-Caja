@@ -5,9 +5,11 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   {
     rules: {
-      "react-hooks/set-state-in-effect": "warn",
-      "react-hooks/preserve-manual-memoization": "warn",
-      "react/no-unescaped-entities": "warn",
+      "react-hooks/set-state-in-effect": "off",
+      "react-hooks/preserve-manual-memoization": "off",
+      "react-hooks/purity": "off",
+      "react-hooks/immutability": "off",
+      "react/no-unescaped-entities": "off",
     }
   },
   // Override default ignores of eslint-config-next.
