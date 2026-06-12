@@ -34,11 +34,14 @@ const PLANS = [
       { label: 'Conciliación cupones POSnet', ok: true, exclusive: true },
       { label: 'Soporte por WhatsApp en horario hábil', ok: true },
       { label: 'Facturación ARCA', ok: false, soon: true },
+      { label: 'Control de Gastos y Desperdicios', ok: false },
+      { label: 'Módulo de Pedidos y Preventa', ok: false },
       { label: 'Roles cajero / admin', ok: false },
       { label: 'Estadísticas avanzadas y rentabilidad', ok: false },
       { label: 'Cuotas e intereses', ok: false },
       { label: 'Exportación CSV para contador', ok: false },
       { label: 'Logo propio en tickets', ok: false },
+      { label: 'Módulo de Compras a Proveedores', ok: false },
     ],
     cta: 'Empezar con Básico',
     ctaStyle: 'ghost',
@@ -56,12 +59,15 @@ const PLANS = [
       { label: 'Rentabilidad real por producto', ok: true, exclusive: true },
       { label: 'Cuotas e intereses configurables', ok: true, exclusive: true },
       { label: 'Cuentas Corrientes avanzadas + alertas de deuda', ok: true, exclusive: true },
+      { label: 'Control de Gastos y Desperdicios', ok: true },
+      { label: 'Gestión de Pedidos y Preventistas', ok: true },
       { label: 'Exportación CSV para tu contador', ok: true, exclusive: true },
       { label: 'Logo propio en tickets de venta', ok: true, exclusive: true },
       { label: 'Personalización visual (colores + logo en la app)', ok: true, exclusive: true },
       { label: 'Roles cajero / admin — hasta 5 usuarios', ok: true },
       { label: 'Soporte prioritario WhatsApp ≤ 2hs', ok: true },
       { label: 'Facturación ARCA', ok: false, soon: true },
+      { label: 'Módulo de Compras a Proveedores', ok: false },
       { label: 'Multi-sucursal', ok: false },
     ],
     cta: 'Empezar con Profesional',
@@ -80,6 +86,7 @@ const PLANS = [
       { label: 'Transferencia de stock entre sucursales', ok: true, exclusive: true },
       { label: 'Reportes comparativos (Sucursal A vs B)', ok: true, exclusive: true },
       { label: 'Precios diferenciados por sucursal', ok: true, exclusive: true },
+      { label: 'Módulo de Compras a Proveedores', ok: true, exclusive: true },
       { label: 'Usuarios ilimitados con roles de zona', ok: true },
       { label: 'Importación masiva de productos (CSV/Excel)', ok: true },
       { label: 'API de integración (facturación/ERP)', ok: true },
@@ -147,7 +154,7 @@ export default function LandingPage() {
             Empezar prueba gratis →
           </Link>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-            5 días gratis · Sin tarjeta de crédito · Listo en 2 minutos
+            5 días gratis con acceso a todas las funciones (Plan Empresa) · Sin tarjeta de crédito · Listo en 2 minutos
           </span>
         </div>
       </section>
@@ -186,7 +193,7 @@ export default function LandingPage() {
             {
               num: '01',
               title: 'Creá tu cuenta',
-              desc: 'Registrarte tarda 2 minutos. Sin tarjeta de crédito. Accedés de inmediato con 5 días de prueba completa.',
+              desc: 'Registrarte tarda 2 minutos. Sin tarjeta de crédito. Accedés de inmediato con 5 días de prueba completa de todas las funciones (Plan Empresa).',
               icon: '🧑‍💼',
             },
             {
@@ -459,7 +466,7 @@ export default function LandingPage() {
             },
             {
               q: "¿Cómo funciona la prueba gratis de 5 días?",
-              a: "Te registrás en 2 minutos sin tarjeta de crédito y accedés de inmediato a todas las funciones del plan Profesional para evaluar si es útil para tu negocio."
+              a: "Te registrás en 2 minutos sin tarjeta de crédito y accedés de inmediato a todas las funciones de todos los planes (incluyendo funciones del plan Profesional y Empresa) para que evalúes el potencial completo de Smart Caja en tu negocio."
             },
             {
               q: "¿Cómo me ayudan con la carga inicial de stock?",
@@ -490,7 +497,7 @@ export default function LandingPage() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
             <Link href="/register" className={styles.heroButton}>Crear cuenta gratis →</Link>
             <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
-              Setup en 2 minutos · 5 días de prueba · Sin tarjetas
+              Setup en 2 minutos · 5 días de prueba completa de todas las funciones · Sin tarjetas
             </span>
           </div>
         </div>

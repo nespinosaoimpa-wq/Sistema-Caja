@@ -272,6 +272,7 @@ export default function AppLayout({ children }) {
           slug,
           business_type: setupForm.business_type,
           email: user.email,
+          subscription_plan: 'enterprise',
         })
 
       if (tenantError) {

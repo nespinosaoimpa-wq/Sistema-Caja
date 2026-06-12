@@ -166,6 +166,7 @@ function RegisterContent() {
             business_type: form.business_type,
             email: form.email,
             phone: form.phone,
+            subscription_plan: 'enterprise',
           })
 
         if (tenantError) throw tenantError
