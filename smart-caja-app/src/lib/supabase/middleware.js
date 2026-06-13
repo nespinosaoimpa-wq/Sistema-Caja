@@ -6,13 +6,28 @@ export async function updateSession(request) {
   const pathname = request.nextUrl.pathname
 
   try {
-    const publicRoutes = ['/', '/login', '/register', '/api/webhooks', '/billing', '/api/billing']
-    const isPublicRoute = publicRoutes.some(route =>
-      pathname === route ||
+    const publicRoutes = [
+      '/',
+      '/login',
+      '/register',
+      '/forgot-password',
+      '/reset-password',
+      '/promo',
+      '/terms',
+      '/privacy',
+      '/scan'
+    ]
+    const isPublicRoute = publicRoutes.some(route => pathname === route) ||
       pathname.startsWith('/api/webhooks') ||
       pathname.startsWith('/billing') ||
-      pathname.startsWith('/api/billing')
-    )
+      pathname.startsWith('/api/billing') ||
+      pathname.startsWith('/scan') ||
+      pathname.startsWith('/tienda') ||
+      pathname.startsWith('/api/tienda') ||
+      pathname.startsWith('/api/leads') ||
+      pathname.startsWith('/api/auth/check-email') ||
+      pathname.startsWith('/api/auth/onboard') ||
+      pathname.startsWith('/api/referrals')
 
     // 1. Optimize for Next.js Prefetches
     // Prefetch requests (triggered on hover) do not need to query the database.
@@ -76,13 +91,28 @@ export async function updateSession(request) {
     return supabaseResponse
   } catch (err) {
     console.error('Middleware execution error caught:', err)
-    const publicRoutes = ['/', '/login', '/register', '/api/webhooks', '/billing', '/api/billing']
-    const isPublicRoute = publicRoutes.some(route =>
-      pathname === route ||
+    const publicRoutes = [
+      '/',
+      '/login',
+      '/register',
+      '/forgot-password',
+      '/reset-password',
+      '/promo',
+      '/terms',
+      '/privacy',
+      '/scan'
+    ]
+    const isPublicRoute = publicRoutes.some(route => pathname === route) ||
       pathname.startsWith('/api/webhooks') ||
       pathname.startsWith('/billing') ||
-      pathname.startsWith('/api/billing')
-    )
+      pathname.startsWith('/api/billing') ||
+      pathname.startsWith('/scan') ||
+      pathname.startsWith('/tienda') ||
+      pathname.startsWith('/api/tienda') ||
+      pathname.startsWith('/api/leads') ||
+      pathname.startsWith('/api/auth/check-email') ||
+      pathname.startsWith('/api/auth/onboard') ||
+      pathname.startsWith('/api/referrals')
     if (!isPublicRoute) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'
