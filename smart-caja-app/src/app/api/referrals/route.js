@@ -1,4 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 export async function GET(request) {
   try {
@@ -66,3 +67,48 @@ export async function GET(request) {
     return Response.json({ error: err.message || 'Excepción interna' }, { status: 500 })
   }
 }
+
+export async function POST(request) {
+  try {
+    const { referrer_tenant_id, referred_tenant_id } = await request.json()
+    if (!referrer_tenant_id || !referred_tenant_id) {
+      return Response.json({ error: 'Faltan parámetros' }, { status: 400 })
+    }
+
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    if (!serviceKey) {
+      console.warn('[API Referrals POST] SUPABASE_SERVICE_ROLE_KEY not configured, bypassing.')
+      return Response.json({ success: true, message: 'Bypassed tracking (missing key)' })
+    }
+
+    const supabaseAdmin = createSupabaseClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL,
+      serviceKey,
+      {
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false
+        }
+      }
+    )
+
+    const { error } = await supabaseAdmin
+      .from('referrals')
+      .insert({
+        referrer_tenant_id,
+        referred_tenant_id,
+        status: 'registered'
+      })
+
+    if (error) {
+      console.error('[API Referrals POST] Error inserting referral:', error)
+      return Response.json({ error: error.message }, { status: 400 })
+    }
+
+    return Response.json({ success: true })
+  } catch (err) {
+    console.error('[API Referrals POST] Exception:', err)
+    return Response.json({ error: err.message }, { status: 500 })
+  }
+}
+

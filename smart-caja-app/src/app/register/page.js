@@ -20,6 +20,38 @@ function RegisterContent() {
   const refCode = searchParams.get('ref') || ''
 
   const [step, setStep] = useState(1)
+  const [verificationEmail, setVerificationEmail] = useState('')
+  const [resendLoading, setResendLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setInterval(() => {
+      setCooldown(c => c - 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldown])
+
+  const handleResendConfirmation = async (email) => {
+    const supabase = createClient()
+    setResendLoading(true)
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
+      })
+      if (error) throw error
+      toast.success('Correo de confirmación reenviado. ¡Revisá tu bandeja!')
+      setCooldown(60)
+    } catch (err) {
+      toast.error(err.message || 'Error al reenviar el correo')
+    } finally {
+      setResendLoading(false)
+    }
+  }
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     // Step 1 - Business info
@@ -106,13 +138,15 @@ function RegisterContent() {
     setLoading(true)
 
     const supabase = createClient()
+    const emailNormalized = form.email.trim().toLowerCase()
 
     try {
       // 1. Crear usuario en Auth
       const { data: authData, error: authError } = await supabase.auth.signUp({
-        email: form.email,
+        email: emailNormalized,
         password: form.password,
         options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
           data: { full_name: form.full_name }
         }
       })
@@ -132,14 +166,14 @@ function RegisterContent() {
 
       if (inviteTenant) {
         // --- REGISTRO DE COLABORADOR INVITADO ---
-        // 2. Insertar o actualizar perfil vinculado al tenant de la invitación
+        // 2. Insertar perfil vinculado al tenant de la invitación
         const { error: profileError } = await supabase
           .from('profiles')
-          .upsert({
+          .insert({
             id: userId,
             tenant_id: inviteTenant,
             full_name: form.full_name,
-            email: form.email,
+            email: emailNormalized,
             role: inviteRole,
             is_active: true
           })
@@ -181,7 +215,7 @@ function RegisterContent() {
             name: form.business_name,
             slug,
             business_type: form.business_type,
-            email: form.email,
+            email: emailNormalized,
             phone: form.phone,
             subscription_plan: 'enterprise',
             referred_by_id: referredById,
@@ -189,14 +223,14 @@ function RegisterContent() {
 
         if (tenantError) throw tenantError
 
-        // 3. Crear o actualizar perfil de dueño
+        // 3. Crear perfil de dueño
         const { error: profileError } = await supabase
           .from('profiles')
-          .upsert({
+          .insert({
             id: userId,
             tenant_id: tenantId,
             full_name: form.full_name,
-            email: form.email,
+            email: emailNormalized,
             role: 'owner',
             is_active: true
           })
@@ -205,14 +239,14 @@ function RegisterContent() {
 
         // Insert referral tracking log if referred
         if (referrerTenantId) {
-          await supabase
-            .from('referrals')
-            .insert({
+          await fetch('/api/referrals', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
               referrer_tenant_id: referrerTenantId,
-              referred_tenant_id: tenantId,
-              status: 'registered'
+              referred_tenant_id: tenantId
             })
-            .catch(err => console.error('[Register] Referral track error:', err.message))
+          }).catch(err => console.error('[Register] Referral track error:', err.message))
         }
 
         // 4. Crear categorías iniciales correspondientes al rubro
@@ -235,10 +269,15 @@ function RegisterContent() {
         toast.success('¡Cuenta creada! Bienvenido a Smart Caja')
       }
 
-      // Small delay to allow Supabase auth state and profile propagation
-      // before the app layout tries to load them via onAuthStateChange
-      await new Promise(resolve => setTimeout(resolve, 500))
-      router.replace('/dashboard')
+      // Check if email confirmation is required (session is null)
+      const session = authData.session
+      if (!session) {
+        setVerificationEmail(emailNormalized)
+        toast.success('¡Cuenta creada! Por favor, verificá tu correo electrónico.')
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 500))
+        router.replace('/dashboard')
+      }
     } catch (err) {
       toast.error(err.message || 'Error al registrarse')
     } finally {
@@ -270,8 +309,53 @@ function RegisterContent() {
         </div>
 
         <div className="card" style={{ padding: 'var(--space-8)' }}>
-          {/* Indicador de pasos - Solo si no está invitado */}
-          {!inviteTenant && (
+          {verificationEmail ? (
+            <div style={{ textAlign: 'center' }}>
+              <div style={{ fontSize: '3.5rem', marginBottom: 'var(--space-4)' }}>📧</div>
+              <h2 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.75rem', fontWeight: 800, marginBottom: 'var(--space-3)', color: '#fff' }}>
+                ¡Confirmá tu correo!
+              </h2>
+              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 'var(--space-6)', lineHeight: 1.6 }}>
+                Enviamos un enlace de confirmación a <strong style={{ color: 'var(--color-primary)' }}>{verificationEmail}</strong>.<br />
+                Por favor, hacé clic en el enlace para activar tu cuenta y poder ingresar.
+              </p>
+              
+              <div style={{ 
+                background: 'rgba(124, 58, 237, 0.05)', 
+                border: '1px solid rgba(124, 58, 237, 0.15)', 
+                borderRadius: 'var(--radius-lg)', 
+                padding: 'var(--space-4)', 
+                marginBottom: 'var(--space-6)',
+                fontSize: '0.875rem',
+                color: 'var(--text-secondary)',
+                textAlign: 'left'
+              }}>
+                💡 <strong>¿No encontrás el correo?</strong>
+                <ul style={{ marginTop: '8px', paddingLeft: '20px', listStyleType: 'disc', display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <li>Revisá tu carpeta de <strong>Spam</strong> o Correo no deseado.</li>
+                  <li>Asegurá que ingresaste correctamente el correo.</li>
+                </ul>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+                <button
+                  className="btn btn-primary btn-lg"
+                  style={{ width: '100%', justifyContent: 'center' }}
+                  onClick={() => handleResendConfirmation(verificationEmail)}
+                  disabled={resendLoading || cooldown > 0}
+                >
+                  {resendLoading ? 'Reenviando...' : cooldown > 0 ? `Reenviar en ${cooldown}s` : 'Reenviar email de confirmación'}
+                </button>
+                
+                <Link href="/login" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>
+                  Ir al inicio de sesión
+                </Link>
+              </div>
+            </div>
+          ) : (
+            <>
+              {/* Indicador de pasos - Solo si no está invitado */}
+              {!inviteTenant && (
             <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-6)' }}>
               {[1, 2].map(s => (
                 <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -448,6 +532,8 @@ function RegisterContent() {
               <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 'var(--space-4)' }}>
                 {inviteTenant ? 'Al registrarte te unís al comercio respectivo.' : 'Al registrarte aceptás nuestros términos de uso. 5 días gratis, sin tarjeta.'}
               </p>
+            </>
+          )}
             </>
           )}
         </div>

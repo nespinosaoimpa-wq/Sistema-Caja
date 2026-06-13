@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
@@ -12,6 +12,38 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({ email: '', password: '' })
   const [errors, setErrors] = useState({})
+  const [unconfirmedEmail, setUnconfirmedEmail] = useState('')
+  const [resendLoading, setResendLoading] = useState(false)
+  const [cooldown, setCooldown] = useState(0)
+
+  useEffect(() => {
+    if (cooldown <= 0) return
+    const timer = setInterval(() => {
+      setCooldown(c => c - 1)
+    }, 1000)
+    return () => clearInterval(timer)
+  }, [cooldown])
+
+  const handleResendConfirmation = async (email) => {
+    const supabase = createClient()
+    setResendLoading(true)
+    try {
+      const { error } = await supabase.auth.resend({
+        type: 'signup',
+        email: email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`
+        }
+      })
+      if (error) throw error
+      toast.success('Correo de confirmación reenviado. ¡Revisá tu bandeja!')
+      setCooldown(60)
+    } catch (err) {
+      toast.error(err.message || 'Error al reenviar el correo')
+    } finally {
+      setResendLoading(false)
+    }
+  }
 
   const updateForm = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }))
@@ -39,7 +71,10 @@ export default function LoginPage() {
       toast.success('¡Bienvenido de vuelta! 👋')
       router.push('/dashboard')
     } catch (err) {
-      if (err.message === 'Invalid login credentials') {
+      if (err.message?.toLowerCase().includes('confirm') || err.message === 'Email not confirmed') {
+        setUnconfirmedEmail(form.email)
+        toast.error('Debés confirmar tu correo electrónico antes de ingresar.')
+      } else if (err.message === 'Invalid login credentials') {
         try {
           const checkRes = await fetch('/api/auth/check-email', {
             method: 'POST',
@@ -95,6 +130,44 @@ export default function LoginPage() {
           <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
             Iniciá sesión en tu Smart Caja
           </p>
+
+          {unconfirmedEmail && (
+            <div style={{
+              background: 'rgba(245, 158, 11, 0.08)',
+              border: '1px solid rgba(245, 158, 11, 0.2)',
+              borderRadius: 'var(--radius-lg)',
+              padding: 'var(--space-4)',
+              color: 'var(--text-secondary)',
+              fontSize: '0.875rem',
+              marginBottom: 'var(--space-5)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: 'var(--space-3)'
+            }}>
+              <div style={{ display: 'flex', gap: '8px', color: 'var(--color-warning)', fontWeight: 600 }}>
+                <span>⚠️</span>
+                <span>Correo no verificado</span>
+              </div>
+              <div>
+                Enviamos un enlace de confirmación a tu correo. Por favor, hacé clic en el enlace para activar tu cuenta.
+              </div>
+              <button
+                type="button"
+                className="btn btn-warning btn-sm"
+                style={{ 
+                  alignSelf: 'flex-start',
+                  background: 'var(--color-warning)',
+                  color: '#000',
+                  border: 'none',
+                  fontWeight: 600
+                }}
+                onClick={() => handleResendConfirmation(unconfirmedEmail)}
+                disabled={resendLoading || cooldown > 0}
+              >
+                {resendLoading ? 'Reenviando...' : cooldown > 0 ? `Reenviar en ${cooldown}s` : 'Reenviar email de confirmación'}
+              </button>
+            </div>
+          )}
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
             <div className="form-group">
