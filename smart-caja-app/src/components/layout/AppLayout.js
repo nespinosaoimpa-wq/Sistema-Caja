@@ -253,73 +253,26 @@ export default function AppLayout({ children }) {
     setSetupLoading(true)
     setSetupError(null)
 
-    const supabase = createClient()
     try {
-      console.log('1. Generando slug e insertando comercio...')
-      const slug = setupForm.business_name.toLowerCase().replace(/[^a-z0-9]+/g, '-') + '-' + Math.random().toString(36).slice(2, 6)
-      
-      // 1. Create Tenant with client-generated UUID to avoid RLS/select delay
-      const tenantId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
-        ? crypto.randomUUID() 
-        : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-            var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-            return v.toString(16);
-          });
-
-      const { error: tenantError } = await supabase
-        .from('tenants')
-        .insert({
-          id: tenantId,
-          name: setupForm.business_name,
-          slug,
-          business_type: setupForm.business_type,
+      console.log('[AppLayout] Triggering self-heal via onboard API...')
+      const onboardRes = await fetch('/api/auth/onboard', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          userId: user.id,
           email: user.email,
-          subscription_plan: 'enterprise',
-        })
-
-      if (tenantError) {
-        console.error('Error en Paso 1 (Tenant):', tenantError)
-        throw new Error(`Error al crear comercio: ${tenantError.message}`)
-      }
-      console.log('Paso 1 Completado. Tenant ID:', tenantId)
-
-      // 2. Create or Update Profile using upsert to avoid primary key constraint violations
-      console.log('2. Insertando/actualizando perfil...')
-      const { error: profileSaveError } = await supabase
-        .from('profiles')
-        .upsert({
-          id: user.id,
-          tenant_id: tenantId,
+          business_name: setupForm.business_name,
+          business_type: setupForm.business_type,
           full_name: profile?.full_name || user.user_metadata?.full_name || 'Propietario',
-          email: profile?.email || user.email,
-          role: profile?.role || 'owner',
         })
+      })
 
-      if (profileSaveError) {
-        console.error('Error en Paso 2 (Profile):', profileSaveError)
-        throw new Error(`Error al crear perfil: ${profileSaveError.message}`)
+      if (!onboardRes.ok) {
+        const onboardErr = await onboardRes.json().catch(() => ({}))
+        throw new Error(onboardErr.error || 'Error al inicializar la configuración del comercio.')
       }
-      console.log('Paso 2 Completado.')
 
-      // 3. Create default category
-      console.log('3. Creando categoría General...')
-      const { error: categoryError } = await supabase
-        .from('categories')
-        .insert({
-          tenant_id: tenantId,
-          name: 'General',
-          icon: '📦',
-          color: '#7C3AED',
-        })
-
-      if (categoryError) {
-        console.error('Error en Paso 3 (Category):', categoryError)
-        throw new Error(`Error al crear categoría inicial: ${categoryError.message}`)
-      }
-      console.log('Paso 3 Completado.')
-
-      // 4. Reload auth state
-      console.log('4. Recargando perfil en la app...')
+      console.log('[AppLayout] Onboarding completed server-side. Reloading profile...')
       await reloadProfile()
       console.log('Auto-recuperación finalizada con éxito.')
     } catch (err) {
