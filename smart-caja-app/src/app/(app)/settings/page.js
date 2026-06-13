@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
 import UpgradePrompt from '@/components/ui/UpgradePrompt'
+import MapPicker from '@/components/ui/MapPicker'
+import Screensaver from '@/components/ui/Screensaver'
 import { 
   Store, 
   Users, 
@@ -29,7 +31,8 @@ import {
   Globe,
   Settings,
   ShoppingBag,
-  Scale
+  Scale,
+  Clock
 } from 'lucide-react'
 
 export default function SettingsPage() {
@@ -41,6 +44,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false)      // for Save button
   const [upgrading, setUpgrading] = useState(null) // planId string when upgrading, null when idle
   const [activeTab, setActiveTab] = useState('general')
+  const [previewScreensaver, setPreviewScreensaver] = useState(false)
   
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [form, setForm] = useState({
@@ -48,6 +52,10 @@ export default function SettingsPage() {
     business_type: '',
     address: '',
     phone: '',
+    latitude: '',
+    longitude: '',
+    screensaver_enabled: true,
+    screensaver_timeout: 180,
     primary_color: '#7C3AED',
     secondary_color: '#10B981',
     mp_access_token: '',
@@ -85,6 +93,10 @@ export default function SettingsPage() {
           business_type: tenant.business_type || '',
           address: tenant.address || '',
           phone: tenant.phone || '',
+          latitude: tenant.latitude || '',
+          longitude: tenant.longitude || '',
+          screensaver_enabled: tenant.theme_config?.screensaver_enabled !== undefined ? tenant.theme_config.screensaver_enabled : true,
+          screensaver_timeout: tenant.theme_config?.screensaver_timeout !== undefined ? tenant.theme_config.screensaver_timeout : 180,
           primary_color: tenant.theme_config?.primary_color || '#7C3AED',
           secondary_color: tenant.theme_config?.secondary_color || '#10B981',
           mp_access_token: tenant.theme_config?.mp_access_token || '',
@@ -323,6 +335,8 @@ export default function SettingsPage() {
         business_type: form.business_type,
         address: form.address,
         phone: form.phone,
+        latitude: form.latitude ? parseFloat(form.latitude) : null,
+        longitude: form.longitude ? parseFloat(form.longitude) : null,
         logo_url: form.logo_url,
         ecommerce_enabled: form.ecommerce_enabled,
         ecommerce_description: form.ecommerce_description,
@@ -338,6 +352,8 @@ export default function SettingsPage() {
           mp_access_token: form.mp_access_token,
           mp_public_key: form.mp_public_key,
           background_preset: form.background_preset,
+          screensaver_enabled: form.screensaver_enabled,
+          screensaver_timeout: parseInt(form.screensaver_timeout) || 180,
         }
       }
 
@@ -667,8 +683,91 @@ export default function SettingsPage() {
                       value={form.address} 
                       onChange={e => updateForm('address', e.target.value)} 
                       placeholder="Ej: Av. San Martín 1234, Rosario" 
-                      style={{ marginTop: '6px' }}
+                      style={{ marginTop: '6px', marginBottom: '16px' }}
                     />
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Ubicación Georreferenciada (Mapa)</label>
+                    <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginBottom: '12px' }}>
+                      Ubica tu negocio en el mapa para habilitar la geolocalización en la plataforma y el salvapantallas interactivo.
+                    </p>
+                    <MapPicker
+                      latitude={form.latitude}
+                      longitude={form.longitude}
+                      addressText={form.address}
+                      onChange={(lat, lng) => {
+                        setForm(prev => ({ ...prev, latitude: lat, longitude: lng }))
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* Card 1B: Protector de Pantalla (Salvapantallas) */}
+              <div className="card">
+                <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Clock size={18} style={{ color: 'var(--color-primary)' }} />
+                    <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Protector de Pantalla (Salvapantallas)</h3>
+                  </div>
+                </div>
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '20px' }}>
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.4 }}>
+                    El sistema cuenta con un salvapantallas premium e interactivo con el logo de SmartFlow, un reloj digital y un mapa georreferenciado con las ventas en tiempo real de tu comercio. Se activa tras un período de inactividad de la terminal.
+                  </p>
+
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flex: 1, margin: 0 }}>
+                      <input 
+                        type="checkbox" 
+                        checked={form.screensaver_enabled}
+                        onChange={(e) => updateForm('screensaver_enabled', e.target.checked)}
+                        style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.9375rem', color: '#fff' }}>Habilitar protector de pantalla automático</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          Detecta inactividad en la caja registradora para oscurecer y proteger el monitor.
+                        </div>
+                      </div>
+                    </label>
+                  </div>
+
+                  {form.screensaver_enabled && (
+                    <div className="form-group" style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                      <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Tiempo de inactividad para activar</label>
+                      <select 
+                        className="form-select form-input" 
+                        value={form.screensaver_timeout} 
+                        onChange={e => updateForm('screensaver_timeout', parseInt(e.target.value))}
+                        style={{ maxWidth: '240px' }}
+                      >
+                        <option value={60}>1 Minuto</option>
+                        <option value={180}>3 Minutos (Recomendado)</option>
+                        <option value={300}>5 Minutos</option>
+                        <option value={600}>10 Minutos</option>
+                        <option value={900}>15 Minutos</option>
+                      </select>
+                    </div>
+                  )}
+
+                  <div style={{ marginTop: '8px' }}>
+                    <button
+                      type="button"
+                      onClick={() => setPreviewScreensaver(true)}
+                      className="btn btn-secondary"
+                      style={{
+                        padding: '10px 18px',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        fontWeight: 600,
+                        border: '1px solid var(--border-color)'
+                      }}
+                    >
+                      📺 Vista Previa del Salvapantallas
+                    </button>
                   </div>
                 </div>
               </div>
@@ -2165,6 +2264,24 @@ export default function SettingsPage() {
 
         </section>
       </div>
+      {/* Screensaver Preview Modal */}
+      {previewScreensaver && (
+        <Screensaver 
+          tenant={{
+            ...tenant,
+            latitude: form.latitude,
+            longitude: form.longitude,
+            name: form.name,
+            address: form.address,
+            theme_config: {
+              ...tenant?.theme_config,
+              currency: form.currency,
+              locale: form.locale
+            }
+          }}
+          onClose={() => setPreviewScreensaver(false)}
+        />
+      )}
     </div>
   )
 }

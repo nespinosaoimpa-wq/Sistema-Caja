@@ -5,6 +5,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
+import Screensaver from '@/components/ui/Screensaver'
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -180,6 +181,48 @@ export default function AppLayout({ children }) {
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [loading, user, profileLoaded, profileError, reloadProfile])
 
+  // Idle Timer for Screensaver
+  const [isScreensaverOpen, setIsScreensaverOpen] = useState(false)
+
+  useEffect(() => {
+    if (!user || !tenant) return
+    
+    // Check settings
+    const screensaverEnabled = tenant.theme_config?.screensaver_enabled !== false // defaults to true
+    const timeoutSeconds = parseInt(tenant.theme_config?.screensaver_timeout) || 180 // defaults to 3 minutes
+    
+    if (!screensaverEnabled || isScreensaverOpen) return
+
+    let timerId = null
+
+    const resetTimer = () => {
+      if (timerId) clearTimeout(timerId)
+      timerId = setTimeout(() => {
+        setIsScreensaverOpen(true)
+      }, timeoutSeconds * 1000)
+    }
+
+    // Initialize timer
+    resetTimer()
+
+    // Activity event listeners
+    const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart']
+    
+    const handleActivity = () => {
+      resetTimer()
+    }
+
+    activityEvents.forEach(event => {
+      window.addEventListener(event, handleActivity, { passive: true })
+    })
+
+    return () => {
+      if (timerId) clearTimeout(timerId)
+      activityEvents.forEach(event => {
+        window.removeEventListener(event, handleActivity)
+      })
+    }
+  }, [user, tenant, isScreensaverOpen])
 
   if (loading) {
     if (loadingTimeout) {
@@ -502,6 +545,12 @@ export default function AppLayout({ children }) {
 
   return (
     <div className="app-layout">
+      {isScreensaverOpen && (
+        <Screensaver 
+          tenant={tenant} 
+          onClose={() => setIsScreensaverOpen(false)} 
+        />
+      )}
       {/* ===== MOBILE HEADER ===== */}
       <div className="mobile-header">
         <button
