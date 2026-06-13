@@ -27,7 +27,8 @@ export async function updateSession(request) {
       pathname.startsWith('/api/leads') ||
       pathname.startsWith('/api/auth/check-email') ||
       pathname.startsWith('/api/auth/onboard') ||
-      pathname.startsWith('/api/referrals')
+      pathname.startsWith('/api/referrals') ||
+      pathname.startsWith('/api/emails')
 
     // 1. Optimize for Next.js Prefetches
     // Prefetch requests (triggered on hover) do not need to query the database.
@@ -112,7 +113,8 @@ export async function updateSession(request) {
       pathname.startsWith('/api/leads') ||
       pathname.startsWith('/api/auth/check-email') ||
       pathname.startsWith('/api/auth/onboard') ||
-      pathname.startsWith('/api/referrals')
+      pathname.startsWith('/api/referrals') ||
+      pathname.startsWith('/api/emails')
     if (!isPublicRoute) {
       const url = request.nextUrl.clone()
       url.pathname = '/login'

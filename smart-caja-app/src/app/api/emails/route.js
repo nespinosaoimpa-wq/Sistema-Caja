@@ -4,8 +4,15 @@ import { Resend } from 'resend'
 const resendApiKey = process.env.RESEND_API_KEY || ''
 const resend = resendApiKey ? new Resend(resendApiKey) : null
 
+const AUTH_TOKEN = 'sc_secure_mail_trigger_token_2026_9b8a7c'
+
 export async function POST(req) {
   try {
+    const authHeader = req.headers.get('authorization')
+    if (!authHeader || authHeader !== `Bearer ${AUTH_TOKEN}`) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+
     const { to, subject, html } = await req.json()
 
     if (!to || !subject || !html) {
