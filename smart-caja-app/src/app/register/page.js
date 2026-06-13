@@ -4,9 +4,7 @@ import { useState, useEffect, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
-import { generateSlug } from '@/lib/utils/formatters'
 import { useToast } from '@/lib/hooks/useToast'
-import { getInitialCategories } from '@/lib/config/rubroConfig'
 
 function RegisterContent() {
   const router = useRouter()
@@ -166,104 +164,43 @@ function RegisterContent() {
 
       if (inviteTenant) {
         // --- REGISTRO DE COLABORADOR INVITADO ---
-        // 2. Insertar perfil vinculado al tenant de la invitación
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            tenant_id: inviteTenant,
-            full_name: form.full_name,
+        const onboardRes = await fetch('/api/auth/onboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
             email: emailNormalized,
-            role: inviteRole,
-            is_active: true
+            full_name: form.full_name,
+            inviteTenant,
+            inviteRole
           })
+        })
 
-        if (profileError) throw profileError
+        if (!onboardRes.ok) {
+          const onboardErr = await onboardRes.json().catch(() => ({}))
+          throw new Error(onboardErr.error || 'Error al vincular el perfil al comercio.')
+        }
 
         toast.success('¡Registro completado! Te has unido al comercio.')
       } else {
         // --- REGISTRO DE NUEVO PROPIETARIO ---
-        // 2. Crear tenant/negocio con UUID autogenerado en el cliente para evitar fallos de RLS/select
-        const tenantId = (typeof crypto !== 'undefined' && crypto.randomUUID) 
-          ? crypto.randomUUID() 
-          : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-              var r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
-              return v.toString(16);
-            });
-
-        let referredById = null
-        let referrerTenantId = null
-
-        if (refCode) {
-          const { data: refTenant } = await supabase
-            .from('tenants')
-            .select('id')
-            .eq('referral_code', refCode.trim().toUpperCase())
-            .maybeSingle()
-
-          if (refTenant) {
-            referredById = refTenant.id
-            referrerTenantId = refTenant.id
-          }
-        }
-
-        const slug = generateSlug(form.business_name) + '-' + Math.random().toString(36).slice(2, 6)
-        const { error: tenantError } = await supabase
-          .from('tenants')
-          .insert({
-            id: tenantId,
-            name: form.business_name,
-            slug,
+        const onboardRes = await fetch('/api/auth/onboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            email: emailNormalized,
+            business_name: form.business_name,
             business_type: form.business_type,
-            email: emailNormalized,
-            phone: form.phone,
-            subscription_plan: 'enterprise',
-            referred_by_id: referredById,
-          })
-
-        if (tenantError) throw tenantError
-
-        // 3. Crear perfil de dueño
-        const { error: profileError } = await supabase
-          .from('profiles')
-          .insert({
-            id: userId,
-            tenant_id: tenantId,
             full_name: form.full_name,
-            email: emailNormalized,
-            role: 'owner',
-            is_active: true
+            phone: form.phone,
+            refCode
           })
+        })
 
-        if (profileError) throw profileError
-
-        // Insert referral tracking log if referred
-        if (referrerTenantId) {
-          await fetch('/api/referrals', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              referrer_tenant_id: referrerTenantId,
-              referred_tenant_id: tenantId
-            })
-          }).catch(err => console.error('[Register] Referral track error:', err.message))
-        }
-
-        // 4. Crear categorías iniciales correspondientes al rubro
-        const initialCategories = getInitialCategories(form.business_type)
-        const categoriesToInsert = initialCategories.map(cat => ({
-          tenant_id: tenantId,
-          name: cat.name,
-          icon: cat.icon,
-          color: cat.color || '#7C3AED',
-        }))
-
-        const { error: catError } = await supabase
-          .from('categories')
-          .insert(categoriesToInsert)
-
-        if (catError) {
-          console.error('[Register] Error creating default category:', catError)
+        if (!onboardRes.ok) {
+          const onboardErr = await onboardRes.json().catch(() => ({}))
+          throw new Error(onboardErr.error || 'Error al inicializar la configuración del comercio.')
         }
 
         toast.success('¡Cuenta creada! Bienvenido a Smart Caja')
