@@ -17,6 +17,7 @@ function RegisterContent() {
   const inviteRole = searchParams.get('invite_role') || 'cashier'
   const inviteEmail = searchParams.get('invite_email') || ''
   const inviteName = searchParams.get('invite_name') || ''
+  const refCode = searchParams.get('ref') || ''
 
   const [step, setStep] = useState(1)
   const [loading, setLoading] = useState(false)
@@ -156,6 +157,22 @@ function RegisterContent() {
               return v.toString(16);
             });
 
+        let referredById = null
+        let referrerTenantId = null
+
+        if (refCode) {
+          const { data: refTenant } = await supabase
+            .from('tenants')
+            .select('id')
+            .eq('referral_code', refCode.trim().toUpperCase())
+            .maybeSingle()
+
+          if (refTenant) {
+            referredById = refTenant.id
+            referrerTenantId = refTenant.id
+          }
+        }
+
         const slug = generateSlug(form.business_name) + '-' + Math.random().toString(36).slice(2, 6)
         const { error: tenantError } = await supabase
           .from('tenants')
@@ -167,6 +184,7 @@ function RegisterContent() {
             email: form.email,
             phone: form.phone,
             subscription_plan: 'enterprise',
+            referred_by_id: referredById,
           })
 
         if (tenantError) throw tenantError
@@ -184,6 +202,18 @@ function RegisterContent() {
           })
 
         if (profileError) throw profileError
+
+        // Insert referral tracking log if referred
+        if (referrerTenantId) {
+          await supabase
+            .from('referrals')
+            .insert({
+              referrer_tenant_id: referrerTenantId,
+              referred_tenant_id: tenantId,
+              status: 'registered'
+            })
+            .catch(err => console.error('[Register] Referral track error:', err.message))
+        }
 
         // 4. Crear categorías iniciales correspondientes al rubro
         const initialCategories = getInitialCategories(form.business_type)

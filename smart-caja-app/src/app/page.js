@@ -102,11 +102,85 @@ const PLANS = [
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false)
 
+  // Savings Calculator State
+  const [monthlySales, setMonthlySales] = useState(800000)
+  const [estimatedLoss, setEstimatedLoss] = useState(6) // percentage
+
+  // Lead Magnet State
+  const [leadName, setLeadName] = useState('')
+  const [leadEmail, setLeadEmail] = useState('')
+  const [leadBusiness, setLeadBusiness] = useState('general')
+  const [leadLoading, setLeadLoading] = useState(false)
+  const [leadError, setLeadError] = useState(null)
+  const [leadSubmitted, setLeadSubmitted] = useState(false)
+
+  const handleLeadSubmit = async (e) => {
+    e.preventDefault()
+    if (!leadEmail) return
+
+    setLeadLoading(true)
+    setLeadError(null)
+    try {
+      const res = await fetch('/api/leads', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: leadName,
+          email: leadEmail,
+          business_type: leadBusiness
+        })
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error al guardar email')
+      setLeadSubmitted(true)
+    } catch (err) {
+      setLeadError(err.message)
+    } finally {
+      setLeadLoading(false)
+    }
+  }
+
+  const monthlySavings = (monthlySales * (estimatedLoss / 100))
+  const roiMultiplier = ((monthlySavings / 20000) * 100).toFixed(0)
+
   return (
     <div className={styles.landingContainer}>
 
+      {/* ── Top Promo Banner ── */}
+      <div style={{
+        background: 'linear-gradient(90deg, #7C3AED, #B76DFF)',
+        color: '#fff',
+        padding: '10px 24px',
+        textAlign: 'center',
+        fontSize: '0.85rem',
+        fontWeight: 700,
+        position: 'sticky',
+        top: 0,
+        zIndex: 1001,
+        boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: '12px',
+        flexWrap: 'wrap'
+      }}>
+        <span>🔥 50% de DESCUENTO en tu primer mes con el código: <strong style={{ borderBottom: '2px solid #fff' }}>LANZAMIENTO50</strong></span>
+        <Link href="/register?coupon=LANZAMIENTO50" style={{
+          background: '#fff',
+          color: '#7C3AED',
+          padding: '4px 12px',
+          borderRadius: '9999px',
+          fontSize: '0.75rem',
+          fontWeight: 800,
+          textDecoration: 'none',
+          boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+        }}>
+          Obtener 50% OFF
+        </Link>
+      </div>
+
       {/* ── Navbar ── */}
-      <nav className={styles.navbar}>
+      <nav className={styles.navbar} style={{ top: '38px' }}>
         <div className={styles.brand}>
           <div className={styles.brandIcon}></div>
           <span className={styles.brandName}>Smart Caja</span>
@@ -123,6 +197,7 @@ export default function LandingPage() {
         <div className={`${styles.navLinks} ${menuOpen ? styles.navLinksActive : ''}`}>
           <a href="#como-funciona" className={styles.navLink} onClick={() => setMenuOpen(false)}>Cómo funciona</a>
           <a href="#caracteristicas" className={styles.navLink} onClick={() => setMenuOpen(false)}>Características</a>
+          <a href="#calculadora" className={styles.navLink} onClick={() => setMenuOpen(false)}>Calculadora</a>
           <a href="#planes" className={styles.navLink} onClick={() => setMenuOpen(false)}>Planes</a>
           <a href="#testimonios" className={styles.navLink} onClick={() => setMenuOpen(false)}>Testimonios</a>
           <div className={styles.navActionsMobile}>
@@ -138,7 +213,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ── Hero ── */}
-      <section className={styles.hero}>
+      <section className={styles.hero} style={{ paddingTop: '130px' }}>
         <div className={styles.trustBadge}>
           <span className={styles.activeDot}></span>
           Más de 200 comercios activos hoy
@@ -150,11 +225,11 @@ export default function LandingPage() {
           Kiosco, almacén, ferretería, lubricentro, indumentaria o dietética — un solo sistema con caja registradora, inventario, fiados, arqueo de turno y estadísticas reales. Sin cuadernos, sin sorpresas.
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-          <Link href="/register" className={styles.heroButton}>
-            Empezar prueba gratis →
+          <Link href="/register?coupon=LANZAMIENTO50" className={styles.heroButton}>
+            Empezar prueba gratis (14 días) →
           </Link>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-            5 días gratis con acceso a todas las funciones (Plan Empresa) · Sin tarjeta de crédito · Listo en 2 minutos
+            14 días gratis con acceso completo (Plan Empresa) · Sin tarjeta · Listo en 2 minutos
           </span>
         </div>
       </section>
@@ -193,7 +268,7 @@ export default function LandingPage() {
             {
               num: '01',
               title: 'Creá tu cuenta',
-              desc: 'Registrarte tarda 2 minutos. Sin tarjeta de crédito. Accedés de inmediato con 5 días de prueba completa de todas las funciones (Plan Empresa).',
+              desc: 'Registrarte tarda 2 minutos. Sin tarjeta de crédito. Accedés de inmediato con 14 días de prueba completa de todas las funciones.',
               icon: '🧑‍💼',
             },
             {
@@ -216,6 +291,101 @@ export default function LandingPage() {
               <p>{step.desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── Savings Calculator Section ── */}
+      <section id="calculadora" style={{
+        maxWidth: '900px',
+        margin: '0 auto 100px',
+        padding: '0 24px',
+        textAlign: 'center'
+      }}>
+        <div className={styles.sectionHeader}>
+          <div className={styles.sectionTag}>ROI / Retorno</div>
+          <h2>Calculá cuánto dinero estás perdiendo</h2>
+          <p>Calculadora interactiva basada en pérdidas promedio de comercios minoristas sin control digital.</p>
+        </div>
+
+        <div className="card" style={{
+          background: 'var(--bg-card)',
+          border: '1px solid var(--border-highlight)',
+          borderRadius: '24px',
+          padding: '40px 32px',
+          textAlign: 'left',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+          display: 'grid',
+          gridTemplateColumns: '1fr 1fr',
+          gap: '40px'
+        }}>
+          <div>
+            <h3 style={{ fontSize: '1.25rem', color: '#fff', fontWeight: 700, marginBottom: '24px' }}>Tus números</h3>
+            
+            <div style={{ marginBottom: '24px' }}>
+              <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>
+                <span>Ventas Mensuales Estimadas</span>
+                <span style={{ color: 'var(--color-secondary)' }}>${monthlySales.toLocaleString('es-AR')} ARS</span>
+              </label>
+              <input 
+                type="range" 
+                min="100000" 
+                max="5000000" 
+                step="50000"
+                value={monthlySales} 
+                onChange={e => setMonthlySales(Number(e.target.value))}
+                style={{ width: '100%', accentColor: 'var(--color-primary)' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                <span>$100.000</span>
+                <span>$5.000.000</span>
+              </div>
+            </div>
+
+            <div>
+              <label style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--text-secondary)', marginBottom: '8px', fontWeight: 600 }}>
+                <span>Pérdidas estimadas (robo, fiados olvidados, stock vencido)</span>
+                <span style={{ color: 'var(--color-error)' }}>{estimatedLoss}%</span>
+              </label>
+              <input 
+                type="range" 
+                min="2" 
+                max="15" 
+                step="0.5"
+                value={estimatedLoss} 
+                onChange={e => setEstimatedLoss(Number(e.target.value))}
+                style={{ width: '100%', accentColor: 'var(--color-primary)' }}
+              />
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                <span>2% (Mínimo)</span>
+                <span>15% (Alto)</span>
+              </div>
+            </div>
+          </div>
+
+          <div style={{
+            background: 'rgba(255,255,255,0.02)',
+            border: '1px solid var(--border-color)',
+            borderRadius: '16px',
+            padding: '24px',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'center',
+            textAlign: 'center'
+          }}>
+            <h4 style={{ fontSize: '0.875rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+              Ahorro Mensual Estimado
+            </h4>
+            <div style={{ fontSize: '2.5rem', fontWeight: 800, color: 'var(--color-secondary)', margin: '12px 0', fontFamily: 'var(--font-headline)' }}>
+              ${monthlySavings.toLocaleString('es-AR')} <span style={{ fontSize: '1rem', fontWeight: 500, color: 'var(--text-muted)' }}>ARS</span>
+            </div>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5, marginBottom: '20px' }}>
+              Al digitalizar tu stock con Smart Caja, evitás robos hormiga, recordás cada fiado y liquidás stock vencido a tiempo.
+            </p>
+            <div style={{ height: '1px', background: 'var(--border-color)', margin: '12px 0' }} />
+            <div style={{ fontSize: '0.8125rem', color: '#10B981', fontWeight: 700 }}>
+              📈 Retorno de Inversión (ROI): {roiMultiplier}% del plan Básico ($20.000/mes)
+            </div>
+          </div>
         </div>
       </section>
 
@@ -399,6 +569,101 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ── Lead Magnet Section ── */}
+      <section style={{
+        maxWidth: '800px',
+        margin: '0 auto 100px',
+        padding: '0 24px',
+        textAlign: 'center'
+      }}>
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.08) 0%, rgba(6, 14, 32, 0.5) 100%)',
+          border: '1px solid var(--border-highlight)',
+          borderRadius: '24px',
+          padding: '48px 32px',
+          boxShadow: '0 20px 45px rgba(124,58,237,0.1)'
+        }}>
+          <span style={{ fontSize: '2.5rem', marginBottom: '16px', display: 'inline-block' }}>📖</span>
+          <h2 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.75rem', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>
+            Guía Gratuita: Evitá fugas de dinero en tu negocio
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '0.95rem', maxWidth: '550px', margin: '0 auto 28px', lineHeight: 1.5 }}>
+            Descargá el PDF gratuito **"5 formas de dejar de perder plata en tu comercio"** y aprendé las mejores prácticas de control de stock y auditoría de turnos.
+          </p>
+
+          {leadSubmitted ? (
+            <div style={{
+              background: 'rgba(16, 185, 129, 0.08)',
+              border: '1px solid rgba(16, 185, 129, 0.2)',
+              color: '#10B981',
+              padding: '20px',
+              borderRadius: '12px',
+              fontWeight: 600,
+              fontSize: '1rem',
+              maxWidth: '500px',
+              margin: '0 auto'
+            }}>
+              🎉 ¡Registro exitoso! Te enviamos un correo con el link de descarga directa. Revisá tu bandeja de entrada en unos minutos.
+            </div>
+          ) : (
+            <form onSubmit={handleLeadSubmit} style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px',
+              maxWidth: '500px',
+              margin: '0 auto',
+              textAlign: 'left'
+            }}>
+              {leadError && (
+                <div style={{ color: 'var(--color-error)', fontSize: '0.875rem' }}>
+                  ❌ {leadError}
+                </div>
+              )}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+                <input
+                  className="form-input"
+                  placeholder="Tu Nombre"
+                  value={leadName}
+                  onChange={e => setLeadName(e.target.value)}
+                  disabled={leadLoading}
+                  required
+                />
+                <select
+                  className="form-input"
+                  value={leadBusiness}
+                  onChange={e => setLeadBusiness(e.target.value)}
+                  disabled={leadLoading}
+                >
+                  <option value="general">Kiosco / Almacén</option>
+                  <option value="ropa">Indumentaria</option>
+                  <option value="ferreteria">Ferretería</option>
+                  <option value="otro">Otro Rubro</option>
+                </select>
+              </div>
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <input
+                  type="email"
+                  className="form-input"
+                  placeholder="Tu Email (ej: juan@gmail.com)"
+                  value={leadEmail}
+                  onChange={e => setLeadEmail(e.target.value)}
+                  disabled={leadLoading}
+                  required
+                />
+                <button
+                  type="submit"
+                  className={styles.registerButton}
+                  disabled={leadLoading}
+                  style={{ whiteSpace: 'nowrap', border: 'none', cursor: 'pointer', padding: '0 24px' }}
+                >
+                  {leadLoading ? 'Registrando...' : 'Descargar PDF 🚀'}
+                </button>
+              </div>
+            </form>
+          )}
+        </div>
+      </section>
+
       {/* ── Pricing ── */}
       <section id="planes" className={styles.pricingSection}>
         <div className={styles.sectionHeader}>
@@ -433,13 +698,32 @@ export default function LandingPage() {
               </div>
 
               <Link
-                href="/register"
+                href="/register?coupon=LANZAMIENTO50"
                 className={plan.ctaStyle === 'primary' ? styles.pricingButtonPro : styles.pricingButton}
               >
                 {plan.cta}
               </Link>
             </div>
           ))}
+        </div>
+
+        {/* Payment Methods and Security Logos */}
+        <div style={{
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          gap: '24px',
+          marginTop: '40px',
+          opacity: 0.6,
+          flexWrap: 'wrap'
+        }}>
+          <span style={{ fontSize: '0.85rem', fontWeight: 600 }}>Pagá de forma segura con:</span>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            <span style={{ background: '#009EE3', color: '#fff', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 800 }}>Mercado Pago</span>
+            <span style={{ background: '#fff', color: '#1A1A1A', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 800 }}>VISA</span>
+            <span style={{ background: '#fff', color: '#1A1A1A', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 800 }}>Mastercard</span>
+            <span style={{ background: '#fff', color: '#1A1A1A', padding: '3px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 800 }}>Cabal</span>
+          </div>
         </div>
 
         <p className={styles.pricingNote}>
@@ -465,7 +749,7 @@ export default function LandingPage() {
               a: "No. Smart Caja funciona 100% desde el navegador de cualquier celular, tablet o computadora, sin descargas ni instalaciones."
             },
             {
-              q: "¿Cómo funciona la prueba gratis de 5 días?",
+              q: "¿Cómo funciona la prueba gratis de 14 días?",
               a: "Te registrás en 2 minutos sin tarjeta de crédito y accedés de inmediato a todas las funciones de todos los planes (incluyendo funciones del plan Profesional y Empresa) para que evalúes el potencial completo de Smart Caja en tu negocio."
             },
             {
@@ -495,9 +779,9 @@ export default function LandingPage() {
           <h2>Transformá tu negocio hoy</h2>
           <p>Únete a cientos de comercios que ya controlan sus ventas y stock desde una sola plataforma.</p>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
-            <Link href="/register" className={styles.heroButton}>Crear cuenta gratis →</Link>
+            <Link href="/register?coupon=LANZAMIENTO50" className={styles.heroButton}>Crear cuenta gratis →</Link>
             <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
-              Setup en 2 minutos · 5 días de prueba completa de todas las funciones · Sin tarjetas
+              Setup en 2 minutos · 14 días de prueba completa de todas las funciones · Sin tarjetas
             </span>
           </div>
         </div>

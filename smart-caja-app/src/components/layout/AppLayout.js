@@ -26,6 +26,7 @@ import {
   Shield,
   TrendingDown,
   Trash2,
+  Gift,
 } from 'lucide-react'
 
 
@@ -43,6 +44,7 @@ const NAV_ITEMS = [
   { href: '/analytics', label: 'Estadísticas', icon: TrendingUp, minPlan: 'professional' },
   { href: '/installments', label: 'Cuotas', icon: CreditCard, minPlan: 'professional' },
   { href: '/purchases', label: 'Compras', icon: ShoppingBag, minPlan: 'enterprise' },
+  { href: '/referrals', label: 'Referidos 🤝', icon: Gift, minPlan: 'basic' },
 ]
 
 const PLAN_WEIGHTS = {

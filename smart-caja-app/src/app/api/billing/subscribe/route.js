@@ -17,7 +17,7 @@ export async function POST(req) {
       )
     }
 
-    const { planId, tenantId, email } = await req.json()
+    const { planId, tenantId, email, couponCode } = await req.json()
 
     if (!planId || !PLAN_PRICES[planId]) {
       return NextResponse.json({ error: 'Plan inválido' }, { status: 400 })
@@ -27,18 +27,58 @@ export async function POST(req) {
     }
 
     const plan = PLAN_PRICES[planId]
+    let price = plan.price
+    let appliedCoupon = null
+
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+      auth: { persistSession: false }
+    })
+
+    if (couponCode) {
+      const { data: coupon, error: couponError } = await supabaseAdmin
+        .from('coupons')
+        .select('*')
+        .eq('code', couponCode.trim().toUpperCase())
+        .single()
+
+      if (couponError || !coupon) {
+        return NextResponse.json({ error: 'Cupón inválido' }, { status: 400 })
+      }
+
+      if (coupon.expires_at && new Date(coupon.expires_at) < new Date()) {
+        return NextResponse.json({ error: 'El cupón ha expirado' }, { status: 400 })
+      }
+
+      if (coupon.max_uses !== null && coupon.uses_count >= coupon.max_uses) {
+        return NextResponse.json({ error: 'El cupón ha agotado su límite de usos' }, { status: 400 })
+      }
+
+      appliedCoupon = coupon
+
+      if (coupon.discount_type === 'percentage') {
+        price = Math.max(0, price * (1 - coupon.discount_value / 100))
+      } else if (coupon.discount_type === 'fixed') {
+        price = Math.max(0, price - coupon.discount_value)
+      }
+    }
+
     const origin = new URL(req.url).origin
+    const externalReference = appliedCoupon 
+      ? `${tenantId}:${planId}:${appliedCoupon.id}` 
+      : `${tenantId}:${planId}`
 
     // Build the preapproval request
     const preapprovalBody = {
       payer_email: email,
-      reason: `Smart Caja — Plan ${plan.name}`,
-      external_reference: `${tenantId}:${planId}`,
+      reason: `Smart Caja — Plan ${plan.name}${appliedCoupon ? ' (Promo)' : ''}`,
+      external_reference: externalReference,
       back_url: `${origin}/billing/success?plan=${planId}`,
       auto_recurring: {
         frequency: 1,
         frequency_type: 'months',
-        transaction_amount: plan.price,
+        transaction_amount: price,
         currency_id: 'ARS',
       },
       status: 'pending',
@@ -67,19 +107,13 @@ export async function POST(req) {
     console.log(`[billing/subscribe] Preapproval created: ${data.id} for tenant ${tenantId} plan ${planId}`)
 
     // Optionally store the preapproval id immediately
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
     if (supabaseServiceKey) {
-      const supabaseAdmin = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        supabaseServiceKey,
-        { auth: { persistSession: false } }
-      )
       await supabaseAdmin.from('subscription_events').insert({
         tenant_id: tenantId,
         event_type: 'subscription_created',
         mp_subscription_id: data.id,
         plan_id: planId,
-        amount: plan.price,
+        amount: price,
         status_before: 'trial',
         status_after: 'pending',
         raw_payload: data,

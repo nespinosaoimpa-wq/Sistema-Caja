@@ -82,6 +82,17 @@ export default function POSPage() {
   const [showVariantPicker, setShowVariantPicker] = useState(false)
   const [selectedProductForVariants, setSelectedProductForVariants] = useState(null)
 
+  // Mobile scanner states
+  const [mobileSessionId, setMobileSessionId] = useState('')
+  const [isMobileConnected, setIsMobileConnected] = useState(false)
+  const [showMobileScannerModal, setShowMobileScannerModal] = useState(false)
+  const addToCartRef = useRef(null)
+
+  // Generate session ID on mount
+  useEffect(() => {
+    setMobileSessionId(Math.random().toString(36).substring(2, 10) + Date.now().toString(36))
+  }, [])
+
   const confirmInstallmentSale = async () => {
     if (!installmentForm.customer_name.trim()) {
       toast.error('Por favor ingresá el nombre del cliente')
@@ -382,6 +393,66 @@ export default function POSPage() {
       }]
     })
   }
+
+  // Keep addToCart and products references updated to avoid effect re-subscriptions
+  useEffect(() => {
+    addToCartRef.current = addToCart
+  })
+
+  const productsRef = useRef(products)
+  useEffect(() => {
+    productsRef.current = products
+  }, [products])
+
+  // Supabase Realtime Broadcast for Mobile Barcode Scanner
+  useEffect(() => {
+    if (!tenant?.id || !mobileSessionId) return
+
+    const channel = supabase.channel(`pos_scan_${mobileSessionId}`)
+
+    channel
+      .on('broadcast', { event: 'scanned' }, ({ payload }) => {
+        const { barcode } = payload
+        if (barcode && addToCartRef.current) {
+          // Play beep sound via Web Audio API
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)()
+            const osc = ctx.createOscillator()
+            const gain = ctx.createGain()
+            osc.connect(gain)
+            gain.connect(ctx.destination)
+            osc.frequency.setValueAtTime(1600, ctx.currentTime)
+            gain.gain.setValueAtTime(0.08, ctx.currentTime)
+            gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1)
+            osc.start()
+            osc.stop(ctx.currentTime + 0.1)
+          } catch (e) {}
+
+          const exactMatch = productsRef.current.find(p => p.barcode === barcode || p.reference_code === barcode)
+          if (exactMatch) {
+            addToCartRef.current(exactMatch)
+            toast.success(`[Celular] "${exactMatch.name}" agregado`)
+          } else {
+            toast.warning(`[Celular] Código "${barcode}" no encontrado`)
+          }
+        }
+      })
+      .on('broadcast', { event: 'ping' }, () => {
+        setIsMobileConnected(true)
+        toast.success('📱 ¡Cámara del celular vinculada con éxito!')
+        // Respond with a pong to let mobile phone know who we are
+        channel.send({
+          type: 'broadcast',
+          event: 'pong',
+          payload: { cashier_name: profile?.full_name || 'Cajero' }
+        })
+      })
+      .subscribe()
+
+    return () => {
+      supabase.removeChannel(channel)
+    }
+  }, [mobileSessionId, tenant?.id, profile?.full_name, supabase, toast])
 
   const handleBarcodeSubmit = (e) => {
     e.preventDefault()
@@ -789,27 +860,7 @@ export default function POSPage() {
         }
       }
 
-      // Deduct stock for each cart item
-      for (const item of cart) {
-        if (item.id) {
-          await supabase
-            .from('products')
-            .update({ 
-              stock_quantity: Math.max(0, item.stock_quantity - item.qty),
-              last_sold_at: new Date().toISOString()
-            })
-            .eq('id', item.id)
-
-          if (item.variant_id && typeof item.variant_stock_quantity !== 'undefined') {
-            await supabase
-              .from('product_variants')
-              .update({
-                stock_quantity: Math.max(0, item.variant_stock_quantity - item.qty)
-              })
-              .eq('id', item.variant_id)
-          }
-        }
-      }
+      // Nota: El descuento de stock ahora se realiza automáticamente mediante triggers en la base de datos (016_deduct_stock_variants_trigger).
 
       // Update customer balance if installment
       if (paymentMethod === 'installment') {
@@ -1055,6 +1106,25 @@ export default function POSPage() {
                 }}
               >
                 {showCatalog ? '👁️ Ocultar Catálogo' : '👁️ Mostrar Catálogo'}
+              </button>
+
+              <button 
+                type="button"
+                onClick={() => setShowMobileScannerModal(true)}
+                className="btn btn-ghost"
+                style={{ 
+                  padding: '10px 16px', 
+                  borderRadius: 'var(--radius-md)', 
+                  display: 'flex', 
+                  alignItems: 'center', 
+                  gap: '8px',
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  color: isMobileConnected ? '#10B981' : 'var(--text-secondary)'
+                }}
+              >
+                <span>{isMobileConnected ? '🟢' : '📱'}</span>
+                {isMobileConnected ? 'Celular Vinculado' : 'Escanear con Celular'}
               </button>
 
               <button 
@@ -2453,6 +2523,72 @@ export default function POSPage() {
                 disabled={savingOrder || !orderForm.customer_name.trim()}
               >
                 {savingOrder ? '⏳ Guardando...' : '📋 Confirmar Pedido'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ========== MOBILE SCANNER MODAL ========== */}
+      {showMobileScannerModal && (
+        <div
+          style={{
+            position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+            background: 'rgba(0,0,0,0.75)', backdropFilter: 'blur(8px)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            zIndex: 9999, padding: '16px'
+          }}
+          onClick={(e) => { if (e.target === e.currentTarget) { setShowMobileScannerModal(false) } }}
+        >
+          <div style={{
+            background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-xl)', padding: '32px',
+            width: '100%', maxWidth: '400px',
+            boxShadow: '0 25px 60px rgba(0,0,0,0.6)', textAlign: 'center'
+          }}>
+            <div style={{ marginBottom: '24px' }}>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '50%',
+                background: isMobileConnected ? 'rgba(16, 185, 129, 0.1)' : 'rgba(59,130,246,0.1)', 
+                border: isMobileConnected ? '2px solid rgba(16, 185, 129, 0.3)' : '2px solid rgba(59,130,246,0.3)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: '1.75rem', margin: '0 auto 12px'
+              }}>
+                {isMobileConnected ? '🟢' : '📱'}
+              </div>
+              <h2 style={{ fontSize: '1.4rem', fontWeight: 800, color: '#fff', marginBottom: '8px' }}>
+                {isMobileConnected ? 'Celular Vinculado' : 'Escanear con Celular'}
+              </h2>
+              <p style={{ color: 'var(--text-muted)', fontSize: '0.875rem', marginBottom: '24px' }}>
+                {isMobileConnected 
+                  ? 'Tu celular está listo para escanear códigos de barras. Todo lo que escanees se agregará automáticamente.'
+                  : 'Escanea el código QR con la cámara de tu celular para usarlo como lector de códigos de barras.'}
+              </p>
+              
+              {!isMobileConnected && (
+                <div style={{ 
+                  background: '#fff', 
+                  padding: '16px', 
+                  borderRadius: '12px', 
+                  display: 'inline-block',
+                  marginBottom: '16px'
+                }}>
+                  <img 
+                    src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(`${window.location.origin}/scan?session=${mobileSessionId}`)}`} 
+                    alt="QR Scanner"
+                    style={{ display: 'block', width: '200px', height: '200px' }}
+                  />
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <button
+                className="btn btn-ghost"
+                style={{ flex: 1 }}
+                onClick={() => setShowMobileScannerModal(false)}
+              >
+                Cerrar
               </button>
             </div>
           </div>

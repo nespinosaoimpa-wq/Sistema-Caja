@@ -111,7 +111,7 @@ export async function POST(req) {
         return NextResponse.json({ received: true })
       }
 
-      const [tenantId, planId] = externalRef.split(':')
+      const [tenantId, planId, couponId] = externalRef.split(':')
       const newStatus = STATUS_MAP[mpStatus] || 'trial'
 
       // Idempotency: check if already processed
@@ -145,6 +145,9 @@ export async function POST(req) {
       if (newStatus === 'active' && planId) {
         updateData.subscription_plan = planId
       }
+      if (newStatus === 'active' && couponId) {
+        updateData.applied_coupon_id = couponId
+      }
 
       const { error: updateError } = await supabaseAdmin
         .from('tenants')
@@ -155,6 +158,40 @@ export async function POST(req) {
         console.error(`[webhook] Failed to update tenant ${tenantId}:`, updateError)
       } else {
         console.log(`[webhook] Tenant ${tenantId} updated: ${statusBefore} → ${newStatus}`)
+
+        if (newStatus === 'active') {
+          // If a coupon was applied, increment its use count
+          if (couponId) {
+            const { data: couponData } = await supabaseAdmin
+              .from('coupons')
+              .select('uses_count')
+              .eq('id', couponId)
+              .single()
+            if (couponData) {
+              await supabaseAdmin
+                .from('coupons')
+                .update({ uses_count: couponData.uses_count + 1 })
+                .eq('id', couponId)
+                .catch(err => console.error('[webhook] Failed to update coupon uses count:', err))
+            }
+          }
+
+          // Check if this tenant was referred and update referral status to paid
+          const { data: referral } = await supabaseAdmin
+            .from('referrals')
+            .select('*')
+            .eq('referred_tenant_id', tenantId)
+            .eq('status', 'registered')
+            .maybeSingle()
+
+          if (referral) {
+            await supabaseAdmin
+              .from('referrals')
+              .update({ status: 'paid', updated_at: new Date().toISOString() })
+              .eq('id', referral.id)
+              .catch(err => console.error('[webhook] Failed to update referral status:', err))
+          }
+        }
         
         // Send welcome email if newly active
         if (statusBefore !== 'active' && newStatus === 'active') {
