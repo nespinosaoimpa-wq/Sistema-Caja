@@ -696,6 +696,7 @@ export default function SettingsPage() {
                       latitude={form.latitude}
                       longitude={form.longitude}
                       addressText={form.address}
+                      logoUrl={form.logo_url}
                       onChange={(lat, lng) => {
                         setForm(prev => ({ ...prev, latitude: lat, longitude: lng }))
                       }}

@@ -144,41 +144,86 @@ export default function Screensaver({ tenant, onClose }) {
         maxZoom: 20
       }).addTo(map)
 
-      // Pulsing Neon Cyan / Violet Marker
+      const primaryColor = tenant?.theme_config?.primary_color || '#7C3AED'
+      const secondaryColor = tenant?.theme_config?.secondary_color || '#06b6d4'
+      const logoUrl = tenant?.logo_url || ''
+
+      // Custom pulsing / glowing drop pin icon
       const pulsingIcon = L.divIcon({
         className: 'screensaver-map-marker',
         html: `
-          <div style="position: relative; width: 24px; height: 24px;">
-            <div style="
-              position: absolute;
-              width: 12px;
-              height: 12px;
-              background-color: #06b6d4;
-              border: 2px solid #fff;
-              border-radius: 50%;
-              top: 6px;
-              left: 6px;
-              z-index: 5;
-              box-shadow: 0 0 10px #06b6d4;
-            "></div>
+          <div style="position: relative; width: 40px; height: 52px; transform-style: preserve-3d; perspective: 1000px;">
+            <!-- Pulsing shadow on the map ground -->
             <div style="
               position: absolute;
               width: 24px;
-              height: 24px;
-              background-color: rgba(6, 182, 212, 0.4);
+              height: 10px;
+              background: rgba(6, 182, 212, 0.4);
               border-radius: 50%;
-              animation: marker-pulse-large 2.5s infinite ease-out;
+              bottom: -5px;
+              left: 8px;
+              transform: rotateX(60deg);
+              animation: shadow-pulse-saver 2s infinite ease-in-out;
+              z-index: 1;
+              filter: blur(1.5px);
             "></div>
+            
+            <!-- Floating Drop Pin -->
+            <div style="
+              position: absolute;
+              width: 40px;
+              height: 52px;
+              bottom: 0;
+              left: 0;
+              z-index: 2;
+              animation: pin-float-saver 2s infinite ease-in-out;
+              transform-origin: bottom center;
+            ">
+              <svg width="40" height="52" viewBox="0 0 40 52" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));">
+                <defs>
+                  <linearGradient id="pin-grad-saver" x1="0" y1="0" x2="0" y2="100%">
+                    <stop offset="0%" stop-color="${primaryColor}" />
+                    <stop offset="100%" stop-color="${secondaryColor}" />
+                  </linearGradient>
+                  <clipPath id="logo-clip-saver">
+                    <circle cx="20" cy="20" r="13" />
+                  </clipPath>
+                </defs>
+                
+                <!-- Outer pin path -->
+                <path d="M20 0C9 0 0 9 0 20C0 35 20 52 20 52C20 52 40 35 40 20C40 9 31 0 20 0Z" fill="url(#pin-grad-saver)" />
+                
+                <!-- White inner circle border -->
+                <circle cx="20" cy="20" r="14.5" fill="#ffffff" />
+                
+                <!-- Circular logo or SC text -->
+                ${logoUrl ? `
+                <g clip-path="url(#logo-clip-saver)">
+                  <rect x="7" y="7" width="26" height="26" fill="#131b2e" />
+                  <image href="${logoUrl}" x="7" y="7" width="26" height="26" preserveAspectRatio="xMidYMid slice" />
+                </g>
+                ` : `
+                <circle cx="20" cy="20" r="13" fill="#1e1b4b" />
+                <text x="20" y="24" font-size="10.5" font-weight="900" font-family="'Outfit', 'Inter', sans-serif" fill="${secondaryColor}" text-anchor="middle">SC</text>
+                `}
+              </svg>
+            </div>
           </div>
           <style>
-            @keyframes marker-pulse-large {
-              0% { transform: scale(0.3); opacity: 1; }
-              100% { transform: scale(2.2); opacity: 0; }
+            @keyframes pin-float-saver {
+              0% { transform: translateY(0); }
+              50% { transform: translateY(-6px); }
+              100% { transform: translateY(0); }
+            }
+            @keyframes shadow-pulse-saver {
+              0% { transform: scale(1) rotateX(60deg); opacity: 0.6; }
+              50% { transform: scale(0.6) rotateX(60deg); opacity: 0.2; }
+              100% { transform: scale(1) rotateX(60deg); opacity: 0.6; }
             }
           </style>
         `,
-        iconSize: [24, 24],
-        iconAnchor: [12, 12]
+        iconSize: [40, 52],
+        iconAnchor: [20, 52]
       })
 
       L.marker([lat, lng], { icon: pulsingIcon }).addTo(map)

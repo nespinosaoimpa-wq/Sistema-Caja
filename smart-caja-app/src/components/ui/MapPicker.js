@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 
-export default function MapPicker({ latitude, longitude, onChange, addressText }) {
+export default function MapPicker({ latitude, longitude, onChange, addressText, logoUrl }) {
   const mapContainerRef = useRef(null)
   const mapInstanceRef = useRef(null)
   const markerInstanceRef = useRef(null)
@@ -63,30 +63,82 @@ export default function MapPicker({ latitude, longitude, onChange, addressText }
         maxZoom: 20
       }).addTo(map)
 
-      // Custom pulsing / glowing icon
+      // Custom pulsing / glowing drop pin icon
       const customIcon = L.divIcon({
         className: 'custom-map-marker',
         html: `
-          <div style="
-            position: relative;
-            width: 20px;
-            height: 20px;
-            background-color: var(--color-primary, #7C3AED);
-            border: 3px solid #fff;
-            border-radius: 50%;
-            box-shadow: 0 0 15px var(--color-primary, #7C3AED), 0 0 0 8px rgba(124, 58, 237, 0.2);
-            animation: marker-pulse 2s infinite ease-in-out;
-          "></div>
+          <div style="position: relative; width: 40px; height: 52px; transform-style: preserve-3d; perspective: 1000px;">
+            <!-- Pulsing shadow on the map ground -->
+            <div style="
+              position: absolute;
+              width: 24px;
+              height: 10px;
+              background: rgba(124, 58, 237, 0.4);
+              border-radius: 50%;
+              bottom: -5px;
+              left: 8px;
+              transform: rotateX(60deg);
+              animation: shadow-pulse 2s infinite ease-in-out;
+              z-index: 1;
+              filter: blur(1.5px);
+            "></div>
+            
+            <!-- Floating Drop Pin -->
+            <div style="
+              position: absolute;
+              width: 40px;
+              height: 52px;
+              bottom: 0;
+              left: 0;
+              z-index: 2;
+              animation: pin-float 2s infinite ease-in-out;
+              transform-origin: bottom center;
+            ">
+              <svg width="40" height="52" viewBox="0 0 40 52" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">
+                <defs>
+                  <linearGradient id="pin-grad-picker" x1="0" y1="0" x2="0" y2="100%">
+                    <stop offset="0%" stop-color="#7C3AED" />
+                    <stop offset="100%" stop-color="#06b6d4" />
+                  </linearGradient>
+                  <clipPath id="logo-clip-picker">
+                    <circle cx="20" cy="20" r="13" />
+                  </clipPath>
+                </defs>
+                
+                <!-- Outer pin path -->
+                <path d="M20 0C9 0 0 9 0 20C0 35 20 52 20 52C20 52 40 35 40 20C40 9 31 0 20 0Z" fill="url(#pin-grad-picker)" />
+                
+                <!-- White inner circle border -->
+                <circle cx="20" cy="20" r="14.5" fill="#ffffff" />
+                
+                <!-- Circular logo or SC text -->
+                ${logoUrl ? `
+                <g clip-path="url(#logo-clip-picker)">
+                  <rect x="7" y="7" width="26" height="26" fill="#131b2e" />
+                  <image href="${logoUrl}" x="7" y="7" width="26" height="26" preserveAspectRatio="xMidYMid slice" />
+                </g>
+                ` : `
+                <circle cx="20" cy="20" r="13" fill="#1e1b4b" />
+                <text x="20" y="24" font-size="10.5" font-weight="900" font-family="'Outfit', 'Inter', sans-serif" fill="#06b6d4" text-anchor="middle">SC</text>
+                `}
+              </svg>
+            </div>
+          </div>
           <style>
-            @keyframes marker-pulse {
-              0% { box-shadow: 0 0 0 0px rgba(124, 58, 237, 0.4), 0 0 8px var(--color-primary, #7C3AED); }
-              70% { box-shadow: 0 0 0 12px rgba(124, 58, 237, 0), 0 0 8px var(--color-primary, #7C3AED); }
-              100% { box-shadow: 0 0 0 0px rgba(124, 58, 237, 0), 0 0 8px var(--color-primary, #7C3AED); }
+            @keyframes pin-float {
+              0% { transform: translateY(0); }
+              50% { transform: translateY(-6px); }
+              100% { transform: translateY(0); }
+            }
+            @keyframes shadow-pulse {
+              0% { transform: scale(1) rotateX(60deg); opacity: 0.6; }
+              50% { transform: scale(0.6) rotateX(60deg); opacity: 0.2; }
+              100% { transform: scale(1) rotateX(60deg); opacity: 0.6; }
             }
           </style>
         `,
-        iconSize: [20, 20],
-        iconAnchor: [10, 10]
+        iconSize: [40, 52],
+        iconAnchor: [20, 52]
       })
 
       // Add draggable marker
@@ -167,7 +219,7 @@ export default function MapPicker({ latitude, longitude, onChange, addressText }
         mapContainerRef.current._leaflet_id = null
       }
     }
-  }, [onChange])
+  }, [onChange, logoUrl])
 
   // Geolocalize based on search query using Nominatim OpenStreetMap
   const handleSearch = async (e) => {
