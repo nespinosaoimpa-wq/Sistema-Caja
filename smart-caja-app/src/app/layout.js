@@ -8,7 +8,7 @@ const jakarta = Plus_Jakarta_Sans({ subsets: ['latin'], variable: '--font-jakart
 const outfit = Outfit({ subsets: ['latin'], variable: '--font-outfit' })
 
 export const metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://smartcaja.com'),
+  metadataBase: new URL(process.env.NEXT_PUBLIC_APP_URL || 'https://smartcaja.vercel.app'),
   title: 'Smart Caja — Sistema POS Inteligente',
   description: 'Sistema de gestión de caja, stock y ventas para cualquier tipo de negocio. Fácil, rápido y potente.',
   manifest: '/manifest.json',
@@ -20,7 +20,7 @@ export const metadata = {
   openGraph: {
     title: 'Smart Caja — Sistema POS Inteligente',
     description: 'Gestioná tu stock, turnos, ventas y tienda online en tiempo real. ¡Probá 5 días gratis!',
-    url: 'https://smartcaja.com',
+    url: 'https://smartcaja.vercel.app',
     siteName: 'Smart Caja',
     images: [
       {

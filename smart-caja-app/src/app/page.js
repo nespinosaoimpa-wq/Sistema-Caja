@@ -182,7 +182,9 @@ export default function LandingPage() {
       {/* ── Navbar ── */}
       <nav className={styles.navbar} style={{ top: '38px' }}>
         <div className={styles.brand}>
-          <div className={styles.brandIcon}></div>
+          <div className={styles.brandIcon} style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 800, fontSize: '0.8rem' }}>
+            SC
+          </div>
           <span className={styles.brandName}>Smart Caja</span>
         </div>
 
