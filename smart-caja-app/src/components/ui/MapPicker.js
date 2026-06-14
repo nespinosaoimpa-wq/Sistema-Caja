@@ -44,6 +44,12 @@ export default function MapPicker({ latitude, longitude, onChange, addressText }
         } catch (e) {
           console.warn('Error removing old map instance:', e)
         }
+        mapInstanceRef.current = null
+      }
+
+      // Reset the Leaflet internal ID on the DOM container if it was left over
+      if (mapContainerRef.current && mapContainerRef.current._leaflet_id) {
+        mapContainerRef.current._leaflet_id = null
       }
 
       // Initialize map
@@ -155,6 +161,10 @@ export default function MapPicker({ latitude, longitude, onChange, addressText }
         } catch (e) {
           console.warn('Clean up error removing map:', e)
         }
+        mapInstanceRef.current = null
+      }
+      if (mapContainerRef.current && mapContainerRef.current._leaflet_id) {
+        mapContainerRef.current._leaflet_id = null
       }
     }
   }, [onChange])
