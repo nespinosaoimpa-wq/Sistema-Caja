@@ -228,10 +228,10 @@ export default function LandingPage() {
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
           <Link href="/register?coupon=LANZAMIENTO50" className={styles.heroButton}>
-            Empezar prueba gratis (14 días) →
+            Empezar prueba gratis (5 días) →
           </Link>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-            14 días gratis con acceso completo (Plan Empresa) · Sin tarjeta · Listo en 2 minutos
+            5 días gratis con acceso completo (Plan Empresa) · Sin tarjeta · Listo en 2 minutos
           </span>
         </div>
       </section>
@@ -270,7 +270,7 @@ export default function LandingPage() {
             {
               num: '01',
               title: 'Creá tu cuenta',
-              desc: 'Registrarte tarda 2 minutos. Sin tarjeta de crédito. Accedés de inmediato con 14 días de prueba completa de todas las funciones.',
+              desc: 'Registrarte tarda 2 minutos. Sin tarjeta de crédito. Accedés de inmediato con 5 días de prueba completa de todas las funciones.',
               icon: '🧑‍💼',
             },
             {
@@ -751,7 +751,7 @@ export default function LandingPage() {
               a: "No. Smart Caja funciona 100% desde el navegador de cualquier celular, tablet o computadora, sin descargas ni instalaciones."
             },
             {
-              q: "¿Cómo funciona la prueba gratis de 14 días?",
+              q: "¿Cómo funciona la prueba gratis de 5 días?",
               a: "Te registrás en 2 minutos sin tarjeta de crédito y accedés de inmediato a todas las funciones de todos los planes (incluyendo funciones del plan Profesional y Empresa) para que evalúes el potencial completo de Smart Caja en tu negocio."
             },
             {
@@ -783,7 +783,7 @@ export default function LandingPage() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
             <Link href="/register?coupon=LANZAMIENTO50" className={styles.heroButton}>Crear cuenta gratis →</Link>
             <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
-              Setup en 2 minutos · 14 días de prueba completa de todas las funciones · Sin tarjetas
+              Setup en 2 minutos · 5 días de prueba completa de todas las funciones · Sin tarjetas
             </span>
           </div>
         </div>

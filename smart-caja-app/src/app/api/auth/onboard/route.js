@@ -43,25 +43,63 @@ export async function POST(request) {
     if (inviteTenant) {
       // --- REGISTRO DE COLABORADOR INVITADO ---
       console.log(`[API Onboard] Creating guest profile for user: ${userId}, tenant: ${inviteTenant}`)
+
+      // Idempotent: use upsert to handle retries gracefully
       const { error: profileError } = await supabaseAdmin
         .from('profiles')
-        .insert({
+        .upsert({
           id: userId,
           tenant_id: inviteTenant,
           full_name: full_name || 'Colaborador',
           email: emailNormalized,
           role: inviteRole || 'cashier',
           is_active: true
-        })
+        }, { onConflict: 'id' })
 
       if (profileError) {
-        console.error('[API Onboard] Guest profile insert error:', profileError)
+        console.error('[API Onboard] Guest profile upsert error:', profileError)
         return Response.json({ error: `Error al vincular perfil: ${profileError.message}` }, { status: 400 })
       }
     } else {
       // --- REGISTRO DE NUEVO PROPIETARIO ---
+      console.log(`[API Onboard] Registering new owner: ${userId}`)
+
+      // Idempotent: check if this user already has a profile + tenant from a previous attempt
+      const { data: existingProfile } = await supabaseAdmin
+        .from('profiles')
+        .select('id, tenant_id, tenants(id, name)')
+        .eq('id', userId)
+        .maybeSingle()
+
+      if (existingProfile?.tenant_id && existingProfile?.tenants?.id) {
+        console.log(`[API Onboard] User ${userId} already has tenant ${existingProfile.tenant_id} — skipping creation`)
+        return Response.json({ success: true })
+      }
+
+      // If there's an orphan profile without tenant, clean it up
+      if (existingProfile && !existingProfile?.tenants?.id) {
+        console.log(`[API Onboard] Cleaning orphan profile for user ${userId}`)
+        const { error: cleanupError } = await supabaseAdmin
+          .from('profiles')
+          .delete()
+          .eq('id', userId)
+        if (cleanupError) {
+          console.error('[API Onboard] Orphan profile cleanup error:', cleanupError)
+        }
+        // Also clean orphan tenant if it exists
+        if (existingProfile.tenant_id) {
+          const { error: tenantCleanupError } = await supabaseAdmin
+            .from('tenants')
+            .delete()
+            .eq('id', existingProfile.tenant_id)
+          if (tenantCleanupError) {
+            console.error('[API Onboard] Orphan tenant cleanup error:', tenantCleanupError)
+          }
+        }
+      }
+
       const tenantId = randomUUID()
-      console.log(`[API Onboard] Registering new owner: ${userId}, generating tenant: ${tenantId}`)
+      console.log(`[API Onboard] Generating tenant: ${tenantId}`)
 
       let referredById = null
       let referrerTenantId = null
@@ -116,9 +154,17 @@ export async function POST(request) {
       if (profileError) {
         console.error('[API Onboard] Owner profile insert error:', profileError)
         // Rollback tenant to keep database clean
-        await supabaseAdmin.from('tenants').delete().eq('id', tenantId).catch(rollbackErr => {
-          console.error('[API Onboard] Rollback tenant failed:', rollbackErr)
-        })
+        try {
+          const { error: rollbackErr } = await supabaseAdmin
+            .from('tenants')
+            .delete()
+            .eq('id', tenantId)
+          if (rollbackErr) {
+            console.error('[API Onboard] Rollback tenant failed:', rollbackErr)
+          }
+        } catch (rollbackException) {
+          console.error('[API Onboard] Rollback tenant exception:', rollbackException)
+        }
         return Response.json({ error: `Error al crear perfil: ${profileError.message}` }, { status: 400 })
       }
 
