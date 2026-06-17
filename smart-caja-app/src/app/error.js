@@ -7,6 +7,27 @@ export default function GlobalError({ error, reset }) {
 
   useEffect(() => {
     console.error('Captured by global error boundary:', error)
+
+    // Detectar si el error es de tipo ChunkLoadError (ocurre al subir una nueva versión a Vercel)
+    const errorMsg = error?.message || ''
+    const errorStack = error?.stack || ''
+    const isChunkError = 
+      errorMsg.toLowerCase().includes('failed to load chunk') ||
+      errorMsg.toLowerCase().includes('chunk') ||
+      errorMsg.toLowerCase().includes('loading chunk') ||
+      errorStack.toLowerCase().includes('chunkloaderror')
+
+    if (isChunkError) {
+      console.warn('ChunkLoadError detected! Attempting automatic recovery...')
+      const lastReloadTime = sessionStorage.getItem('last-chunk-error-reload')
+      const now = Date.now()
+
+      // Para prevenir bucles infinitos de recarga, solo recargamos si pasaron más de 10 segundos
+      if (!lastReloadTime || (now - parseInt(lastReloadTime, 10) > 10000)) {
+        sessionStorage.setItem('last-chunk-error-reload', now.toString())
+        window.location.reload()
+      }
+    }
   }, [error])
 
   return (
