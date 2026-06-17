@@ -99,8 +99,8 @@ export default function OrdersPage() {
         for (const item of items) {
           if (item.product_id) {
             // Deduct product stock
-            const { data: prod } = await supabase.from('products').select('stock_quantity').eq('id', item.product_id).single()
-            if (prod) {
+            const { data: prod } = await supabase.from('products').select('stock_quantity, control_stock').eq('id', item.product_id).single()
+            if (prod && prod.control_stock !== false) {
               await supabase.from('products').update({ stock_quantity: Math.max(0, prod.stock_quantity - item.qty) }).eq('id', item.product_id)
             }
             

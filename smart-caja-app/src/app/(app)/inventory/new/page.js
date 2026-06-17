@@ -37,6 +37,7 @@ export default function NewProductPage() {
     min_stock_alert: '5',
     show_in_store: true,
     has_variants: false,
+    control_stock: true,
   })
   const [errors, setErrors] = useState({})
   
@@ -169,7 +170,8 @@ export default function NewProductPage() {
           image_url: imageUrl,
           is_active: true,
           show_in_store: form.show_in_store,
-          has_variants: form.has_variants
+          has_variants: form.has_variants,
+          control_stock: form.control_stock
         })
 
       if (error) {
@@ -543,33 +545,50 @@ export default function NewProductPage() {
               <span className="card-title">Inventario y Códigos</span>
             </div>
             <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
-                <div className="form-group">
-                  <label className="form-label">Stock Global ({form.unit_label})</label>
+              <div className="form-group" style={{ marginBottom: 'var(--space-4)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', background: 'var(--bg-input)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
                   <input 
-                    className="form-input"
-                    type="number"
-                    step={form.unit_type === 'unit' ? '1' : '0.001'}
-                    value={form.stock_quantity}
-                    onChange={e => updateForm('stock_quantity', e.target.value)}
-                    disabled={form.has_variants}
-                    title={form.has_variants ? "El stock global se calculará automáticamente a partir de las variantes." : ""}
+                    type="checkbox" 
+                    checked={form.control_stock}
+                    onChange={(e) => updateForm('control_stock', e.target.checked)}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
                   />
-                  {form.has_variants && <span className="form-hint" style={{ color: 'var(--color-warning)' }}>El stock se calculará por las variantes.</span>}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Alerta de Stock Bajo (Mínimo)</label>
-                  <input 
-                    className="form-input"
-                    type="number"
-                    step={form.unit_type === 'unit' ? '1' : '0.001'}
-                    value={form.min_stock_alert}
-                    onChange={e => updateForm('min_stock_alert', e.target.value)}
-                  />
-                  <span className="form-hint">Te avisaremos cuando el stock baje de este número.</span>
-                </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Controlar Stock</div>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Si se desactiva, el producto no requerirá stock y se podrá vender sin límites.</div>
+                  </div>
+                </label>
               </div>
+
+              {form.control_stock && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+                  <div className="form-group">
+                    <label className="form-label">Stock Global ({form.unit_label})</label>
+                    <input 
+                      className="form-input"
+                      type="number"
+                      step={form.unit_type === 'unit' ? '1' : '0.001'}
+                      value={form.stock_quantity}
+                      onChange={e => updateForm('stock_quantity', e.target.value)}
+                      disabled={form.has_variants}
+                      title={form.has_variants ? "El stock global se calculará automáticamente a partir de las variantes." : ""}
+                    />
+                    {form.has_variants && <span className="form-hint" style={{ color: 'var(--color-warning)' }}>El stock se calculará por las variantes.</span>}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Alerta de Stock Bajo (Mínimo)</label>
+                    <input 
+                      className="form-input"
+                      type="number"
+                      step={form.unit_type === 'unit' ? '1' : '0.001'}
+                      value={form.min_stock_alert}
+                      onChange={e => updateForm('min_stock_alert', e.target.value)}
+                    />
+                    <span className="form-hint">Te avisaremos cuando el stock baje de este número.</span>
+                  </div>
+                </div>
+              )}
 
               <div style={{ borderTop: '1px dashed var(--border-color)', margin: 'var(--space-4) 0' }}></div>
 

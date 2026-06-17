@@ -130,13 +130,13 @@ export default function PreventistaPage() {
       const existing = prev.find(item => item.id === product.id)
       if (existing) {
         // Respect stock limit if stock_quantity is defined
-        if (product.stock_quantity !== null && existing.qty >= product.stock_quantity) {
+        if (product.control_stock !== false && product.stock_quantity !== null && existing.qty >= product.stock_quantity) {
           toast.warning(`Superaste el stock disponible de ${product.name}`)
           return prev
         }
         return prev.map(item => item.id === product.id ? { ...item, qty: item.qty + 1 } : item)
       } else {
-        if (product.stock_quantity !== null && product.stock_quantity <= 0) {
+        if (product.control_stock !== false && product.stock_quantity !== null && product.stock_quantity <= 0) {
           toast.warning(`${product.name} no tiene stock disponible`)
           return prev
         }
@@ -146,6 +146,7 @@ export default function PreventistaPage() {
           qty: 1,
           sale_price: product.sale_price,
           stock_quantity: product.stock_quantity,
+          control_stock: product.control_stock,
           image_url: product.image_url
         }]
       }
@@ -162,7 +163,7 @@ export default function PreventistaPage() {
         if (item.id === productId) {
           const newQty = item.qty + amount
           if (newQty <= 0) return null
-          if (item.stock_quantity !== null && newQty > item.stock_quantity) {
+          if (item.control_stock !== false && item.stock_quantity !== null && newQty > item.stock_quantity) {
             toast.warning(`Superaste el stock disponible de ${item.name}`)
             return item
           }
@@ -183,6 +184,7 @@ export default function PreventistaPage() {
 
   // Get current active stock of a product (original minus cart quantity)
   const getAvailableStock = (product) => {
+    if (product.control_stock === false) return '∞'
     const inCart = cart.find(item => item.id === product.id)
     const qtyInCart = inCart ? inCart.qty : 0
     return product.stock_quantity !== null ? Math.max(0, product.stock_quantity - qtyInCart) : '∞'
@@ -519,13 +521,15 @@ export default function PreventistaPage() {
                     <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#fff', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{prod.name}</div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px' }}>
                       <span style={{ fontSize: '0.9rem', fontWeight: 800, color: 'var(--color-primary)' }}>{formatCurrency(prod.sale_price)}</span>
-                      <span style={{
-                        fontSize: '0.7rem', fontWeight: 600, padding: '1px 6px', borderRadius: '4px',
-                        background: prod.stock_quantity === 0 ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)',
-                        color: prod.stock_quantity === 0 ? '#EF4444' : 'var(--text-muted)',
-                      }}>
-                        Stock: {availStock}
-                      </span>
+                      {prod.control_stock !== false && (
+                        <span style={{
+                          fontSize: '0.7rem', fontWeight: 600, padding: '1px 6px', borderRadius: '4px',
+                          background: prod.stock_quantity === 0 ? 'rgba(239,68,68,0.1)' : 'rgba(255,255,255,0.05)',
+                          color: prod.stock_quantity === 0 ? '#EF4444' : 'var(--text-muted)',
+                        }}>
+                          Stock: {availStock}
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -535,12 +539,12 @@ export default function PreventistaPage() {
                   {count === 0 ? (
                     <button
                       onClick={() => addToCart(prod)}
-                      disabled={prod.stock_quantity !== null && prod.stock_quantity <= 0}
+                      disabled={prod.control_stock !== false && prod.stock_quantity !== null && prod.stock_quantity <= 0}
                       style={{
                         padding: '8px 16px', background: 'var(--bg-input)', border: '1px solid var(--border-color)', borderRadius: '100px',
                         color: 'var(--text-secondary)', fontSize: '0.8rem', fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: '4px',
                         transition: 'all 0.15s',
-                        opacity: (prod.stock_quantity !== null && prod.stock_quantity <= 0) ? 0.4 : 1
+                        opacity: (prod.control_stock !== false && prod.stock_quantity !== null && prod.stock_quantity <= 0) ? 0.4 : 1
                       }}
                     >
                       <Plus size={14} /> Añadir

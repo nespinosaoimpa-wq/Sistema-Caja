@@ -30,6 +30,7 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
     cost_price: '',
     sale_price: '',
     stock_quantity: '0',
+    control_stock: true,
   })
   const [errors, setErrors] = useState({})
 
@@ -87,6 +88,7 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
         is_active: true,
         unit_type: 'unit',
         unit_label: 'un',
+        control_stock: form.control_stock !== false
       }
 
       const { data, error } = await supabase
@@ -113,7 +115,7 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
       onSaved(data, addToCart)
       
       // Reset form
-      setForm({ name: '', barcode: '', category_id: '', cost_price: '', sale_price: '', stock_quantity: '0' })
+      setForm({ name: '', barcode: '', category_id: '', cost_price: '', sale_price: '', stock_quantity: '0', control_stock: true })
       setErrors({})
     } catch (err) {
       toast.error(err.message || 'Error al guardar el producto')
@@ -304,20 +306,36 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
             </div>
           )}
 
-          {/* Stock */}
-          <div>
-            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#cfc2d6', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-              Stock Inicial
-            </label>
+          {/* Control Stock Toggle */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(255,255,255,0.02)', padding: '10px', borderRadius: '8px', border: '1px solid #2d3449' }}>
             <input
-              type="number"
-              min="0"
-              step="1"
-              className="form-input"
-              value={form.stock_quantity}
-              onChange={e => update('stock_quantity', e.target.value)}
+              type="checkbox"
+              checked={form.control_stock !== false}
+              onChange={e => update('control_stock', e.target.checked)}
+              style={{ width: '16px', height: '16px', accentColor: 'var(--color-primary)' }}
             />
+            <div>
+              <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#fff' }}>Controlar Stock</div>
+              <div style={{ fontSize: '0.6875rem', color: '#988d9f' }}>Permite venta libre sin indicar stock.</div>
+            </div>
           </div>
+
+          {/* Stock */}
+          {form.control_stock !== false && (
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#cfc2d6', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                Stock Inicial
+              </label>
+              <input
+                type="number"
+                min="0"
+                step="1"
+                className="form-input"
+                value={form.stock_quantity}
+                onChange={e => update('stock_quantity', e.target.value)}
+              />
+            </div>
+          )}
 
           {/* Divider */}
           <div style={{ borderTop: '1px solid #2d3449', margin: '2px 0' }} />

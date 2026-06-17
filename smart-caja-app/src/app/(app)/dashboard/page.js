@@ -62,7 +62,7 @@ export default function DashboardPage() {
       // Fetch products for low stock count check (selecting only necessary columns)
       const { data: stockProducts, error: stockError } = await supabase
         .from('products')
-        .select('stock_quantity, min_stock_alert')
+        .select('stock_quantity, min_stock_alert, control_stock')
         .eq('tenant_id', tenant.id)
         .eq('is_active', true)
 
@@ -71,7 +71,7 @@ export default function DashboardPage() {
       }
 
       const calculatedLowStockCount = stockProducts
-        ? stockProducts.filter(p => p.stock_quantity <= p.min_stock_alert).length
+        ? stockProducts.filter(p => p.control_stock !== false && p.stock_quantity <= p.min_stock_alert).length
         : 0
 
       // Fetch open shifts

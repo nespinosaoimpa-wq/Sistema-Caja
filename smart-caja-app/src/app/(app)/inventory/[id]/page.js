@@ -53,6 +53,7 @@ export default function EditProductPage() {
     unit_label: 'un',
     show_in_store: true,
     has_variants: false,
+    control_stock: true,
   })
   const [errors, setErrors] = useState({})
 
@@ -105,6 +106,7 @@ export default function EditProductPage() {
         unit_label: data.unit_label || 'un',
         show_in_store: data.show_in_store !== false,
         has_variants: data.has_variants || false,
+        control_stock: data.control_stock !== false,
       })
       // Load existing image
       if (data.image_url) {
@@ -236,6 +238,7 @@ export default function EditProductPage() {
         unit_label: form.unit_label,
         show_in_store: form.show_in_store,
         has_variants: form.has_variants,
+        control_stock: form.control_stock,
       }
       if (newImageUrl !== undefined) updatePayload.image_url = newImageUrl
 
@@ -717,36 +720,53 @@ export default function EditProductPage() {
               <span className="card-title">Inventario y Códigos</span>
             </div>
             <div className="card-body">
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
-                <div className="form-group">
-                  <label className="form-label">Stock Global</label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    step={isDecimalStock ? '0.001' : '1'}
-                    value={form.stock_quantity}
-                    onChange={e => updateForm('stock_quantity', e.target.value)}
-                    disabled={form.has_variants}
-                    title={form.has_variants ? "El stock global es calculado automáticamente desde las variantes." : ""}
+              <div className="form-group" style={{ marginBottom: 'var(--space-4)' }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', background: 'var(--bg-input)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                  <input 
+                    type="checkbox" 
+                    checked={form.control_stock}
+                    onChange={(e) => updateForm('control_stock', e.target.checked)}
+                    style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
                   />
-                  {form.has_variants && <span className="form-hint" style={{ color: 'var(--color-warning)' }}>El stock se calcula por las variantes.</span>}
-                  {isDecimalStock && !form.has_variants && (
-                    <span className="form-hint">Permite decimales para {form.unit_type === 'weight' ? 'peso' : 'volumen'}.</span>
-                  )}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label">Alerta de Stock Bajo (Mínimo)</label>
-                  <input
-                    className="form-input"
-                    type="number"
-                    step={isDecimalStock ? '0.001' : '1'}
-                    value={form.min_stock_alert}
-                    onChange={e => updateForm('min_stock_alert', e.target.value)}
-                  />
-                  <span className="form-hint">Te avisaremos cuando el stock baje de este número.</span>
-                </div>
+                  <div>
+                    <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Controlar Stock</div>
+                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Si se desactiva, el producto no requerirá stock y se podrá vender sin límites.</div>
+                  </div>
+                </label>
               </div>
+
+              {form.control_stock && (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+                  <div className="form-group">
+                    <label className="form-label">Stock Global</label>
+                    <input
+                      className="form-input"
+                      type="number"
+                      step={isDecimalStock ? '0.001' : '1'}
+                      value={form.stock_quantity}
+                      onChange={e => updateForm('stock_quantity', e.target.value)}
+                      disabled={form.has_variants}
+                      title={form.has_variants ? "El stock global es calculado automáticamente desde las variantes." : ""}
+                    />
+                    {form.has_variants && <span className="form-hint" style={{ color: 'var(--color-warning)' }}>El stock se calcula por las variantes.</span>}
+                    {isDecimalStock && !form.has_variants && (
+                      <span className="form-hint">Permite decimales para {form.unit_type === 'weight' ? 'peso' : 'volumen'}.</span>
+                    )}
+                  </div>
+
+                  <div className="form-group">
+                    <label className="form-label">Alerta de Stock Bajo (Mínimo)</label>
+                    <input
+                      className="form-input"
+                      type="number"
+                      step={isDecimalStock ? '0.001' : '1'}
+                      value={form.min_stock_alert}
+                      onChange={e => updateForm('min_stock_alert', e.target.value)}
+                    />
+                    <span className="form-hint">Te avisaremos cuando el stock baje de este número.</span>
+                  </div>
+                </div>
+              )}
 
               <div style={{ borderTop: '1px dashed var(--border-color)', margin: 'var(--space-4) 0' }}></div>
 
@@ -788,70 +808,72 @@ export default function EditProductPage() {
           </div>
 
           {/* Stock Adjustment */}
-          <div className="card">
-            <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <Package size={18} /> Ajuste de Stock
-              </span>
-              <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                Stock actual: <strong style={{ color: 'var(--color-secondary)' }}>
-                  {form.stock_quantity} {form.unit_label}
-                </strong>
-              </span>
-            </div>
-            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
-                <div className="form-group">
-                  <label className="form-label">Tipo de ajuste</label>
-                  <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
-                    <button
-                      className={`btn ${stockAdjustment.type === 'add' ? 'btn-primary' : 'btn-ghost'}`}
-                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-                      onClick={() => setStockAdjustment(prev => ({ ...prev, type: 'add' }))}
-                    >
-                      <Plus size={14} /> Entrada
-                    </button>
-                    <button
-                      className={`btn ${stockAdjustment.type === 'subtract' ? 'btn-primary' : 'btn-ghost'}`}
-                      style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', ...(stockAdjustment.type === 'subtract' ? { background: 'var(--color-danger, #ef4444)' } : {}) }}
-                      onClick={() => setStockAdjustment(prev => ({ ...prev, type: 'subtract' }))}
-                    >
-                      <Minus size={14} /> Salida
-                    </button>
+          {form.control_stock && (
+            <div className="card">
+              <div className="card-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <span className="card-title" style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  <Package size={18} /> Ajuste de Stock
+                </span>
+                <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
+                  Stock actual: <strong style={{ color: 'var(--color-secondary)' }}>
+                    {form.stock_quantity} {form.unit_label}
+                  </strong>
+                </span>
+              </div>
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-4)' }}>
+                  <div className="form-group">
+                    <label className="form-label">Tipo de ajuste</label>
+                    <div style={{ display: 'flex', gap: 'var(--space-2)' }}>
+                      <button
+                        className={`btn ${stockAdjustment.type === 'add' ? 'btn-primary' : 'btn-ghost'}`}
+                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
+                        onClick={() => setStockAdjustment(prev => ({ ...prev, type: 'add' }))}
+                      >
+                        <Plus size={14} /> Entrada
+                      </button>
+                      <button
+                        className={`btn ${stockAdjustment.type === 'subtract' ? 'btn-primary' : 'btn-ghost'}`}
+                        style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', ...(stockAdjustment.type === 'subtract' ? { background: 'var(--color-danger, #ef4444)' } : {}) }}
+                        onClick={() => setStockAdjustment(prev => ({ ...prev, type: 'subtract' }))}
+                      >
+                        <Minus size={14} /> Salida
+                      </button>
+                    </div>
+                  </div>
+                  <div className="form-group">
+                    <label className="form-label">Cantidad ({form.unit_label})</label>
+                    <input
+                      className="form-input"
+                      type="number"
+                      min="0"
+                      step={isDecimalStock ? '0.001' : '1'}
+                      placeholder="0"
+                      value={stockAdjustment.quantity}
+                      onChange={e => setStockAdjustment(prev => ({ ...prev, quantity: e.target.value }))}
+                    />
                   </div>
                 </div>
                 <div className="form-group">
-                  <label className="form-label">Cantidad ({form.unit_label})</label>
+                  <label className="form-label required">Motivo del ajuste</label>
                   <input
                     className="form-input"
-                    type="number"
-                    min="0"
-                    step={isDecimalStock ? '0.001' : '1'}
-                    placeholder="0"
-                    value={stockAdjustment.quantity}
-                    onChange={e => setStockAdjustment(prev => ({ ...prev, quantity: e.target.value }))}
+                    placeholder="Ej: Compra proveedor, Rotura, Corrección inventario..."
+                    value={stockAdjustment.reason}
+                    onChange={e => setStockAdjustment(prev => ({ ...prev, reason: e.target.value }))}
                   />
                 </div>
+                <button
+                  className="btn btn-primary"
+                  onClick={handleStockAdjustment}
+                  disabled={adjustingStock}
+                  style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px' }}
+                >
+                  <Check size={16} /> {adjustingStock ? 'Ajustando...' : 'Aplicar Ajuste'}
+                </button>
               </div>
-              <div className="form-group">
-                <label className="form-label required">Motivo del ajuste</label>
-                <input
-                  className="form-input"
-                  placeholder="Ej: Compra proveedor, Rotura, Corrección inventario..."
-                  value={stockAdjustment.reason}
-                  onChange={e => setStockAdjustment(prev => ({ ...prev, reason: e.target.value }))}
-                />
-              </div>
-              <button
-                className="btn btn-primary"
-                onClick={handleStockAdjustment}
-                disabled={adjustingStock}
-                style={{ alignSelf: 'flex-start', display: 'flex', alignItems: 'center', gap: '6px' }}
-              >
-                <Check size={16} /> {adjustingStock ? 'Ajustando...' : 'Aplicar Ajuste'}
-              </button>
             </div>
-          </div>
+          )}
 
         </div>
       </div>

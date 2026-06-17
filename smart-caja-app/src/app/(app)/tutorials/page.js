@@ -68,6 +68,19 @@ const MODULES = [
     ],
   },
   {
+    id: 'no-stock',
+    label: 'Venta sin Stock',
+    icon: <Zap size={18} />,
+    emoji: '🥖',
+    description: 'Venta libre para panaderías y comercios de producción diaria.',
+    steps: [
+      { title: 'Crear producto sin stock', body: 'En la sección Inventario, al dar de alta o editar un producto (como Pan Mignon o Facturas), verás la casilla "Controlar Stock" activada por defecto. Si la desmarcas, el producto no requerirá stock inicial.' },
+      { title: 'Comportamiento en Caja (POS)', body: 'Los productos que no controlan stock se muestran en el catálogo y autocompletado sin indicadores de stock. Se pueden añadir en cualquier cantidad sin que el sistema bloquee la venta por stock insuficiente.' },
+      { title: 'Integración en Preventa y Pedidos', body: 'En los módulos de Pedidos Online y Preventista, los productos marcados sin control de stock permiten adiciones ilimitadas al carrito sin alertas de stock excedido o nulo.' },
+      { title: 'Control financiero e ingresos', body: 'La venta de estos productos registra los ingresos económicos con total precisión para el arqueo y cierre del turno de caja, omitiendo únicamente la auditoría del stock físico.' }
+    ]
+  },
+  {
     id: 'shifts',
     label: 'Turnos',
     icon: <Clock size={18} />,

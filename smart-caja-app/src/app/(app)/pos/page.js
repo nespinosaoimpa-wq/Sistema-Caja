@@ -964,6 +964,7 @@ export default function POSPage() {
           // Since the trigger on sale_items has deducted stock again, we add the stock back to offset it.
           if (['confirmed', 'preparing', 'ready'].includes(loadedOrder.status)) {
             for (const item of cart) {
+              if (item.control_stock === false) continue
               const { data: prod } = await supabase
                 .from('products')
                 .select('stock_quantity')
@@ -1054,6 +1055,7 @@ export default function POSPage() {
 
     // 1b. Stock validation before checkout
     const outOfStock = cart.filter(item => {
+      if (item.control_stock === false) return false
       const stockToCheck = item.variant_id ? item.variant_stock_quantity : item.stock_quantity
       return item.qty > (stockToCheck || 0)
     })
@@ -1375,7 +1377,7 @@ export default function POSPage() {
                       <div>
                         <div style={{ fontWeight: 600, fontSize: '0.9rem', color: '#fff' }}>{product.name}</div>
                         <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          {product.categories?.name || 'Sin Categoría'} · Stock: {product.stock_quantity}
+                          {product.categories?.name || 'Sin Categoría'}{product.control_stock !== false ? ` · Stock: ${product.stock_quantity}` : ''}
                         </div>
                       </div>
                     </div>
@@ -1428,7 +1430,7 @@ export default function POSPage() {
                             {item.variant_label && <span style={{ fontSize: '0.7rem', background: 'var(--bg-card)', padding: '2px 6px', borderRadius: '4px', border: '1px solid var(--border-color)', marginLeft: '6px' }}>{item.variant_label}</span>}
                           </div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                            {item.categories?.name || 'Sin Categoría'} · Stock: {item.stock_quantity}
+                            {item.categories?.name || 'Sin Categoría'}{item.control_stock !== false ? ` · Stock: ${item.stock_quantity}` : ''}
                           </div>
                         </div>
                       </td>
@@ -1562,7 +1564,7 @@ export default function POSPage() {
                         transition: 'var(--transition)',
                         textAlign: 'center',
                         position: 'relative',
-                        opacity: product.stock_quantity <= 0 ? 0.5 : 1,
+                        opacity: (product.control_stock !== false && product.stock_quantity <= 0) ? 0.5 : 1,
                         display: 'flex',
                         flexDirection: 'column',
                         alignItems: 'center'
