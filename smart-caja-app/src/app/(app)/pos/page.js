@@ -88,10 +88,74 @@ export default function POSPage() {
   const [showMobileScannerModal, setShowMobileScannerModal] = useState(false)
   const addToCartRef = useRef(null)
 
-  // Generate session ID on mount
+  // Loaded order states
+  const [loadedOrderId, setLoadedOrderId] = useState(null)
+  const [loadedOrder, setLoadedOrder] = useState(null)
+
+  // Fetch order helper
+  const fetchOrder = useCallback(async (orderId) => {
+    try {
+      const { data: order, error } = await supabase
+        .from('online_orders')
+        .select('*')
+        .eq('id', orderId)
+        .single()
+
+      if (error) throw error
+      if (order) {
+        setLoadedOrder(order)
+        const orderItems = Array.isArray(order.items) ? order.items : []
+        const newCart = []
+
+        for (const item of orderItems) {
+          const { data: product } = await supabase
+            .from('products')
+            .select('*, categories(name, icon)')
+            .eq('id', item.product_id)
+            .single()
+
+          if (product) {
+            newCart.push({
+              ...product,
+              qty: item.qty,
+              sale_price: item.unit_price,
+              subtotal: item.qty * item.unit_price,
+              target_amount: (item.qty * item.unit_price).toFixed(2),
+              variant_id: item.variant_id || null,
+              variant_label: item.variant_label || null
+            })
+          }
+        }
+
+        if (newCart.length > 0) {
+          setCart(newCart)
+          toast.success(`Pedido #${order.order_number} de ${order.customer_name} cargado en caja`)
+        }
+      }
+    } catch (err) {
+      console.error('[fetchOrder]', err)
+      toast.error('Error al cargar el pedido en la caja')
+    }
+  }, [supabase, toast])
+
+  // Generate session ID on mount and check for loaded order
   useEffect(() => {
     setMobileSessionId(Math.random().toString(36).substring(2, 10) + Date.now().toString(36))
   }, [])
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !tenant?.id) return
+    const params = new URLSearchParams(window.location.search)
+    const orderId = params.get('order_id')
+    if (orderId) {
+      setLoadedOrderId(orderId)
+      fetchOrder(orderId)
+      
+      const url = new URL(window.location.href)
+      url.searchParams.delete('order_id')
+      window.history.replaceState({}, '', url.pathname)
+    }
+  }, [tenant?.id, fetchOrder])
 
   const confirmInstallmentSale = async () => {
     if (!installmentForm.customer_name.trim()) {
@@ -339,7 +403,11 @@ export default function POSPage() {
         case 'Escape':
           e.preventDefault()
           if (showReceipt) setShowReceipt(false)
-          else setCart([])
+          else {
+            setCart([])
+            setLoadedOrderId(null)
+            setLoadedOrder(null)
+          }
           break
         default:
           if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
@@ -875,6 +943,63 @@ export default function POSPage() {
             })
             .eq('id', selectedCustomerId)
           if (customerError) throw customerError
+        }
+      }
+
+      // Update online order if loaded from URL
+      if (loadedOrderId && loadedOrder) {
+        try {
+          const { error: orderUpdateError } = await supabase
+            .from('online_orders')
+            .update({
+              status: 'delivered',
+              payment_status: 'paid',
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', loadedOrderId)
+
+          if (orderUpdateError) throw orderUpdateError
+
+          // If the order was already confirmed/preparing/ready, stock was already deducted.
+          // Since the trigger on sale_items has deducted stock again, we add the stock back to offset it.
+          if (['confirmed', 'preparing', 'ready'].includes(loadedOrder.status)) {
+            for (const item of cart) {
+              const { data: prod } = await supabase
+                .from('products')
+                .select('stock_quantity')
+                .eq('id', item.id)
+                .single()
+
+              if (prod) {
+                await supabase
+                  .from('products')
+                  .update({ stock_quantity: Number(prod.stock_quantity) + Number(item.qty) })
+                  .eq('id', item.id)
+              }
+
+              if (item.variant_id) {
+                const { data: variant } = await supabase
+                  .from('product_variants')
+                  .select('stock_quantity')
+                  .eq('id', item.variant_id)
+                  .single()
+
+                if (variant) {
+                  await supabase
+                    .from('product_variants')
+                    .update({ stock_quantity: Number(variant.stock_quantity) + Number(item.qty) })
+                    .eq('id', item.variant_id)
+                }
+              }
+            }
+          }
+
+          toast.success(`Pedido #${loadedOrder.order_number} entregado y pagado`)
+          setLoadedOrderId(null)
+          setLoadedOrder(null)
+        } catch (err) {
+          console.error('[POS] Error updating online order:', err)
+          toast.error('Venta completada pero error al actualizar pedido online.')
         }
       }
 
@@ -1860,7 +1985,7 @@ export default function POSPage() {
                     transition: 'var(--transition)',
                     cursor: 'pointer'
                   }}
-                  onClick={() => setCart([])}
+                  onClick={() => { setCart([]); setLoadedOrderId(null); setLoadedOrder(null); }}
                   disabled={isProcessing || cart.length === 0}
                 >
                   🗑️ Cancelar

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { formatCurrency } from '@/lib/utils/formatters'
@@ -376,6 +377,27 @@ export default function OrdersPage() {
                         >
                           {nextStatus.emoji} {nextStatus.label} →
                         </button>
+                      )}
+                      {order.status !== 'delivered' && order.status !== 'cancelled' && (
+                        <Link
+                          href={`/pos?order_id=${order.id}`}
+                          className="btn btn-primary"
+                          style={{
+                            flex: 1,
+                            padding: '6px 10px',
+                            fontSize: '0.75rem',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            gap: '4px',
+                            textDecoration: 'none',
+                            background: 'var(--color-secondary)',
+                            color: '#000',
+                            fontWeight: 700
+                          }}
+                        >
+                          💵 Cobrar
+                        </Link>
                       )}
                       {prevStatus && idx < STATUSES.length - 1 && (
                         <button
