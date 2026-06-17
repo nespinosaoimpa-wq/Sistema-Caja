@@ -268,6 +268,8 @@ export default function SettingsPage() {
         // Copiar el enlace al portapapeles
         await navigator.clipboard.writeText(data.inviteLink)
         toast.success(`¡Invitación generada! Enlace copiado al portapapeles para enviar manualmente.`)
+      } else {
+        toast.success(data.message || 'Colaborador agregado con éxito')
       }
 
       setInviteForm({ full_name: '', email: '', role: 'cashier' })

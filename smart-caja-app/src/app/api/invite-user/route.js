@@ -84,8 +84,84 @@ export async function POST(request) {
       }
     )
 
+    const emailNormalized = email.trim().toLowerCase()
+
+    // A. Check if the user already exists in the profiles table
+    const { data: existingProfile, error: profileFindError } = await supabaseAdmin
+      .from('profiles')
+      .select('id, tenant_id, full_name, email, role')
+      .eq('email', emailNormalized)
+      .maybeSingle()
+
+    if (existingProfile) {
+      if (existingProfile.tenant_id === tenantId) {
+        // Already in the same tenant, update their details
+        const { error: updateError } = await supabaseAdmin
+          .from('profiles')
+          .update({
+            full_name,
+            role,
+            is_active: true
+          })
+          .eq('id', existingProfile.id)
+
+        if (updateError) {
+          return Response.json({ error: 'Error al actualizar el colaborador existente: ' + updateError.message }, { status: 500 })
+        }
+
+        await supabaseAdmin.auth.admin.updateUserById(
+          existingProfile.id,
+          {
+            user_metadata: { full_name, tenant_id: tenantId, role }
+          }
+        )
+
+        return Response.json({
+          success: true,
+          method: 'existing_member_updated',
+          message: 'El colaborador ya es parte del equipo. Se actualizó su rol y nombre.'
+        })
+      } else {
+        // In another tenant, check if they are the owner
+        if (existingProfile.role === 'owner') {
+          return Response.json({
+            error: 'El correo electrónico ya está registrado como dueño de otro comercio y no puede ser invitado como colaborador.'
+          }, { status: 400 })
+        }
+
+        // Transfer them to this tenant
+        const { error: updateError } = await supabaseAdmin
+          .from('profiles')
+          .update({
+            tenant_id: tenantId,
+            full_name,
+            role,
+            is_active: true
+          })
+          .eq('id', existingProfile.id)
+
+        if (updateError) {
+          return Response.json({ error: 'Error al transferir colaborador: ' + updateError.message }, { status: 500 })
+        }
+
+        await supabaseAdmin.auth.admin.updateUserById(
+          existingProfile.id,
+          {
+            user_metadata: { full_name, tenant_id: tenantId, role }
+          }
+        )
+
+        return Response.json({
+          success: true,
+          method: 'existing_member_transferred',
+          message: `El colaborador con email ${email} ha sido transferido a tu comercio.`
+        })
+      }
+    }
+
+    // B. Attempt standard invite by email
     const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      email,
+      emailNormalized,
       {
         redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login`,
         data: { full_name, tenant_id: tenantId, role }
@@ -93,17 +169,71 @@ export async function POST(request) {
     )
 
     if (inviteError) {
+      // C. Handle case where user is already registered in Auth but lacks a profile
+      if (inviteError.message?.toLowerCase().includes('already been registered') || inviteError.message?.toLowerCase().includes('already registered')) {
+        let existingAuthUser = null
+        let page = 1
+        const perPage = 100
+        
+        while (true) {
+          const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers({
+            page,
+            perPage
+          })
+          if (listError || !users || users.length === 0) break
+          
+          const found = users.find(u => u.email?.toLowerCase() === emailNormalized)
+          if (found) {
+            existingAuthUser = found
+            break
+          }
+          if (users.length < perPage) break
+          page++
+        }
+
+        if (existingAuthUser) {
+          // Double check profile creation
+          const { error: insertProfileError } = await supabaseAdmin
+            .from('profiles')
+            .insert({
+              id: existingAuthUser.id,
+              tenant_id: tenantId,
+              full_name,
+              email: emailNormalized,
+              role,
+              is_active: true
+            })
+          
+          if (insertProfileError) {
+            return Response.json({ error: 'Usuario registrado en Auth pero falló creación de perfil: ' + insertProfileError.message }, { status: 500 })
+          }
+
+          await supabaseAdmin.auth.admin.updateUserById(
+            existingAuthUser.id,
+            {
+              user_metadata: { full_name, tenant_id: tenantId, role }
+            }
+          )
+
+          return Response.json({
+            success: true,
+            method: 'existing_auth_profile_created',
+            message: `El colaborador ya tenía cuenta de usuario. Se le asoció a tu comercio con éxito.`
+          })
+        }
+      }
+
       return Response.json({ error: inviteError.message }, { status: 400 })
     }
 
-    // 4. Crear perfil asociado en la base de datos
+    // D. Invite succeeded, create their profile
     const { error: insertProfileError } = await supabaseAdmin
       .from('profiles')
       .insert({
         id: inviteData.user.id,
         tenant_id: tenantId,
         full_name,
-        email,
+        email: emailNormalized,
         role
       })
 
