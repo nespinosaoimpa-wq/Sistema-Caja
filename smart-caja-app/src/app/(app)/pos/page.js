@@ -830,7 +830,7 @@ export default function POSPage() {
     try {
       // eslint-disable-next-line react-hooks/purity
       const ticketNumber = Date.now().toString().slice(-8)
-      const dbPaymentMethod = paymentMethod === 'mixed' ? 'combined' : paymentMethod
+      const dbPaymentMethod = paymentMethod === 'mixed' ? 'combined' : (paymentMethod === 'transfer' ? 'debit' : paymentMethod)
       
       let paymentDetails = {}
       if (paymentMethod === 'mixed') {
