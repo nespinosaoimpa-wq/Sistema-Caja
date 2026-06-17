@@ -16,6 +16,8 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [recentSales, setRecentSales] = useState([])
   const [lowStockCount, setLowStockCount] = useState(0)
+  const [magiaActiva, setMagiaActiva] = useState(false)
+  const [showCampeonToast, setShowCampeonToast] = useState(false)
   const [stats, setStats] = useState({
     todaySales: 0,
     todayCajaSales: 0,
@@ -340,6 +342,189 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
+          {/* Tarjeta Celebratoria Mundialista - Argentina y Messi */}
+          <div className="celebration-card" style={{
+            background: magiaActiva 
+              ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(56, 189, 248, 0.25) 100%)' 
+              : 'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(56, 189, 248, 0.15) 100%)',
+            border: magiaActiva ? '1px solid rgba(250, 204, 21, 0.6)' : '1px solid rgba(56, 189, 248, 0.3)',
+            boxShadow: magiaActiva ? '0 8px 32px rgba(250, 204, 21, 0.2), inset 0 0 16px rgba(250, 204, 21, 0.15)' : '0 8px 32px rgba(56, 189, 248, 0.05)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '20px var(--space-6)',
+            marginBottom: 'var(--space-2)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            flexWrap: 'wrap',
+            gap: 'var(--space-4)',
+            backdropFilter: 'blur(12px)',
+            transition: 'all 0.5s ease',
+            position: 'relative',
+            overflow: 'hidden'
+          }}>
+            {/* Animación sutil de fondo para la magia */}
+            {magiaActiva && (
+              <div style={{
+                position: 'absolute',
+                inset: 0,
+                background: 'radial-gradient(circle at 30% 50%, rgba(250, 204, 21, 0.08) 0%, transparent 60%)',
+                pointerEvents: 'none'
+              }} />
+            )}
+
+            {/* Contenido izquierdo */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-5)', flex: '1 1 500px' }}>
+              <div 
+                className="celebration-stars" 
+                onClick={() => {
+                  setMagiaActiva(!magiaActiva)
+                  setShowCampeonToast(true)
+                  setTimeout(() => setShowCampeonToast(false), 5000)
+                }}
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '4px',
+                  userSelect: 'none'
+                }}
+              >
+                <div style={{ display: 'flex', gap: '2px', fontSize: '1.75rem', lineHeight: 1 }}>
+                  <span style={{ animation: 'float 2s infinite ease-in-out', animationDelay: '0s' }}>⭐</span>
+                  <span style={{ animation: 'float 2s infinite ease-in-out', animationDelay: '0.3s', fontSize: '2.1rem', transform: 'translateY(-4px)' }}>⭐</span>
+                  <span style={{ animation: 'float 2s infinite ease-in-out', animationDelay: '0.6s' }}>⭐</span>
+                </div>
+                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(250, 204, 21, 0.9)', letterSpacing: '0.15em', marginTop: '2px' }}>
+                  A N O T A D A S
+                </div>
+              </div>
+
+              <div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                  <span style={{ 
+                    background: 'rgba(56, 189, 248, 0.2)', 
+                    color: '#38bdf8', 
+                    padding: '2px 10px', 
+                    borderRadius: '999px', 
+                    fontSize: '0.75rem', 
+                    fontWeight: 700, 
+                    border: '1px solid rgba(56, 189, 248, 0.3)' 
+                  }}>
+                    🇦🇷 ¡CAMPEONES DE LA CAJA!
+                  </span>
+                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff', margin: 0, fontFamily: 'var(--font-headline)' }}>
+                    La magia del 10 está intacta
+                  </h3>
+                </div>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5, margin: 0 }}>
+                  Ayer Argentina goleó 3-0 a Argelia con un triplete mágico de Lionel Messi 🐐. Inspirate en la magia, disciplina y constancia del mejor del mundo para llevar tu negocio a lo más alto hoy. ¡Elegí creer!
+                </p>
+              </div>
+            </div>
+
+            {/* Contenido derecho / Botón */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', zIndex: 2 }}>
+              <button 
+                onClick={() => {
+                  setMagiaActiva(!magiaActiva)
+                  setShowCampeonToast(true)
+                  setTimeout(() => setShowCampeonToast(false), 5000)
+                }}
+                className="btn"
+                style={{
+                  background: magiaActiva 
+                    ? 'linear-gradient(90deg, #EAB308, #F59E0B)' 
+                    : 'linear-gradient(90deg, #38bdf8, #0284c7)',
+                  color: magiaActiva ? '#000' : '#fff',
+                  border: 'none',
+                  fontWeight: 800,
+                  borderRadius: '9999px',
+                  padding: '10px 24px',
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  cursor: 'pointer',
+                  boxShadow: magiaActiva ? '0 4px 15px rgba(250, 204, 21, 0.4)' : '0 4px 12px rgba(56, 189, 248, 0.3)',
+                  transition: 'all 0.3s ease'
+                }}
+              >
+                <span>{magiaActiva ? '✨ Magia Activa 🐐' : 'Activar Magia ✨'}</span>
+              </button>
+            </div>
+
+            {/* Estilos dinámicos para las estrellas y animaciones */}
+            <style>{`
+              @keyframes float {
+                0%, 100% { transform: translateY(0); }
+                50% { transform: translateY(-6px) scale(1.05); }
+              }
+              @keyframes pulse-card {
+                0%, 100% { border-color: rgba(56, 189, 248, 0.3); }
+                50% { border-color: rgba(250, 204, 21, 0.7); }
+              }
+              .celebration-card {
+                animation: pulse-card 3s infinite ease-in-out;
+              }
+              .celebration-stars:hover {
+                transform: scale(1.15);
+              }
+            `}</style>
+          </div>
+
+          {/* Floating Toast / Mensaje del Campeón */}
+          {showCampeonToast && (
+            <div style={{
+              position: 'fixed',
+              bottom: '24px',
+              right: '24px',
+              background: 'rgba(15, 23, 42, 0.95)',
+              border: '1px solid rgba(250, 204, 21, 0.6)',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 0 20px rgba(250, 204, 21, 0.2)',
+              borderRadius: 'var(--radius-xl)',
+              padding: '20px',
+              maxWidth: '380px',
+              zIndex: 99999,
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '8px',
+              backdropFilter: 'blur(10px)',
+              animation: 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{ fontSize: '1.25rem' }}>🐐</span>
+                <span style={{ fontWeight: 800, color: '#EAB308', fontSize: '0.9rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
+                  Mensaje del 10 para tu negocio
+                </span>
+              </div>
+              <p style={{ color: '#fff', fontSize: '0.875rem', lineHeight: 1.5, margin: 0, fontStyle: 'italic' }}>
+                "Muchachos, ahora nos volvimos a ilusionar... 🇦🇷. La perseverancia no es opcional: es intentar una y otra vez hasta que el gol llegue. Tu comercio tiene la madera de un gran campeón."
+              </p>
+              <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.75rem', color: 'rgba(250, 204, 21, 0.8)', fontWeight: 700 }}>
+                ELEGÍ CREER ✨
+              </div>
+              <style>{`
+                @keyframes fadeInUp {
+                  from { opacity: 0; transform: translateY(20px); }
+                  to { opacity: 1; transform: translateY(0); }
+                }
+              `}</style>
+            </div>
+          )}
+
+          {/* Estilo dinámico de fondo cuando la magia está activa */}
+          {magiaActiva && (
+            <style>{`
+              body {
+                background: radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.15) 0%, #040814 60%) !important;
+                transition: background 1.5s ease-in-out;
+              }
+              .card {
+                box-shadow: 0 4px 20px rgba(56, 189, 248, 0.05) !important;
+              }
+            `}</style>
+          )}
+
           {/* Guía de Inicio Rápido interactiva */}
           {showOnboarding && (
             <div className="card" style={{
