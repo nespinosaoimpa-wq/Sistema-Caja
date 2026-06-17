@@ -1,4 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
+import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
 export async function POST(request) {
@@ -19,7 +19,25 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Datos incompletos' }, { status: 400 })
     }
 
-    const supabase = await createClient()
+    // Create admin/service client to bypass RLS for public orders placement
+    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+    let supabase
+    if (serviceKey) {
+      supabase = createClient(
+        process.env.NEXT_PUBLIC_SUPABASE_URL,
+        serviceKey,
+        {
+          auth: {
+            autoRefreshToken: false,
+            persistSession: false
+          }
+        }
+      )
+    } else {
+      console.warn('SUPABASE_SERVICE_ROLE_KEY not found. Falling back to default server client.')
+      const { createClient: createServerClient } = await import('@/lib/supabase/server')
+      supabase = await createServerClient()
+    }
 
     // Verify tenant is active and e-commerce enabled
     const { data: tenant } = await supabase
