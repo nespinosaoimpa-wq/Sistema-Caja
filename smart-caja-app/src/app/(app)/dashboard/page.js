@@ -16,8 +16,6 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState(true)
   const [recentSales, setRecentSales] = useState([])
   const [lowStockCount, setLowStockCount] = useState(0)
-  const [magiaActiva, setMagiaActiva] = useState(false)
-  const [showCampeonToast, setShowCampeonToast] = useState(false)
   const [stats, setStats] = useState({
     todaySales: 0,
     todayCajaSales: 0,
@@ -316,17 +314,99 @@ export default function DashboardPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', padding: 'var(--space-8)' }}>
-      {/* Premium Header */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 'var(--space-2)' }}>
-        <div>
-          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-0.03em', marginBottom: '4px' }}>
-            Hola, {profile?.full_name?.split(' ')[0] || 'Admin'}
-          </h1>
-          <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem' }}>
-            Aquí está el resumen de <strong style={{ color: '#fff' }}>{tenant?.name}</strong> al día de hoy.
+      {/* Header con Arte Contemporáneo Mundialista */}
+      <div style={{
+        position: 'relative',
+        padding: '32px var(--space-6)',
+        borderRadius: 'var(--radius-2xl)',
+        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.8) 0%, rgba(30, 41, 59, 0.4) 100%)',
+        border: '1px solid rgba(255, 255, 255, 0.05)',
+        boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
+        overflow: 'hidden',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        flexWrap: 'wrap',
+        gap: '24px',
+        marginBottom: 'var(--space-2)'
+      }}>
+        {/* Argentina Gradient Blob (Celestial y Blanco) */}
+        <div style={{
+          position: 'absolute',
+          right: '5%',
+          top: '-60px',
+          width: '280px',
+          height: '280px',
+          background: 'radial-gradient(circle, rgba(56, 189, 248, 0.08) 0%, rgba(255, 255, 255, 0.02) 50%, transparent 100%)',
+          filter: 'blur(45px)',
+          pointerEvents: 'none'
+        }} />
+        {/* Sol de Mayo Blob (Dorado) */}
+        <div style={{
+          position: 'absolute',
+          right: '25%',
+          bottom: '-50px',
+          width: '180px',
+          height: '180px',
+          background: 'radial-gradient(circle, rgba(234, 179, 8, 0.04) 0%, transparent 70%)',
+          filter: 'blur(35px)',
+          pointerEvents: 'none'
+        }} />
+
+        {/* Marca de Agua "10" Contemporánea */}
+        <div style={{
+          position: 'absolute',
+          right: '12%',
+          bottom: '-35px',
+          fontSize: '14rem',
+          fontWeight: 900,
+          fontFamily: 'var(--font-headline)',
+          color: 'rgba(56, 189, 248, 0.03)',
+          userSelect: 'none',
+          pointerEvents: 'none',
+          lineHeight: 1,
+          letterSpacing: '-0.05em'
+        }}>
+          10
+        </div>
+
+        {/* Textos del Header */}
+        <div style={{ position: 'relative', zIndex: 2 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+            <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '2.5rem', fontWeight: 800, letterSpacing: '-0.03em', margin: 0, color: '#fff' }}>
+              Hola, {profile?.full_name?.split(' ')[0] || 'Admin'}
+            </h1>
+            <div style={{ display: 'flex', gap: '3px', marginTop: '6px' }}>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="#EAB308" style={{ filter: 'drop-shadow(0 0 3px rgba(234, 179, 8, 0.4))' }}>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <svg viewBox="0 0 24 24" width="17" height="17" fill="#EAB308" style={{ filter: 'drop-shadow(0 0 5px rgba(234, 179, 8, 0.6))', transform: 'translateY(-2px)' }}>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+              <svg viewBox="0 0 24 24" width="14" height="14" fill="#EAB308" style={{ filter: 'drop-shadow(0 0 3px rgba(234, 179, 8, 0.4))' }}>
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+              </svg>
+            </div>
+          </div>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem', margin: '8px 0 0 0', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
+            <span>Aquí está el resumen de <strong style={{ color: '#fff' }}>{tenant?.name}</strong> al día de hoy.</span>
+            <span style={{ 
+              color: 'rgba(255, 255, 255, 0.35)', 
+              fontSize: '0.8rem', 
+              fontStyle: 'italic', 
+              borderLeft: '1px solid rgba(255,255,255,0.1)', 
+              paddingLeft: '12px',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '4px'
+            }}>
+              "La magia no es casualidad: es perseverar." — L.M. ✨
+            </span>
           </p>
         </div>
-        <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+
+        {/* Acciones a la derecha */}
+        <div style={{ display: 'flex', gap: 'var(--space-3)', position: 'relative', zIndex: 2 }}>
           <button className="btn btn-ghost" style={{ borderRadius: 'var(--radius-full)', padding: '10px' }}>
             <Bell size={20} />
           </button>
@@ -342,233 +422,6 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          {/* Tarjeta Celebratoria Mundialista - Argentina y Messi */}
-          <div className="celebration-card" style={{
-            background: magiaActiva 
-              ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.45) 100%)' 
-              : 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.95) 100%)',
-            border: magiaActiva ? '1px solid rgba(234, 179, 8, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
-            boxShadow: magiaActiva ? '0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(234, 179, 8, 0.1)' : '0 8px 32px rgba(0, 0, 0, 0.3)',
-            borderRadius: 'var(--radius-xl)',
-            padding: '24px var(--space-6)',
-            marginBottom: 'var(--space-2)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            flexWrap: 'wrap',
-            gap: 'var(--space-4)',
-            backdropFilter: 'blur(16px)',
-            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-            position: 'relative',
-            overflow: 'hidden'
-          }}>
-            {/* Fondo celeste sutil pulsante */}
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: magiaActiva
-                ? 'radial-gradient(circle at 20% 50%, rgba(56, 189, 248, 0.1) 0%, transparent 60%)'
-                : 'radial-gradient(circle at 20% 50%, rgba(56, 189, 248, 0.03) 0%, transparent 60%)',
-              pointerEvents: 'none',
-              transition: 'all 0.5s ease'
-            }} />
-
-            {/* Contenido izquierdo: 3 Estrellas Vectoriales */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-5)', flex: '1 1 500px' }}>
-              <div 
-                className="celebration-stars" 
-                onClick={() => {
-                  setMagiaActiva(!magiaActiva)
-                  setShowCampeonToast(true)
-                  setTimeout(() => setShowCampeonToast(false), 5000)
-                }}
-                style={{
-                  display: 'flex',
-                  flexDirection: 'column',
-                  alignItems: 'center',
-                  gap: '6px',
-                  userSelect: 'none',
-                  padding: '0 8px',
-                  cursor: 'pointer'
-                }}
-              >
-                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '36px' }}>
-                  {/* Estrella izquierda */}
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="#EAB308" style={{ filter: 'drop-shadow(0 0 4px rgba(234, 179, 8, 0.5))', animation: 'float-star 3s infinite ease-in-out' }}>
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                  {/* Estrella centro */}
-                  <svg viewBox="0 0 24 24" width="28" height="28" fill="#EAB308" style={{ filter: 'drop-shadow(0 0 8px rgba(234, 179, 8, 0.7))', transform: 'translateY(-3px)', animation: 'float-star-center 3s infinite ease-in-out' }}>
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                  {/* Estrella derecha */}
-                  <svg viewBox="0 0 24 24" width="20" height="20" fill="#EAB308" style={{ filter: 'drop-shadow(0 0 4px rgba(234, 179, 8, 0.5))', animation: 'float-star 3s infinite ease-in-out', animationDelay: '0.5s' }}>
-                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-                  </svg>
-                </div>
-                <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#EAB308', letterSpacing: '0.2em', textTransform: 'uppercase', opacity: 0.9 }}>
-                  A N O T A D A S
-                </div>
-              </div>
-
-              {/* Textos descriptivos */}
-              <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
-                  <span style={{ 
-                    background: 'rgba(56, 189, 248, 0.12)', 
-                    color: '#38bdf8', 
-                    padding: '4px 12px', 
-                    borderRadius: '999px', 
-                    fontSize: '0.7rem', 
-                    fontWeight: 800, 
-                    letterSpacing: '0.05em',
-                    border: '1px solid rgba(56, 189, 248, 0.2)' 
-                  }}>
-                    🇦🇷 TRIBUTO AL CAMPEÓN
-                  </span>
-                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0, fontFamily: 'var(--font-headline)', letterSpacing: '-0.02em' }}>
-                    La magia del 10 sigue intacta
-                  </h3>
-                </div>
-                <p style={{ color: '#E2E8F0', fontSize: '0.875rem', lineHeight: 1.6, margin: 0, maxWidth: '680px' }}>
-                  Tras la victoria de Argentina 3-0 contra Argelia con un hat-trick magistral de Lionel Messi, nos inspiramos en el esfuerzo y la constancia del mejor del mundo. Creé, trabajá y liderá tu negocio con la mentalidad del campeón.
-                </p>
-              </div>
-            </div>
-
-            {/* Contenido derecho: Botón de acción */}
-            <div style={{ display: 'flex', alignItems: 'center', zIndex: 2 }}>
-              <button 
-                onClick={() => {
-                  setMagiaActiva(!magiaActiva)
-                  setShowCampeonToast(true)
-                  setTimeout(() => setShowCampeonToast(false), 5000)
-                }}
-                style={{
-                  background: magiaActiva 
-                    ? 'linear-gradient(135deg, #EAB308 0%, #CA8A04 100%)' 
-                    : 'rgba(255, 255, 255, 0.03)',
-                  color: magiaActiva ? '#0F172A' : '#E2E8F0',
-                  border: magiaActiva ? '1px solid #F59E0B' : '1px solid rgba(255, 255, 255, 0.15)',
-                  fontWeight: 700,
-                  borderRadius: '9999px',
-                  padding: '10px 22px',
-                  fontSize: '0.85rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px',
-                  cursor: 'pointer',
-                  boxShadow: magiaActiva ? '0 4px 18px rgba(234, 179, 8, 0.35)' : 'none',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                }}
-                onMouseEnter={(e) => {
-                  if (!magiaActiva) {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
-                  } else {
-                    e.currentTarget.style.transform = 'translateY(-1px)'
-                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(234, 179, 8, 0.45)'
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!magiaActiva) {
-                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
-                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
-                  } else {
-                    e.currentTarget.style.transform = 'translateY(0)'
-                    e.currentTarget.style.boxShadow = '0 4px 18px rgba(234, 179, 8, 0.35)'
-                  }
-                }}
-              >
-                {/* SVG Sparkle / Star */}
-                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ opacity: 0.9 }}>
-                  <path d="M12 2l2.4 7.2h7.6l-6.2 4.5 2.4 7.3-6.2-4.5-6.2 4.5 2.4-7.3-6.2-4.5h7.6z" />
-                </svg>
-                <span>{magiaActiva ? 'Modo Campeón Activo' : 'Activar Modo Campeón'}</span>
-              </button>
-            </div>
-
-            {/* Estilos CSS dedicados */}
-            <style>{`
-              @keyframes float-star {
-                0%, 100% { transform: translateY(0); }
-                50% { transform: translateY(-4px); }
-              }
-              @keyframes float-star-center {
-                0%, 100% { transform: translateY(-3px); }
-                50% { transform: translateY(-8px) scale(1.05); }
-              }
-              .celebration-stars {
-                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-              }
-              .celebration-stars:hover {
-                transform: scale(1.08);
-                filter: brightness(1.1);
-              }
-            `}</style>
-          </div>
-
-          {/* Floating Toast / Mensaje del Campeón */}
-          {showCampeonToast && (
-            <div style={{
-              position: 'fixed',
-              bottom: '24px',
-              right: '24px',
-              background: 'rgba(15, 23, 42, 0.96)',
-              border: '1px solid rgba(234, 179, 8, 0.5)',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 0 30px rgba(234, 179, 8, 0.15)',
-              borderRadius: 'var(--radius-xl)',
-              padding: '24px',
-              maxWidth: '380px',
-              zIndex: 99999,
-              display: 'flex',
-              flexDirection: 'column',
-              gap: '12px',
-              backdropFilter: 'blur(20px)',
-              animation: 'fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)'
-            }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                {/* SVG Trophy */}
-                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#EAB308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 4px rgba(234, 179, 8, 0.4))' }}>
-                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
-                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
-                  <path d="M4 22h16" />
-                  <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34" />
-                  <path d="M12 2a6 6 0 0 1 6 6v3.5c0 3-2.5 5.5-6 5.5s-6-2.5-6-5.5V8a6 6 0 0 1 6-6z" />
-                </svg>
-                <span style={{ fontWeight: 800, color: '#EAB308', fontSize: '0.85rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
-                  Filosofía de Campeón
-                </span>
-              </div>
-              <p style={{ color: '#E2E8F0', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, fontStyle: 'italic' }}>
-                "Muchachos, ahora nos volvimos a ilusionar... La perseverancia no es opcional: es intentar una y otra vez hasta que el gol llegue. Tu comercio tiene la madera de un gran campeón."
-              </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.75rem', color: 'rgba(250, 204, 21, 0.9)', fontWeight: 800, letterSpacing: '0.05em' }}>
-                LIONEL MESSI ✨
-              </div>
-              <style>{`
-                @keyframes fadeInUp {
-                  from { opacity: 0; transform: translateY(20px); }
-                  to { opacity: 1; transform: translateY(0); }
-                }
-              `}</style>
-            </div>
-          )}
-
-          {/* Estilo dinámico de fondo cuando la magia está activa */}
-          {magiaActiva && (
-            <style>{`
-              body {
-                background: radial-gradient(circle at 50% 10%, rgba(56, 189, 248, 0.15) 0%, #040814 60%) !important;
-                transition: background 1.5s ease-in-out;
-              }
-              .card {
-                box-shadow: 0 4px 20px rgba(56, 189, 248, 0.05) !important;
-              }
-            `}</style>
-          )}
-
-          {/* Guía de Inicio Rápido interactiva */}
           {showOnboarding && (
             <div className="card" style={{
               background: 'linear-gradient(135deg, rgba(26, 22, 37, 0.6) 0%, rgba(11, 19, 38, 0.8) 100%)',
