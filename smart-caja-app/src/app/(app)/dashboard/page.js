@@ -314,7 +314,7 @@ export default function DashboardPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', padding: 'var(--space-8)' }}>
-      {/* Header con Imagen Original de Messi de Fondo */}
+      {/* Header con Bandera Argentina Difusa de Fondo */}
       <div style={{
         position: 'relative',
         padding: '32px var(--space-6)',
@@ -330,52 +330,68 @@ export default function DashboardPage() {
         gap: '24px',
         marginBottom: 'var(--space-2)'
       }}>
-        {/* Imagen Original de Messi de Fondo (Desvanecida e Integrada) */}
+        {/* Bandera Argentina de Fondo (Sutil, difusa y elegante) */}
         <div style={{
           position: 'absolute',
-          top: 0,
-          right: 0,
-          bottom: 0,
-          width: '50%',
-          minWidth: '320px',
+          inset: 0,
           pointerEvents: 'none',
           userSelect: 'none',
           zIndex: 1,
           overflow: 'hidden',
-          borderRadius: '0 var(--radius-2xl) var(--radius-2xl) 0'
+          display: 'flex',
+          flexDirection: 'column'
         }}>
-          {/* Degradado de desvanecimiento hacia el fondo oscuro de la izquierda */}
+          {/* Tres franjas horizontales de la bandera argentina con opacidad baja y desenfoque */}
           <div style={{
             position: 'absolute',
             inset: 0,
-            background: 'linear-gradient(90deg, #0f172a 0%, rgba(15, 23, 42, 0.95) 15%, rgba(15, 23, 42, 0.4) 60%, transparent 100%)',
-            zIndex: 2
-          }} />
-          
-          {/* Brillo celeste de la camiseta */}
+            display: 'flex',
+            flexDirection: 'column',
+            opacity: 0.08, // Muy baja opacidad para no afectar la vista ni los colores
+            filter: 'blur(40px)', // Muy difusa/desenfocada
+          }}>
+            {/* Franja superior Celeste */}
+            <div style={{ flex: 1, background: '#38bdf8' }} />
+            {/* Franja del medio Blanca */}
+            <div style={{ flex: 1, background: '#ffffff' }} />
+            {/* Franja inferior Celeste */}
+            <div style={{ flex: 1, background: '#38bdf8' }} />
+          </div>
+
+          {/* Sol de Mayo en el centro del fondo */}
           <div style={{
             position: 'absolute',
-            top: '10%',
-            right: '20%',
-            width: '180px',
-            height: '180px',
-            background: 'radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%)',
-            filter: 'blur(30px)',
-            zIndex: 3
-          }} />
-
-          <img 
-            src="/messi.jpg" 
-            alt="Messi 10" 
-            style={{
-              width: '100%',
-              height: '100%',
-              objectFit: 'cover',
-              objectPosition: 'center 40%',
-              opacity: 0.35,
-              mixBlendMode: 'normal'
-            }}
-          />
+            top: '50%',
+            left: '50%',
+            transform: 'translate(-50%, -50%)',
+            width: '140px',
+            height: '140px',
+            opacity: 0.12,
+            filter: 'blur(12px)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            {/* Círculo central del sol */}
+            <div style={{
+              width: '40px',
+              height: '40px',
+              borderRadius: '50%',
+              background: '#eab308',
+              boxShadow: '0 0 30px #eab308'
+            }} />
+            {/* Destellos/rayos del sol */}
+            <svg viewBox="0 0 100 100" style={{ position: 'absolute', width: '100%', height: '100%', fill: '#eab308' }}>
+              <path d="M 50 10 L 52 35 L 50 30 L 48 35 Z" />
+              <path d="M 50 90 L 52 65 L 50 70 L 48 65 Z" />
+              <path d="M 10 50 L 35 52 L 30 50 L 35 48 Z" />
+              <path d="M 90 50 L 65 52 L 70 50 L 65 48 Z" />
+              <path d="M 22 22 L 40 40 L 37 37 L 38 38 Z" transform="rotate(45, 50, 50)" />
+              <path d="M 22 22 L 40 40 L 37 37 L 38 38 Z" transform="rotate(135, 50, 50)" />
+              <path d="M 22 22 L 40 40 L 37 37 L 38 38 Z" transform="rotate(225, 50, 50)" />
+              <path d="M 22 22 L 40 40 L 37 37 L 38 38 Z" transform="rotate(315, 50, 50)" />
+            </svg>
+          </div>
         </div>
 
         {/* Textos del Header */}
