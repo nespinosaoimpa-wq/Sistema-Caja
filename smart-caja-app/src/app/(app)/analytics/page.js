@@ -25,7 +25,8 @@ export default function AnalyticsPage() {
     hourlyData: [],
     paymentMethods: [],
     topProducts: [],
-    stagnantProducts: []
+    stagnantProducts: [],
+    salesByOrigin: []
   })
 
   async function loadData() {
@@ -46,7 +47,7 @@ export default function AnalyticsPage() {
       // Fetch sales in period
       const { data: sales } = await supabase
         .from('sales')
-        .select('id, total, payment_method, created_at, status')
+        .select('id, total, payment_method, created_at, status, source, online_order_id')
         .eq('tenant_id', tenant.id)
         .eq('status', 'completed')
         .gte('created_at', startDate.toISOString())
@@ -130,13 +131,65 @@ export default function AnalyticsPage() {
         days: p.last_sold_at ? Math.floor((Date.now() - new Date(p.last_sold_at).getTime()) / (1000 * 60 * 60 * 24)) : 30
       }))
 
+      // Calculate sales by origin
+      const channelMap = {
+        caja: 0,
+        online: 0,
+        whatsapp: 0,
+        phone: 0,
+        preventista: 0,
+        pos: 0
+      }
+      
+      salesList.forEach(s => {
+        const isOrder = s.online_order_id !== null || (s.source !== null && s.source !== 'caja')
+        let channel = 'caja'
+        if (isOrder) {
+          channel = s.source || 'online'
+        } else {
+          channel = 'caja'
+        }
+        channelMap[channel] = (channelMap[channel] || 0) + (s.total || 0)
+      })
+      
+      const channelLabels = {
+        caja: 'Caja de Negocio',
+        online: 'Tienda Online',
+        whatsapp: 'WhatsApp',
+        phone: 'Teléfono',
+        preventista: 'Preventa',
+        pos: 'Pedido de Caja'
+      }
+      
+      const channelColors = {
+        caja: '#7C3AED',
+        online: '#10B981',
+        whatsapp: '#25D366',
+        phone: '#3B82F6',
+        preventista: '#F59E0B',
+        pos: '#EC4899'
+      }
+      
+      const totalOriginSales = Object.values(channelMap).reduce((a, b) => a + b, 0)
+      const salesByOrigin = Object.entries(channelMap)
+        .map(([key, value]) => ({
+          key,
+          name: channelLabels[key],
+          value,
+          percentage: totalOriginSales > 0 ? Math.round((value / totalOriginSales) * 100) : 0,
+          color: channelColors[key]
+        }))
+        .filter(item => item.value > 0 || item.key === 'caja')
+        .sort((a, b) => b.value - a.value)
+
       setStats({
         totalSales, transactions, avgTicket: Math.round(avgTicket),
         netProfit, profitMargin: Math.round(profitMargin * 10) / 10,
         hourlyData: hourlyData.length > 0 ? hourlyData : [{ name: 'Sin datos', value: 0, isPeak: false }],
         paymentMethods: paymentMethods.length > 0 ? paymentMethods : [{ name: 'Sin ventas', value: 100, color: '#3F3F46' }],
         topProducts: topProductsFormatted,
-        stagnantProducts
+        stagnantProducts,
+        salesByOrigin
       })
     } catch (error) {
       console.error('Error loading analytics:', error)
@@ -292,7 +345,7 @@ export default function AnalyticsPage() {
           </div>
 
           {/* Row 3: Lists */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-6)' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: 'var(--space-6)' }}>
             
             {/* Top Products */}
             <div className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)' }}>
@@ -312,6 +365,32 @@ export default function AnalyticsPage() {
                   </div>
                 ))}
                 {stats.topProducts.length === 0 && (
+                  <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '16px 0' }}>No hay ventas en este período</div>
+                )}
+              </div>
+            </div>
+
+            {/* Ventas por Canal */}
+            <div className="card" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-xl)', padding: 'var(--space-6)' }}>
+              <div className="card-header" style={{ marginBottom: '24px' }}>
+                <span className="card-title" style={{ fontSize: '1.125rem', fontWeight: 700, color: '#fff' }}>Ventas por Canal / Origen</span>
+              </div>
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {stats.salesByOrigin?.map((origin, i) => (
+                  <div key={i} style={{ padding: '12px 0', borderBottom: i < stats.salesByOrigin.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.9375rem', fontWeight: 600 }}>
+                      <span style={{ color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <span style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: origin.color }}></span>
+                        {origin.name}
+                      </span>
+                      <span style={{ color: origin.color }}>{formatCurrency(origin.value)} ({origin.percentage}%)</span>
+                    </div>
+                    <div className="progress-bar-container" style={{ height: '6px', background: 'var(--bg-surface)', borderRadius: '10px', overflow: 'hidden' }}>
+                      <div className="progress-bar-fill" style={{ width: `${origin.percentage}%`, height: '100%', backgroundColor: origin.color, borderRadius: '10px' }}></div>
+                    </div>
+                  </div>
+                ))}
+                {(!stats.salesByOrigin || stats.salesByOrigin.length === 0) && (
                   <div style={{ color: 'var(--text-muted)', fontSize: '0.875rem', padding: '16px 0' }}>No hay ventas en este período</div>
                 )}
               </div>

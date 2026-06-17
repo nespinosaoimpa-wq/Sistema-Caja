@@ -654,7 +654,7 @@ export default function POSPage() {
   const cashChange = cashReceivedNum - cartTotal
 
   // Build receipt HTML for thermal printer (80mm)
-  const buildReceiptHTML = (saleData, items) => {
+  const buildReceiptHTML = (saleData, items, loadedOrderInfo = null) => {
     const now = new Date()
     const dateStr = formatDateTime(now)
     const itemsHTML = items.map(item => {
@@ -732,6 +732,13 @@ export default function POSPage() {
           <div>Fecha: ${dateStr}</div>
           <div>Ticket: #${saleData.ticket_number}</div>
           <div>Cajero: ${profile?.full_name || 'N/A'}</div>
+          <div>Origen: ${loadedOrderInfo ? `Pedido #${loadedOrderInfo.order_number} (${{
+            online: 'Tienda Online',
+            whatsapp: 'WhatsApp',
+            phone: 'Teléfono',
+            preventista: 'Preventa',
+            pos: 'Pedido Caja'
+          }[loadedOrderInfo.source] || loadedOrderInfo.source})` : 'Caja de Negocio'}</div>
         </div>
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
         <table style="width:100%;border-collapse:collapse;font-size:11px;">
@@ -861,7 +868,9 @@ export default function POSPage() {
         payment_method: dbPaymentMethod, 
         status: 'completed',
         customer_id: selectedCustomerId || null,
-        payment_details: paymentDetails
+        payment_details: paymentDetails,
+        online_order_id: loadedOrderId || null,
+        source: (loadedOrderId && loadedOrder) ? (loadedOrder.source || 'online') : 'caja'
       }
 
       if (paymentMethod === 'cash') {
@@ -1005,7 +1014,7 @@ export default function POSPage() {
       }
 
       // Build receipt and store ticket
-      const receiptHTML = buildReceiptHTML(saleData, cart)
+      const receiptHTML = buildReceiptHTML(saleData, cart, loadedOrder)
       
       // Insert into tickets table
       await supabase.from('tickets').insert({

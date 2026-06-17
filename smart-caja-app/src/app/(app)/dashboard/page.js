@@ -18,13 +18,23 @@ export default function DashboardPage() {
   const [lowStockCount, setLowStockCount] = useState(0)
   const [stats, setStats] = useState({
     todaySales: 0,
+    todayCajaSales: 0,
+    todayPedidoSales: 0,
     yesterdaySales: 0,
     monthSales: 0,
+    monthCajaSales: 0,
+    monthPedidoSales: 0,
     totalProducts: 0,
     openShifts: 0,
     totalShifts: 0,
     totalSales: 0,
-    chartData: []
+    chartData: [],
+    bestSellers: [],
+    topCustomers: [],
+    expenseCategoryTotals: {},
+    totalExpenses: 0,
+    wasteSummary: [],
+    stagnantProducts: []
   })
 
   const loadStats = useCallback(async () => {
@@ -35,11 +45,14 @@ export default function DashboardPage() {
       const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
       const yesterdayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1).toISOString()
       const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString()
+      
+      const thirtyDaysAgo = new Date()
+      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
 
       // Fetch all completed sales (for chart + month + today)
       const { data: sales } = await supabase
         .from('sales')
-        .select('total, created_at')
+        .select('total, created_at, source, online_order_id')
         .eq('tenant_id', tenant.id)
         .eq('status', 'completed')
         .gte('created_at', monthStart)
@@ -91,31 +104,147 @@ export default function DashboardPage() {
         .select('*', { count: 'exact', head: true })
         .eq('tenant_id', tenant.id)
 
+      // Fetch sale items of the current month for best sellers
+      const { data: monthItems } = await supabase
+        .from('sale_items')
+        .select('product_name, quantity, subtotal')
+        .eq('tenant_id', tenant.id)
+        .gte('created_at', monthStart)
+
+      // Fetch top recurrent customers
+      const { data: topCusts } = await supabase
+        .from('customers')
+        .select('id, name, phone, total_purchases, total_spent')
+        .eq('tenant_id', tenant.id)
+        .eq('is_active', true)
+        .order('total_purchases', { ascending: false })
+        .limit(5)
+
+      // Fetch operations expenses of the month
+      const { data: expensesData } = await supabase
+        .from('cash_movements')
+        .select('amount, category, reason, created_at')
+        .eq('tenant_id', tenant.id)
+        .eq('type', 'expense')
+        .gte('created_at', monthStart)
+
+      // Fetch recent product waste/losses (adjustments with [DESPERDICIO] prefix)
+      const { data: wasteData } = await supabase
+        .from('stock_movements')
+        .select(`
+          id, quantity_change, created_at, notes,
+          products:product_id (name, cost_price)
+        `)
+        .eq('tenant_id', tenant.id)
+        .eq('type', 'adjustment')
+        .ilike('notes', '[DESPERDICIO]%')
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: false })
+
+      // Fetch stagnant products (no sales in last 30 days)
+      const { data: stagnantProds } = await supabase
+        .from('products')
+        .select('name, last_sold_at')
+        .eq('tenant_id', tenant.id)
+        .eq('is_active', true)
+        .or(`last_sold_at.is.null,last_sold_at.lt.${thirtyDaysAgo.toISOString()}`)
+        .order('last_sold_at', { ascending: true })
+        .limit(5)
+
       // Calculate KPIs from real data
       let todayTotal = 0
+      let todayCajaTotal = 0
+      let todayPedidoTotal = 0
       let yesterdayTotal = 0
       let monthTotal = 0
+      let monthCajaTotal = 0
+      let monthPedidoTotal = 0
 
       const hours = ['08h', '10h', '12h', '14h', '16h', '18h', '20h']
-      const hourlyTotals = { '08h': 0, '10h': 0, '12h': 0, '14h': 0, '16h': 0, '18h': 0, '20h': 0 }
+      const hourlyTotalsCaja = { '08h': 0, '10h': 0, '12h': 0, '14h': 0, '16h': 0, '18h': 0, '20h': 0 }
+      const hourlyTotalsPedido = { '08h': 0, '10h': 0, '12h': 0, '14h': 0, '16h': 0, '18h': 0, '20h': 0 }
 
       if (sales) {
         sales.forEach(sale => {
           const date = new Date(sale.created_at)
+          const isOrder = sale.online_order_id !== null || (sale.source !== null && sale.source !== 'caja')
+          const amt = Number(sale.total)
+
           if (date.toDateString() === today.toDateString()) {
-            todayTotal += Number(sale.total)
+            todayTotal += amt
             const hour = date.getHours()
             const timeLabel = hour < 10 ? '08h' : hour < 12 ? '10h' : hour < 14 ? '12h' : hour < 16 ? '14h' : hour < 18 ? '16h' : hour < 20 ? '18h' : '20h'
-            hourlyTotals[timeLabel] += Number(sale.total)
+            if (isOrder) {
+              todayPedidoTotal += amt
+              hourlyTotalsPedido[timeLabel] += amt
+            } else {
+              todayCajaTotal += amt
+              hourlyTotalsCaja[timeLabel] += amt
+            }
           }
           const yesterday = new Date(today)
           yesterday.setDate(today.getDate() - 1)
           if (date.toDateString() === yesterday.toDateString()) {
-            yesterdayTotal += Number(sale.total)
+            yesterdayTotal += amt
           }
-          monthTotal += Number(sale.total)
+          monthTotal += amt
+          if (isOrder) {
+            monthPedidoTotal += amt
+          } else {
+            monthCajaTotal += amt
+          }
         })
       }
+
+      // Best Sellers processing
+      const productQtyMap = {}
+      if (monthItems) {
+        monthItems.forEach(item => {
+          const name = item.product_name
+          productQtyMap[name] = (productQtyMap[name] || 0) + (item.quantity || 1)
+        })
+      }
+      const bestSellers = Object.entries(productQtyMap)
+        .map(([name, qty]) => ({ name, qty }))
+        .sort((a, b) => b.qty - a.qty)
+        .slice(0, 5)
+
+      // Expenses processing
+      const expenseCategoryTotals = {}
+      let totalExpenses = 0
+      if (expensesData) {
+        expensesData.forEach(exp => {
+          const cat = exp.category || 'general'
+          const amt = Number(exp.amount)
+          expenseCategoryTotals[cat] = (expenseCategoryTotals[cat] || 0) + amt
+          totalExpenses += amt
+        })
+      }
+
+      // Waste processing
+      const wasteSummary = []
+      if (wasteData) {
+        wasteData.forEach(w => {
+          const cost = Number(w.products?.cost_price || 0)
+          const qty = Math.abs(Number(w.quantity_change || 0))
+          const dateStr = new Date(w.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+          wasteSummary.push({
+            id: w.id,
+            product_name: w.products?.name || 'Producto Eliminado',
+            qty,
+            cost_price: cost,
+            total_loss: cost * qty,
+            date: dateStr,
+            reason: w.notes?.replace('[DESPERDICIO] ', '') || 'Mermas'
+          })
+        })
+      }
+
+      // Stagnant processing
+      const stagnantProducts = (stagnantProds || []).map(p => ({
+        name: p.name,
+        days: p.last_sold_at ? Math.floor((Date.now() - new Date(p.last_sold_at).getTime()) / (1000 * 60 * 60 * 24)) : 30
+      }))
 
       const actualProducts = prodCount || 0
       const actualSales = totalSalesCount || 0
@@ -123,20 +252,32 @@ export default function DashboardPage() {
 
       const chartData = hours.map(h => ({
         name: h,
-        total: hasSales ? hourlyTotals[h] : (h === '08h' ? 0 : h === '10h' ? 12000 : h === '12h' ? 25000 : h === '14h' ? 18000 : h === '16h' ? 32000 : h === '18h' ? 45000 : 58000)
+        Caja: hasSales ? hourlyTotalsCaja[h] : (h === '08h' ? 0 : h === '10h' ? 8000 : h === '12h' ? 15000 : h === '14h' ? 10000 : h === '16h' ? 20000 : h === '18h' ? 25000 : 30000),
+        Pedidos: hasSales ? hourlyTotalsPedido[h] : (h === '08h' ? 0 : h === '10h' ? 4000 : h === '12h' ? 10000 : h === '14h' ? 8000 : h === '16h' ? 12000 : h === '18h' ? 20000 : 28000),
+        total: hasSales ? (hourlyTotalsCaja[h] + hourlyTotalsPedido[h]) : (h === '08h' ? 0 : h === '10h' ? 12000 : h === '12h' ? 25000 : h === '14h' ? 18000 : h === '16h' ? 32000 : h === '18h' ? 45000 : 58000)
       }))
 
       setRecentSales(latestSales || [])
       setLowStockCount(calculatedLowStockCount)
       setStats({
         todaySales: todayTotal,
+        todayCajaSales: todayCajaTotal,
+        todayPedidoSales: todayPedidoTotal,
         yesterdaySales: yesterdayTotal,
         monthSales: monthTotal,
+        monthCajaSales: monthCajaTotal,
+        monthPedidoSales: monthPedidoTotal,
         totalProducts: actualProducts,
         openShifts: shiftCount || 0,
         totalShifts: totalShiftsCount || 0,
         totalSales: actualSales,
-        chartData
+        chartData,
+        bestSellers,
+        topCustomers: topCusts || [],
+        expenseCategoryTotals,
+        totalExpenses,
+        wasteSummary: wasteSummary.slice(0, 5),
+        stagnantProducts
       })
     } catch (error) {
       console.error('Error loading stats:', error)
@@ -392,19 +533,29 @@ export default function DashboardPage() {
             <div className="kpi-card" style={{ borderColor: 'rgba(139, 92, 246, 0.3)' }}>
               <div className="kpi-label">Ventas de Hoy</div>
               <div className="kpi-value primary">{formatCurrency(stats.todaySales)}</div>
+              <div style={{ display: 'flex', gap: '8px', fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '4px', fontWeight: 600 }}>
+                <span>🏪 Caja: <strong>{formatCurrency(stats.todayCajaSales || 0)}</strong></span>
+                <span>|</span>
+                <span>🛒 Pedidos: <strong>{formatCurrency(stats.todayPedidoSales || 0)}</strong></span>
+              </div>
               {stats.yesterdaySales > 0 ? (
-                <div className={`kpi-change ${stats.todaySales >= stats.yesterdaySales ? 'up' : 'down'}`}>
+                <div className={`kpi-change ${stats.todaySales >= stats.yesterdaySales ? 'up' : 'down'}`} style={{ marginTop: '8px' }}>
                   {stats.todaySales >= stats.yesterdaySales ? '↑' : '↓'} {Math.abs(Math.round((stats.todaySales - stats.yesterdaySales) / stats.yesterdaySales * 100))}% vs ayer
                 </div>
               ) : (
-                <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Ventas del día actual</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>Ventas del día actual</div>
               )}
             </div>
             
             <div className="kpi-card" style={{ borderColor: 'rgba(16, 185, 129, 0.3)' }}>
               <div className="kpi-label">Ingresos del Mes</div>
               <div className="kpi-value success">{formatCurrency(stats.monthSales)}</div>
-              <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Mes en curso</div>
+              <div style={{ display: 'flex', gap: '8px', fontSize: '0.8125rem', color: 'var(--text-secondary)', marginTop: '4px', fontWeight: 600 }}>
+                <span>🏪 Caja: <strong>{formatCurrency(stats.monthCajaSales || 0)}</strong></span>
+                <span>|</span>
+                <span>🛒 Pedidos: <strong>{formatCurrency(stats.monthPedidoSales || 0)}</strong></span>
+              </div>
+              <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>Mes en curso</div>
             </div>
 
             <div className="kpi-card">
@@ -436,9 +587,13 @@ export default function DashboardPage() {
                 <ResponsiveContainer width="100%" height="100%">
                   <AreaChart data={stats.chartData} margin={{ top: 20, right: 0, left: 0, bottom: 0 }}>
                     <defs>
-                      <linearGradient id="colorSales" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.5}/>
+                      <linearGradient id="colorCaja" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-primary)" stopOpacity={0.4}/>
                         <stop offset="95%" stopColor="var(--color-primary)" stopOpacity={0}/>
+                      </linearGradient>
+                      <linearGradient id="colorPedidos" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="var(--color-secondary)" stopOpacity={0.4}/>
+                        <stop offset="95%" stopColor="var(--color-secondary)" stopOpacity={0}/>
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.03)" vertical={false} />
@@ -449,7 +604,8 @@ export default function DashboardPage() {
                       itemStyle={{ color: '#fff', fontWeight: 700 }}
                       formatter={(value) => formatCurrency(value)}
                     />
-                    <Area type="monotone" dataKey="total" stroke="var(--color-primary)" strokeWidth={4} fillOpacity={1} fill="url(#colorSales)" />
+                    <Area type="monotone" dataKey="Caja" stroke="var(--color-primary)" strokeWidth={3} fillOpacity={1} fill="url(#colorCaja)" stackId="1" name="Caja de Negocio" />
+                    <Area type="monotone" dataKey="Pedidos" stroke="var(--color-secondary)" strokeWidth={3} fillOpacity={1} fill="url(#colorPedidos)" stackId="1" name="Pedidos" />
                   </AreaChart>
                 </ResponsiveContainer>
               </div>
@@ -506,6 +662,165 @@ export default function DashboardPage() {
                     })
                   )}
                 </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 3: Gastos y Pérdidas */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 'var(--space-6)', marginTop: 'var(--space-6)' }}>
+            {/* Gastos Card */}
+            <div className="card">
+              <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className="card-title" style={{ fontSize: '1.125rem' }}>Distribución de Gastos (Mes)</span>
+                <span style={{ fontSize: '0.8125rem', color: 'var(--color-tertiary)', fontWeight: 700 }}>
+                  Total: {formatCurrency(stats.totalExpenses || 0)}
+                </span>
+              </div>
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {Object.keys(stats.expenseCategoryTotals || {}).length === 0 ? (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', padding: '24px 0' }}>
+                    No hay gastos registrados este mes.
+                  </div>
+                ) : (
+                  Object.entries(stats.expenseCategoryTotals || {}).map(([cat, val]) => {
+                    const pct = stats.totalExpenses > 0 ? (val / stats.totalExpenses * 100) : 0
+                    const labels = {
+                      combustible: '⛽ Combustible / Fletes',
+                      servicios: '🔌 Servicios (Luz, Internet, etc.)',
+                      mercaderia: '📦 Proveedores / Mercadería',
+                      sueldos: '👥 Sueldos / Jornales',
+                      mantenimiento: '🔧 Mantenimiento / Reparación',
+                      general: '📝 Gastos Generales / Varios'
+                    }
+                    return (
+                      <div key={cat} style={{ background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)', padding: '10px 14px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.8125rem', fontWeight: 600, marginBottom: '6px' }}>
+                          <span style={{ color: '#fff' }}>{labels[cat] || cat}</span>
+                          <span style={{ color: 'var(--color-tertiary)' }}>{formatCurrency(val)} ({pct.toFixed(0)}%)</span>
+                        </div>
+                        <div style={{ width: '100%', height: '6px', background: 'var(--bg-surface)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: `${pct}%`, height: '100%', backgroundColor: 'var(--color-tertiary)', borderRadius: '3px' }} />
+                        </div>
+                      </div>
+                    )
+                  })
+                )}
+              </div>
+            </div>
+
+            {/* Pérdidas Card */}
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title" style={{ fontSize: '1.125rem' }}>Pérdidas y Mermas Recientes</span>
+              </div>
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {(stats.wasteSummary || []).length === 0 ? (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', padding: '24px 0' }}>
+                    No hay desperdicios o mermas recientes.
+                  </div>
+                ) : (
+                  (stats.wasteSummary || []).map((w, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 14px', background: 'rgba(239, 68, 68, 0.02)', border: '1px solid rgba(239, 68, 68, 0.1)', borderRadius: 'var(--radius-md)' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#fff' }}>{w.product_name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          Día: {w.date} · Motivo: {w.reason}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--color-error)' }}>-{formatCurrency(w.total_loss)}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Cant: {w.qty}</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Row 4: Productos y Clientes */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: 'var(--space-6)', marginTop: 'var(--space-6)' }}>
+            {/* Productos Más Vendidos */}
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title" style={{ fontSize: '1.125rem' }}>Más Vendidos del Mes</span>
+              </div>
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {(stats.bestSellers || []).length === 0 ? (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', padding: '24px 0' }}>
+                    Sin ventas registradas este mes.
+                  </div>
+                ) : (
+                  (() => {
+                    const maxQty = stats.bestSellers[0]?.qty || 1
+                    return stats.bestSellers.map((prod, i) => (
+                      <div key={i} style={{ padding: '8px 0', borderBottom: i < stats.bestSellers.length - 1 ? '1px solid var(--border-color)' : 'none' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.875rem', fontWeight: 600 }}>
+                          <span style={{ color: '#fff' }}>{prod.name}</span>
+                          <span style={{ color: 'var(--color-primary)' }}>{prod.qty} uds</span>
+                        </div>
+                        <div style={{ width: '100%', height: '6px', background: 'var(--bg-surface)', borderRadius: '3px', overflow: 'hidden' }}>
+                          <div style={{ width: `${(prod.qty / maxQty) * 100}%`, height: '100%', background: 'linear-gradient(90deg, var(--color-primary), var(--color-secondary))', borderRadius: '3px' }} />
+                        </div>
+                      </div>
+                    ))
+                  })()
+                )}
+              </div>
+            </div>
+
+            {/* Clientes Recurrentes */}
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title" style={{ fontSize: '1.125rem' }}>Clientes más Recurrentes</span>
+              </div>
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {(stats.topCustomers || []).length === 0 ? (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', padding: '24px 0' }}>
+                    No hay clientes registrados o con compras.
+                  </div>
+                ) : (
+                  stats.topCustomers.map((cust, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+                      <div>
+                        <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#fff' }}>{cust.name}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          Tel: {cust.phone || 'N/A'}
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right' }}>
+                        <div style={{ fontWeight: 700, color: 'var(--color-secondary)' }}>{formatCurrency(cust.total_spent || 0)}</div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{cust.total_purchases || 0} compras</div>
+                      </div>
+                    </div>
+                  ))
+                )}
+              </div>
+            </div>
+
+            {/* Productos Estancados */}
+            <div className="card">
+              <div className="card-header">
+                <span className="card-title" style={{ fontSize: '1.125rem' }}>Productos Estancados</span>
+              </div>
+              <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {(stats.stagnantProducts || []).length === 0 ? (
+                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem', padding: '24px 0' }}>
+                    No hay productos estancados en catálogo.
+                  </div>
+                ) : (
+                  stats.stagnantProducts.map((prod, i) => (
+                    <div key={i} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px', background: 'rgba(255,255,255,0.01)', border: '1px solid var(--border-color)', borderRadius: 'var(--radius-md)' }}>
+                      <div>
+                        <div style={{ color: '#fff', fontSize: '0.875rem', fontWeight: 600 }}>{prod.name}</div>
+                        <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', marginTop: '2px' }}>Sin ventas</div>
+                      </div>
+                      <div style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--color-error)', padding: '4px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 600 }}>
+                        {prod.days} días
+                      </div>
+                    </div>
+                  ))
+                )}
               </div>
             </div>
           </div>

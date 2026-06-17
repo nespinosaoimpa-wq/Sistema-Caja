@@ -34,7 +34,8 @@ export default function SalesPage() {
       .select(`
         *,
         profiles:user_id(full_name),
-        sale_items(*)
+        sale_items(*),
+        online_orders:online_order_id(order_number, source)
       `)
       .eq('tenant_id', tenant.id)
       .order('created_at', { ascending: false })
@@ -146,6 +147,13 @@ export default function SalesPage() {
           <div>Fecha: ${dateStr}</div>
           <div>Ticket: #${sale.ticket_number}</div>
           <div>Cajero: ${sale.profiles?.full_name || 'N/A'}</div>
+          <div>Origen: ${sale.online_orders ? `Pedido #${sale.online_orders.order_number} (${{
+            online: 'Tienda Online',
+            whatsapp: 'WhatsApp',
+            phone: 'Teléfono',
+            preventista: 'Preventa',
+            pos: 'Pedido Caja'
+          }[sale.online_orders.source] || sale.online_orders.source})` : 'Caja de Negocio'}</div>
         </div>
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
         <table style="width:100%;border-collapse:collapse;font-size:11px;">
@@ -318,7 +326,12 @@ export default function SalesPage() {
                     <div style={{ fontWeight: 600 }}>{formatDateTime(sale.created_at).split(', ')[0]}</div>
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formatDateTime(sale.created_at).split(', ')[1]}</div>
                   </div>
-                  <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: 'var(--color-primary)' }}>#{sale.ticket_number}</div>
+                  <div>
+                    <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: 'var(--color-primary)' }}>#{sale.ticket_number}</div>
+                    <div style={{ fontSize: '0.75rem', color: sale.online_orders ? 'var(--color-secondary)' : 'var(--text-secondary)', marginTop: '2px', fontWeight: 600 }}>
+                      {sale.online_orders ? `🛒 Pedido #${sale.online_orders.order_number}` : '🏪 Caja'}
+                    </div>
+                  </div>
                   <div>
                     <span className="badge badge-neutral" style={{ background: 'rgba(255,255,255,0.05)' }}>
                       {getPaymentMethodLabel(sale)}
@@ -381,6 +394,15 @@ export default function SalesPage() {
               {selectedSale.profiles?.full_name && (
                 <div style={{ fontSize: '0.8125rem', color: '#666' }}>Cajero: {selectedSale.profiles.full_name}</div>
               )}
+              <div style={{ fontSize: '0.8125rem', color: '#666' }}>
+                Origen: {selectedSale.online_orders ? `Pedido #${selectedSale.online_orders.order_number} (${{
+                  online: 'Tienda Online',
+                  whatsapp: 'WhatsApp',
+                  phone: 'Teléfono',
+                  preventista: 'Preventa',
+                  pos: 'Pedido Caja'
+                }[selectedSale.online_orders.source] || selectedSale.online_orders.source})` : 'Caja de Negocio'}
+              </div>
             </div>
 
             <div style={{ marginBottom: 'var(--space-6)', minHeight: '150px' }}>
