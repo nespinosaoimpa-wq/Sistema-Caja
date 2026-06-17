@@ -391,16 +391,17 @@ export default function DashboardPage() {
           <p style={{ color: 'var(--text-secondary)', fontSize: '1.125rem', margin: '8px 0 0 0', display: 'flex', alignItems: 'center', gap: '8px', flexWrap: 'wrap' }}>
             <span>Aquí está el resumen de <strong style={{ color: '#fff' }}>{tenant?.name}</strong> al día de hoy.</span>
             <span style={{ 
-              color: 'rgba(255, 255, 255, 0.35)', 
-              fontSize: '0.8rem', 
-              fontStyle: 'italic', 
+              color: '#38bdf8', 
+              fontSize: '0.85rem', 
+              fontWeight: 800, 
               borderLeft: '1px solid rgba(255,255,255,0.1)', 
               paddingLeft: '12px',
               display: 'inline-flex',
               alignItems: 'center',
-              gap: '4px'
+              gap: '4px',
+              letterSpacing: '0.05em'
             }}>
-              "La magia no es casualidad: es perseverar." — L.M. ✨
+              ¡Vamos Argentina! 🇦🇷✨
             </span>
           </p>
         </div>
