@@ -314,13 +314,12 @@ export default function DashboardPage() {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', padding: 'var(--space-8)' }}>
-      {/* Header con Arte Contemporáneo Mundialista */}
+      {/* Header con Imagen Original de Messi de Fondo */}
       <div style={{
         position: 'relative',
         padding: '32px var(--space-6)',
         borderRadius: 'var(--radius-2xl)',
-        // Combined background: Dark slate base + subtle vertical repeating Argentina jersey stripes
-        background: 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(15, 23, 42, 0.7) 100%), repeating-linear-gradient(90deg, rgba(56, 189, 248, 0.03) 0px, rgba(56, 189, 248, 0.03) 40px, transparent 40px, transparent 80px)',
+        background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)',
         border: '1px solid rgba(255, 255, 255, 0.05)',
         boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.2)',
         overflow: 'hidden',
@@ -331,143 +330,53 @@ export default function DashboardPage() {
         gap: '24px',
         marginBottom: 'var(--space-2)'
       }}>
-        {/* Argentina Gradient Blob (Celestial y Blanco) */}
+        {/* Imagen Original de Messi de Fondo (Desvanecida e Integrada) */}
         <div style={{
           position: 'absolute',
-          right: '8%',
-          top: '-60px',
-          width: '280px',
-          height: '280px',
-          background: 'radial-gradient(circle, rgba(56, 189, 248, 0.1) 0%, rgba(255, 255, 255, 0.03) 50%, transparent 100%)',
-          filter: 'blur(50px)',
-          pointerEvents: 'none'
-        }} />
-        {/* Sol de Mayo Blob (Dorado) */}
-        <div style={{
-          position: 'absolute',
-          right: '28%',
-          bottom: '-50px',
-          width: '180px',
-          height: '180px',
-          background: 'radial-gradient(circle, rgba(234, 179, 8, 0.05) 0%, transparent 70%)',
-          filter: 'blur(40px)',
-          pointerEvents: 'none'
-        }} />
-
-        {/* Marca de Agua: Representación vectorial contemporánea de la camiseta de Messi con el 10 (como la imagen) */}
-        <svg 
-          viewBox="0 0 200 200" 
-          width="260" 
-          height="260" 
-          style={{
+          top: 0,
+          right: 0,
+          bottom: 0,
+          width: '50%',
+          minWidth: '320px',
+          pointerEvents: 'none',
+          userSelect: 'none',
+          zIndex: 1,
+          overflow: 'hidden',
+          borderRadius: '0 var(--radius-2xl) var(--radius-2xl) 0'
+        }}>
+          {/* Degradado de desvanecimiento hacia el fondo oscuro de la izquierda */}
+          <div style={{
             position: 'absolute',
-            right: '6%',
-            bottom: '-45px',
-            pointerEvents: 'none',
-            userSelect: 'none',
-            opacity: 0.22,
-            transform: 'rotate(-8deg)',
-            filter: 'drop-shadow(0 15px 25px rgba(0,0,0,0.6))',
-            zIndex: 1
-          }}
-        >
-          <defs>
-            {/* Contorno de la camiseta para recortar las rayas */}
-            <clipPath id="jersey-clip">
-              <path d="M 75 25 Q 100 32 125 25 L 165 40 L 185 85 L 165 95 L 150 78 L 145 185 L 55 185 L 50 78 L 35 95 L 15 85 L 35 40 Z" />
-            </clipPath>
-            {/* Degradado para las rayas celestes */}
-            <linearGradient id="celeste-gradient" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="#7dd3fc" />
-              <stop offset="100%" stopColor="#38bdf8" />
-            </linearGradient>
-            {/* Degradado de sombreado realista para dar volumen 3D a la camiseta */}
-            <linearGradient id="jersey-shading" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor="rgba(255,255,255,0.25)" />
-              <stop offset="45%" stopColor="rgba(255,255,255,0)" />
-              <stop offset="100%" stopColor="rgba(0,0,0,0.4)" />
-            </linearGradient>
-          </defs>
+            inset: 0,
+            background: 'linear-gradient(90deg, #0f172a 0%, rgba(15, 23, 42, 0.95) 15%, rgba(15, 23, 42, 0.4) 60%, transparent 100%)',
+            zIndex: 2
+          }} />
+          
+          {/* Brillo celeste de la camiseta */}
+          <div style={{
+            position: 'absolute',
+            top: '10%',
+            right: '20%',
+            width: '180px',
+            height: '180px',
+            background: 'radial-gradient(circle, rgba(56, 189, 248, 0.15) 0%, transparent 70%)',
+            filter: 'blur(30px)',
+            zIndex: 3
+          }} />
 
-          {/* Grupo de la camiseta recortada con el clip-path */}
-          <g clipPath="url(#jersey-clip)">
-            {/* Rayas Celestes y Blancas */}
-            <rect x="0" y="0" width="38" height="200" fill="url(#celeste-gradient)" />
-            <rect x="38" y="0" width="41" height="200" fill="#ffffff" />
-            <rect x="79" y="0" width="42" height="200" fill="url(#celeste-gradient)" />
-            <rect x="121" y="0" width="41" height="200" fill="#ffffff" />
-            <rect x="162" y="0" width="38" height="200" fill="url(#celeste-gradient)" />
-
-            {/* Detalles de la camiseta */}
-            {/* Cuello dorado */}
-            <path d="M 75 25 Q 100 32 125 25" fill="none" stroke="#eab308" strokeWidth="2.5" />
-            
-            {/* Brazalete de Capitán en la manga izquierda (Messi) */}
-            <polygon points="23,62 27,51 43,58 39,69" fill="#dc2626" />
-            {/* Líneas doradas del brazalete */}
-            <polygon points="24,60 26,55 41,61 39,66" fill="none" stroke="#eab308" strokeWidth="1" />
-
-            {/* Sombreado 3D de la camiseta */}
-            <rect x="0" y="0" width="200" height="200" fill="url(#jersey-shading)" />
-          </g>
-
-          {/* Borde dorado exterior sutil de la camiseta para darle un toque contemporáneo */}
-          <path 
-            d="M 75 25 Q 100 32 125 25 L 165 40 L 185 85 L 165 95 L 150 78 L 145 185 L 55 185 L 50 78 L 35 95 L 15 85 L 35 40 Z" 
-            fill="none" 
-            stroke="rgba(234, 179, 8, 0.4)" 
-            strokeWidth="1.5" 
-            strokeLinejoin="round" 
+          <img 
+            src="/messi.jpg" 
+            alt="Messi 10" 
+            style={{
+              width: '100%',
+              height: '100%',
+              objectFit: 'cover',
+              objectPosition: 'center 40%',
+              opacity: 0.35,
+              mixBlendMode: 'normal'
+            }}
           />
-
-          {/* Nombre: MESSI */}
-          <text 
-            x="100" 
-            y="62" 
-            fontFamily="'Inter', 'Outfit', sans-serif" 
-            fontWeight="900" 
-            fontSize="15" 
-            fill="#0f172a" 
-            stroke="#ffffff" 
-            strokeWidth="1.2" 
-            paintOrder="stroke fill" 
-            letterSpacing="5" 
-            textAnchor="middle"
-          >
-            MESSI
-          </text>
-
-          {/* Número 10 Oficial de Camiseta */}
-          {/* El número 1 */}
-          <path 
-            d="M 68 85 L 76 85 L 76 150 L 88 150 L 88 75 L 76 75 L 68 81 Z" 
-            fill="#0f172a" 
-            stroke="#ffffff" 
-            strokeWidth="3" 
-            strokeLinejoin="round" 
-            paintOrder="stroke fill" 
-          />
-          <circle cx="82" cy="138" r="2" fill="#eab308" />
-
-          {/* El número 0 */}
-          <path 
-            d="M 102 75 h 24 l 6 6 v 63 l -6 6 h -24 l -6 -6 v -63 Z M 110 87 h 8 l 3 3 v 39 l -3 3 h -8 l -3 -3 v -39 Z" 
-            fill="#0f172a" 
-            fillRule="evenodd" 
-            stroke="#ffffff" 
-            strokeWidth="3" 
-            strokeLinejoin="round" 
-            paintOrder="stroke fill" 
-          />
-          <circle cx="114" cy="138" r="2" fill="#eab308" />
-
-          {/* Tres estrellas doradas sobre el cuello */}
-          <g transform="translate(100, 14) scale(0.7)">
-            <path d="M-22 5 l2.5 5 l5.5 .8 l-4 3.9 l1 5.5 l-5 -2.9 l-5 2.9 l1 -5.5 l-4 -3.9 l5.5 -.8 z" fill="#eab308" filter="drop-shadow(0 0 3px rgba(234,179,8,0.6))" />
-            <path d="M0 0 l3 6.3 l6.9 1 l-5 4.8 l1.2 6.9 l-6.1 -3.2 l-6.1 3.2 l1.2 -6.9 l-5 -4.8 l6.9 -1 z" fill="#eab308" filter="drop-shadow(0 0 5px rgba(234,179,8,0.8))" />
-            <path d="M22 5 l2.5 5 l5.5 .8 l-4 3.9 l1 5.5 l-5 -2.9 l-5 2.9 l1 -5.5 l-4 -3.9 l5.5 -.8 z" fill="#eab308" filter="drop-shadow(0 0 3px rgba(234,179,8,0.6))" />
-          </g>
-        </svg>
+        </div>
 
         {/* Textos del Header */}
         <div style={{ position: 'relative', zIndex: 2 }}>
