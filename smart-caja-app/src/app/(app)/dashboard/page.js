@@ -345,34 +345,35 @@ export default function DashboardPage() {
           {/* Tarjeta Celebratoria Mundialista - Argentina y Messi */}
           <div className="celebration-card" style={{
             background: magiaActiva 
-              ? 'linear-gradient(135deg, rgba(56, 189, 248, 0.25) 0%, rgba(255, 255, 255, 0.08) 50%, rgba(56, 189, 248, 0.25) 100%)' 
-              : 'linear-gradient(135deg, rgba(56, 189, 248, 0.15) 0%, rgba(255, 255, 255, 0.03) 50%, rgba(56, 189, 248, 0.15) 100%)',
-            border: magiaActiva ? '1px solid rgba(250, 204, 21, 0.6)' : '1px solid rgba(56, 189, 248, 0.3)',
-            boxShadow: magiaActiva ? '0 8px 32px rgba(250, 204, 21, 0.2), inset 0 0 16px rgba(250, 204, 21, 0.15)' : '0 8px 32px rgba(56, 189, 248, 0.05)',
+              ? 'linear-gradient(135deg, rgba(15, 23, 42, 0.95) 0%, rgba(30, 58, 138, 0.45) 100%)' 
+              : 'linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(30, 41, 59, 0.95) 100%)',
+            border: magiaActiva ? '1px solid rgba(234, 179, 8, 0.5)' : '1px solid rgba(255, 255, 255, 0.08)',
+            boxShadow: magiaActiva ? '0 12px 40px rgba(0, 0, 0, 0.5), 0 0 20px rgba(234, 179, 8, 0.1)' : '0 8px 32px rgba(0, 0, 0, 0.3)',
             borderRadius: 'var(--radius-xl)',
-            padding: '20px var(--space-6)',
+            padding: '24px var(--space-6)',
             marginBottom: 'var(--space-2)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
             flexWrap: 'wrap',
             gap: 'var(--space-4)',
-            backdropFilter: 'blur(12px)',
-            transition: 'all 0.5s ease',
+            backdropFilter: 'blur(16px)',
+            transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
             position: 'relative',
             overflow: 'hidden'
           }}>
-            {/* Animación sutil de fondo para la magia */}
-            {magiaActiva && (
-              <div style={{
-                position: 'absolute',
-                inset: 0,
-                background: 'radial-gradient(circle at 30% 50%, rgba(250, 204, 21, 0.08) 0%, transparent 60%)',
-                pointerEvents: 'none'
-              }} />
-            )}
+            {/* Fondo celeste sutil pulsante */}
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: magiaActiva
+                ? 'radial-gradient(circle at 20% 50%, rgba(56, 189, 248, 0.1) 0%, transparent 60%)'
+                : 'radial-gradient(circle at 20% 50%, rgba(56, 189, 248, 0.03) 0%, transparent 60%)',
+              pointerEvents: 'none',
+              transition: 'all 0.5s ease'
+            }} />
 
-            {/* Contenido izquierdo */}
+            {/* Contenido izquierdo: 3 Estrellas Vectoriales */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--space-5)', flex: '1 1 500px' }}>
               <div 
                 className="celebration-stars" 
@@ -385,89 +386,124 @@ export default function DashboardPage() {
                   display: 'flex',
                   flexDirection: 'column',
                   alignItems: 'center',
-                  gap: '4px',
-                  userSelect: 'none'
+                  gap: '6px',
+                  userSelect: 'none',
+                  padding: '0 8px',
+                  cursor: 'pointer'
                 }}
               >
-                <div style={{ display: 'flex', gap: '2px', fontSize: '1.75rem', lineHeight: 1 }}>
-                  <span style={{ animation: 'float 2s infinite ease-in-out', animationDelay: '0s' }}>⭐</span>
-                  <span style={{ animation: 'float 2s infinite ease-in-out', animationDelay: '0.3s', fontSize: '2.1rem', transform: 'translateY(-4px)' }}>⭐</span>
-                  <span style={{ animation: 'float 2s infinite ease-in-out', animationDelay: '0.6s' }}>⭐</span>
+                <div style={{ display: 'flex', alignItems: 'flex-end', gap: '4px', height: '36px' }}>
+                  {/* Estrella izquierda */}
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="#EAB308" style={{ filter: 'drop-shadow(0 0 4px rgba(234, 179, 8, 0.5))', animation: 'float-star 3s infinite ease-in-out' }}>
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                  {/* Estrella centro */}
+                  <svg viewBox="0 0 24 24" width="28" height="28" fill="#EAB308" style={{ filter: 'drop-shadow(0 0 8px rgba(234, 179, 8, 0.7))', transform: 'translateY(-3px)', animation: 'float-star-center 3s infinite ease-in-out' }}>
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
+                  {/* Estrella derecha */}
+                  <svg viewBox="0 0 24 24" width="20" height="20" fill="#EAB308" style={{ filter: 'drop-shadow(0 0 4px rgba(234, 179, 8, 0.5))', animation: 'float-star 3s infinite ease-in-out', animationDelay: '0.5s' }}>
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
+                  </svg>
                 </div>
-                <div style={{ fontSize: '0.75rem', fontWeight: 800, color: 'rgba(250, 204, 21, 0.9)', letterSpacing: '0.15em', marginTop: '2px' }}>
+                <div style={{ fontSize: '0.65rem', fontWeight: 900, color: '#EAB308', letterSpacing: '0.2em', textTransform: 'uppercase', opacity: 0.9 }}>
                   A N O T A D A S
                 </div>
               </div>
 
+              {/* Textos descriptivos */}
               <div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '6px', flexWrap: 'wrap' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px', flexWrap: 'wrap' }}>
                   <span style={{ 
-                    background: 'rgba(56, 189, 248, 0.2)', 
+                    background: 'rgba(56, 189, 248, 0.12)', 
                     color: '#38bdf8', 
-                    padding: '2px 10px', 
+                    padding: '4px 12px', 
                     borderRadius: '999px', 
-                    fontSize: '0.75rem', 
-                    fontWeight: 700, 
-                    border: '1px solid rgba(56, 189, 248, 0.3)' 
+                    fontSize: '0.7rem', 
+                    fontWeight: 800, 
+                    letterSpacing: '0.05em',
+                    border: '1px solid rgba(56, 189, 248, 0.2)' 
                   }}>
-                    🇦🇷 ¡CAMPEONES DE LA CAJA!
+                    🇦🇷 TRIBUTO AL CAMPEÓN
                   </span>
-                  <h3 style={{ fontSize: '1.2rem', fontWeight: 800, color: '#fff', margin: 0, fontFamily: 'var(--font-headline)' }}>
-                    La magia del 10 está intacta
+                  <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#FFFFFF', margin: 0, fontFamily: 'var(--font-headline)', letterSpacing: '-0.02em' }}>
+                    La magia del 10 sigue intacta
                   </h3>
                 </div>
-                <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', lineHeight: 1.5, margin: 0 }}>
-                  Ayer Argentina goleó 3-0 a Argelia con un triplete mágico de Lionel Messi 🐐. Inspirate en la magia, disciplina y constancia del mejor del mundo para llevar tu negocio a lo más alto hoy. ¡Elegí creer!
+                <p style={{ color: '#E2E8F0', fontSize: '0.875rem', lineHeight: 1.6, margin: 0, maxWidth: '680px' }}>
+                  Tras la victoria de Argentina 3-0 contra Argelia con un hat-trick magistral de Lionel Messi, nos inspiramos en el esfuerzo y la constancia del mejor del mundo. Creé, trabajá y liderá tu negocio con la mentalidad del campeón.
                 </p>
               </div>
             </div>
 
-            {/* Contenido derecho / Botón */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', zIndex: 2 }}>
+            {/* Contenido derecho: Botón de acción */}
+            <div style={{ display: 'flex', alignItems: 'center', zIndex: 2 }}>
               <button 
                 onClick={() => {
                   setMagiaActiva(!magiaActiva)
                   setShowCampeonToast(true)
                   setTimeout(() => setShowCampeonToast(false), 5000)
                 }}
-                className="btn"
                 style={{
                   background: magiaActiva 
-                    ? 'linear-gradient(90deg, #EAB308, #F59E0B)' 
-                    : 'linear-gradient(90deg, #38bdf8, #0284c7)',
-                  color: magiaActiva ? '#000' : '#fff',
-                  border: 'none',
-                  fontWeight: 800,
+                    ? 'linear-gradient(135deg, #EAB308 0%, #CA8A04 100%)' 
+                    : 'rgba(255, 255, 255, 0.03)',
+                  color: magiaActiva ? '#0F172A' : '#E2E8F0',
+                  border: magiaActiva ? '1px solid #F59E0B' : '1px solid rgba(255, 255, 255, 0.15)',
+                  fontWeight: 700,
                   borderRadius: '9999px',
-                  padding: '10px 24px',
+                  padding: '10px 22px',
                   fontSize: '0.85rem',
                   display: 'flex',
                   alignItems: 'center',
                   gap: '8px',
                   cursor: 'pointer',
-                  boxShadow: magiaActiva ? '0 4px 15px rgba(250, 204, 21, 0.4)' : '0 4px 12px rgba(56, 189, 248, 0.3)',
-                  transition: 'all 0.3s ease'
+                  boxShadow: magiaActiva ? '0 4px 18px rgba(234, 179, 8, 0.35)' : 'none',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
+                }}
+                onMouseEnter={(e) => {
+                  if (!magiaActiva) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)'
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.3)'
+                  } else {
+                    e.currentTarget.style.transform = 'translateY(-1px)'
+                    e.currentTarget.style.boxShadow = '0 6px 20px rgba(234, 179, 8, 0.45)'
+                  }
+                }}
+                onMouseLeave={(e) => {
+                  if (!magiaActiva) {
+                    e.currentTarget.style.background = 'rgba(255, 255, 255, 0.03)'
+                    e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)'
+                  } else {
+                    e.currentTarget.style.transform = 'translateY(0)'
+                    e.currentTarget.style.boxShadow = '0 4px 18px rgba(234, 179, 8, 0.35)'
+                  }
                 }}
               >
-                <span>{magiaActiva ? '✨ Magia Activa 🐐' : 'Activar Magia ✨'}</span>
+                {/* SVG Sparkle / Star */}
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" style={{ opacity: 0.9 }}>
+                  <path d="M12 2l2.4 7.2h7.6l-6.2 4.5 2.4 7.3-6.2-4.5-6.2 4.5 2.4-7.3-6.2-4.5h7.6z" />
+                </svg>
+                <span>{magiaActiva ? 'Modo Campeón Activo' : 'Activar Modo Campeón'}</span>
               </button>
             </div>
 
-            {/* Estilos dinámicos para las estrellas y animaciones */}
+            {/* Estilos CSS dedicados */}
             <style>{`
-              @keyframes float {
+              @keyframes float-star {
                 0%, 100% { transform: translateY(0); }
-                50% { transform: translateY(-6px) scale(1.05); }
+                50% { transform: translateY(-4px); }
               }
-              @keyframes pulse-card {
-                0%, 100% { border-color: rgba(56, 189, 248, 0.3); }
-                50% { border-color: rgba(250, 204, 21, 0.7); }
+              @keyframes float-star-center {
+                0%, 100% { transform: translateY(-3px); }
+                50% { transform: translateY(-8px) scale(1.05); }
               }
-              .celebration-card {
-                animation: pulse-card 3s infinite ease-in-out;
+              .celebration-stars {
+                transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
               }
               .celebration-stars:hover {
-                transform: scale(1.15);
+                transform: scale(1.08);
+                filter: brightness(1.1);
               }
             `}</style>
           </div>
@@ -478,30 +514,37 @@ export default function DashboardPage() {
               position: 'fixed',
               bottom: '24px',
               right: '24px',
-              background: 'rgba(15, 23, 42, 0.95)',
-              border: '1px solid rgba(250, 204, 21, 0.6)',
-              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 0 20px rgba(250, 204, 21, 0.2)',
+              background: 'rgba(15, 23, 42, 0.96)',
+              border: '1px solid rgba(234, 179, 8, 0.5)',
+              boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.6), 0 0 30px rgba(234, 179, 8, 0.15)',
               borderRadius: 'var(--radius-xl)',
-              padding: '20px',
+              padding: '24px',
               maxWidth: '380px',
               zIndex: 99999,
               display: 'flex',
               flexDirection: 'column',
-              gap: '8px',
-              backdropFilter: 'blur(10px)',
-              animation: 'fadeInUp 0.4s cubic-bezier(0.16, 1, 0.3, 1)'
+              gap: '12px',
+              backdropFilter: 'blur(20px)',
+              animation: 'fadeInUp 0.5s cubic-bezier(0.16, 1, 0.3, 1)'
             }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                <span style={{ fontSize: '1.25rem' }}>🐐</span>
-                <span style={{ fontWeight: 800, color: '#EAB308', fontSize: '0.9rem', letterSpacing: '0.05em', textTransform: 'uppercase' }}>
-                  Mensaje del 10 para tu negocio
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                {/* SVG Trophy */}
+                <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#EAB308" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ filter: 'drop-shadow(0 0 4px rgba(234, 179, 8, 0.4))' }}>
+                  <path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6" />
+                  <path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18" />
+                  <path d="M4 22h16" />
+                  <path d="M10 14.66V17c0 .55-.45 1-1 1H4v2h16v-2h-5c-.55 0-1-.45-1-1v-2.34" />
+                  <path d="M12 2a6 6 0 0 1 6 6v3.5c0 3-2.5 5.5-6 5.5s-6-2.5-6-5.5V8a6 6 0 0 1 6-6z" />
+                </svg>
+                <span style={{ fontWeight: 800, color: '#EAB308', fontSize: '0.85rem', letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                  Filosofía de Campeón
                 </span>
               </div>
-              <p style={{ color: '#fff', fontSize: '0.875rem', lineHeight: 1.5, margin: 0, fontStyle: 'italic' }}>
-                "Muchachos, ahora nos volvimos a ilusionar... 🇦🇷. La perseverancia no es opcional: es intentar una y otra vez hasta que el gol llegue. Tu comercio tiene la madera de un gran campeón."
+              <p style={{ color: '#E2E8F0', fontSize: '0.9rem', lineHeight: 1.6, margin: 0, fontStyle: 'italic' }}>
+                "Muchachos, ahora nos volvimos a ilusionar... La perseverancia no es opcional: es intentar una y otra vez hasta que el gol llegue. Tu comercio tiene la madera de un gran campeón."
               </p>
-              <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.75rem', color: 'rgba(250, 204, 21, 0.8)', fontWeight: 700 }}>
-                ELEGÍ CREER ✨
+              <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: '0.75rem', color: 'rgba(250, 204, 21, 0.9)', fontWeight: 800, letterSpacing: '0.05em' }}>
+                LIONEL MESSI ✨
               </div>
               <style>{`
                 @keyframes fadeInUp {
