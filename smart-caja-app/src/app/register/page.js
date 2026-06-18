@@ -338,23 +338,36 @@ function RegisterContent() {
                         value: 'basic',
                         name: 'Plan Básico',
                         price: '$20.000',
-                        desc: 'Ideal para kioscos, almacenes y locales pequeños.',
-                        features: ['1 Caja registradora', 'Control de stock básico', 'Ventas y reportes']
+                        desc: 'Ideal si cobrás solo vos en tu local y querés ordenar tu negocio.',
+                        features: [
+                          'Controlar mercadería (saber qué tenés y qué te falta)',
+                          'Caja rápida para cobrar y dar vuelto sin errores',
+                          'Ver historial de ventas y tus ganancias del día'
+                        ]
                       },
                       {
                         value: 'professional',
                         name: 'Plan Profesional',
                         price: '$35.000',
                         badge: 'Recomendado',
-                        desc: 'Para negocios en crecimiento, preventistas y tienda online.',
-                        features: ['Cajas múltiples', 'Tienda online integrada', 'App preventista', 'Soporte prioritario']
+                        desc: 'Para locales con empleados, que quieren vender por WhatsApp y fiar.',
+                        features: [
+                          'Varios empleados cobrando al mismo tiempo',
+                          'Catálogo web (tus clientes te piden por WhatsApp)',
+                          'Cuentas corrientes para fiar a tus clientes',
+                          'Soporte humano por WhatsApp para ayudarte en todo'
+                        ]
                       },
                       {
                         value: 'enterprise',
                         name: 'Plan Empresa',
                         price: '$60.000',
-                        desc: 'Control total para comercios con múltiples sucursales.',
-                        features: ['Múltiples sucursales', 'Usuarios ilimitados', 'Facturación ARCA avanzada']
+                        desc: 'Para comercios grandes con varios locales o que facturan con AFIP.',
+                        features: [
+                          'Controlar 2 o más locales desde el mismo lugar',
+                          'Facturación oficial AFIP (ARCA) en 1 clic',
+                          'Inventario compartido y reportes automáticos'
+                        ]
                       }
                     ].map(p => {
                       const isSelected = form.subscription_plan === p.value
@@ -396,18 +409,18 @@ function RegisterContent() {
                           <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: 1.4 }}>
                             {p.desc}
                           </p>
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px' }}>
                             {p.features.map((f, fi) => (
-                              <span key={fi} style={{
-                                fontSize: '0.6875rem',
-                                background: 'rgba(255, 255, 255, 0.02)',
-                                border: '1px solid rgba(255, 255, 255, 0.05)',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
-                                color: 'var(--text-muted)'
+                              <div key={fi} style={{
+                                fontSize: '0.8125rem',
+                                display: 'flex',
+                                alignItems: 'center',
+                                gap: '8px',
+                                color: isSelected ? '#fff' : 'var(--text-secondary)'
                               }}>
-                                ✓ {f}
-                              </span>
+                                <span style={{ color: 'var(--color-secondary)', fontWeight: 'bold' }}>✓</span>
+                                <span>{f}</span>
+                              </div>
                             ))}
                           </div>
                           <div style={{
