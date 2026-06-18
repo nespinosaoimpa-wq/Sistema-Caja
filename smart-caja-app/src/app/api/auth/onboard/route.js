@@ -14,7 +14,8 @@ export async function POST(request) {
       phone,
       refCode,
       inviteTenant,
-      inviteRole
+      inviteRole,
+      subscription_plan
     } = await request.json()
 
     if (!userId || !email) {
@@ -130,7 +131,7 @@ export async function POST(request) {
           business_type: business_type || 'general',
           email: emailNormalized,
           phone: phone || '',
-          subscription_plan: 'enterprise',
+          subscription_plan: subscription_plan || 'enterprise',
           referred_by_id: referredById,
         })
 

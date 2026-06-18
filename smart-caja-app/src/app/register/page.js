@@ -16,6 +16,7 @@ function RegisterContent() {
   const inviteEmail = searchParams.get('invite_email') || ''
   const inviteName = searchParams.get('invite_name') || ''
   const refCode = searchParams.get('ref') || ''
+  const planParam = searchParams.get('plan') || searchParams.get('planId') || ''
 
   const [step, setStep] = useState(1)
   const [verificationEmail, setVerificationEmail] = useState('')
@@ -52,10 +53,12 @@ function RegisterContent() {
   }
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
-    // Step 1 - Business info
+    // Step 1 - Plan selection
+    subscription_plan: 'professional',
+    // Step 2 - Business info
     business_name: '',
     business_type: 'general',
-    // Step 2 - Owner info
+    // Step 3 - Owner info
     full_name: '',
     email: '',
     phone: '',
@@ -63,6 +66,12 @@ function RegisterContent() {
     confirmPassword: '',
   })
   const [errors, setErrors] = useState({})
+
+  useEffect(() => {
+    if (planParam && ['basic', 'professional', 'enterprise'].includes(planParam.toLowerCase())) {
+      setForm(prev => ({ ...prev, subscription_plan: planParam.toLowerCase() }))
+    }
+  }, [planParam])
 
   // Si está invitado, saltamos al paso 2 y precargamos datos
   useEffect(() => {
@@ -194,7 +203,8 @@ function RegisterContent() {
             business_type: form.business_type,
             full_name: form.full_name,
             phone: form.phone,
-            refCode
+            refCode,
+            subscription_plan: form.subscription_plan
           })
         })
 
@@ -293,184 +303,304 @@ function RegisterContent() {
             <>
               {/* Indicador de pasos - Solo si no está invitado */}
               {!inviteTenant && (
-            <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-6)' }}>
-              {[1, 2].map(s => (
-                <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                  <div style={{
-                    width: '28px', height: '28px', borderRadius: '50%',
-                    background: s <= step ? 'var(--gradient-primary)' : 'var(--bg-input)',
-                    border: s <= step ? 'none' : '1px solid var(--border-color)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    fontSize: '0.8125rem', fontWeight: 700,
-                    color: s <= step ? 'white' : 'var(--text-muted)',
-                    transition: 'all 0.3s',
-                  }}>
-                    {s < step ? '✓' : s}
-                  </div>
-                  {s < 2 && <div style={{ width: '60px', height: '2px', background: step > s ? 'var(--color-primary)' : 'var(--border-color)', transition: 'all 0.3s', borderRadius: '2px' }} />}
-                </div>
-              ))}
-            </div>
-          )}
-
-          {step === 1 && !inviteTenant ? (
-            <>
-              <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '6px' }}>
-                ¿Qué tipo de negocio tenés?
-              </h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 'var(--space-6)' }}>
-                Esto nos ayuda a personalizar Smart Caja para vos.
-              </p>
-
-              <div className="form-group" style={{ marginBottom: 'var(--space-5)' }}>
-                <label className="form-label required">Nombre del negocio</label>
-                <input
-                  className={`form-input ${errors.business_name ? 'error' : ''}`}
-                  placeholder="Ej: Almacén La Esperanza"
-                  value={form.business_name}
-                  onChange={e => updateForm('business_name', e.target.value)}
-                  autoFocus
-                />
-                {errors.business_name && <span className="form-error">{errors.business_name}</span>}
-              </div>
-
-              <div className="form-group" style={{ marginBottom: 'var(--space-6)' }}>
-                <label className="form-label required">Rubro</label>
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
-                  {businessTypes.map(bt => (
-                    <button
-                      key={bt.value}
-                      onClick={() => updateForm('business_type', bt.value)}
-                      style={{
-                        padding: 'var(--space-3)',
-                        background: form.business_type === bt.value ? 'var(--color-primary-light)' : 'var(--bg-input)',
-                        border: `1px solid ${form.business_type === bt.value ? 'var(--color-primary)' : 'var(--border-color)'}`,
-                        borderRadius: 'var(--radius-lg)',
-                        cursor: 'pointer', transition: 'all 0.2s',
-                        textAlign: 'left',
-                      }}
-                    >
-                      <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{bt.label}</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{bt.desc}</div>
-                    </button>
+                <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-6)' }}>
+                  {[1, 2, 3].map(s => (
+                    <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{
+                        width: '28px', height: '28px', borderRadius: '50%',
+                        background: s <= step ? 'var(--gradient-primary)' : 'var(--bg-input)',
+                        border: s <= step ? 'none' : '1px solid var(--border-color)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.8125rem', fontWeight: 700,
+                        color: s <= step ? 'white' : 'var(--text-muted)',
+                        transition: 'all 0.3s',
+                      }}>
+                        {s < step ? '✓' : s}
+                      </div>
+                      {s < 3 && <div style={{ width: '40px', height: '2px', background: step > s ? 'var(--color-primary)' : 'var(--border-color)', transition: 'all 0.3s', borderRadius: '2px' }} />}
+                    </div>
                   ))}
                 </div>
-              </div>
+              )}
 
-              <button
-                className="btn btn-primary btn-lg"
-                style={{ width: '100%', justifyContent: 'center' }}
-                onClick={() => validateStep1() && setStep(2)}
-              >
-                Continuar →
-              </button>
-            </>
-          ) : (
-            <>
-              <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '6px' }}>
-                {inviteTenant ? 'Registro de Colaborador' : 'Creá tu cuenta'}
-              </h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 'var(--space-6)' }}>
-                {inviteTenant ? 'Unite al equipo de tu comercio en Smart Caja' : `Para ${form.business_name}`}
-              </p>
+              {step === 1 && !inviteTenant ? (
+                <>
+                  <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.4rem', fontWeight: 800, marginBottom: '6px', textAlign: 'center', color: '#fff' }}>
+                    Elegí el plan que querés probar
+                  </h1>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 'var(--space-6)', textAlign: 'center' }}>
+                    Comenzarás con <strong>5 días gratis</strong> de prueba completa. Sin tarjetas ni compromisos.
+                  </p>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                <div className="form-group">
-                  <label className="form-label required">Tu nombre completo</label>
-                  <input
-                    className={`form-input ${errors.full_name ? 'error' : ''}`}
-                    placeholder="Juan García"
-                    value={form.full_name}
-                    onChange={e => updateForm('full_name', e.target.value)}
-                    autoFocus
-                  />
-                  {errors.full_name && <span className="form-error">{errors.full_name}</span>}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label required">Email</label>
-                  <input
-                    className={`form-input ${errors.email ? 'error' : ''}`}
-                    type="email"
-                    placeholder="juan@comercio.com"
-                    value={form.email}
-                    onChange={e => updateForm('email', e.target.value)}
-                    disabled={!!inviteTenant && !!inviteEmail}
-                  />
-                  {errors.email && <span className="form-error">{errors.email}</span>}
-                </div>
-
-                {/* Ocultar campo de teléfono si es un colaborador invitado */}
-                {!inviteTenant && (
-                  <div className="form-group">
-                    <label className="form-label required">WhatsApp / Celular (soporte y contacto)</label>
-                    <input
-                      className={`form-input ${errors.phone ? 'error' : ''}`}
-                      type="tel"
-                      placeholder="Ej: +54 9 11 1234-5678"
-                      value={form.phone}
-                      onChange={e => updateForm('phone', e.target.value)}
-                    />
-                    {errors.phone && <span className="form-error">{errors.phone}</span>}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
+                    {[
+                      {
+                        value: 'basic',
+                        name: 'Plan Básico',
+                        price: '$20.000',
+                        desc: 'Ideal para kioscos, almacenes y locales pequeños.',
+                        features: ['1 Caja registradora', 'Control de stock básico', 'Ventas y reportes']
+                      },
+                      {
+                        value: 'professional',
+                        name: 'Plan Profesional',
+                        price: '$35.000',
+                        badge: 'Recomendado',
+                        desc: 'Para negocios en crecimiento, preventistas y tienda online.',
+                        features: ['Cajas múltiples', 'Tienda online integrada', 'App preventista', 'Soporte prioritario']
+                      },
+                      {
+                        value: 'enterprise',
+                        name: 'Plan Empresa',
+                        price: '$60.000',
+                        desc: 'Control total para comercios con múltiples sucursales.',
+                        features: ['Múltiples sucursales', 'Usuarios ilimitados', 'Facturación ARCA avanzada']
+                      }
+                    ].map(p => {
+                      const isSelected = form.subscription_plan === p.value
+                      return (
+                        <div
+                          key={p.value}
+                          onClick={() => updateForm('subscription_plan', p.value)}
+                          style={{
+                            padding: 'var(--space-4)',
+                            background: isSelected ? 'rgba(124, 58, 237, 0.05)' : 'var(--bg-card)',
+                            border: `2px solid ${isSelected ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                            borderRadius: 'var(--radius-xl)',
+                            cursor: 'pointer',
+                            transition: 'all 0.2s',
+                            position: 'relative'
+                          }}
+                        >
+                          {p.badge && (
+                            <span style={{
+                              position: 'absolute',
+                              top: '-10px',
+                              right: '16px',
+                              background: 'var(--gradient-primary)',
+                              color: '#fff',
+                              fontSize: '0.6875rem',
+                              fontWeight: 700,
+                              padding: '2px 8px',
+                              borderRadius: 'var(--radius-full)',
+                              textTransform: 'uppercase',
+                              letterSpacing: '0.05em'
+                            }}>
+                              {p.badge}
+                            </span>
+                          )}
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
+                            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: isSelected ? '#fff' : 'var(--text-primary)' }}>{p.name}</span>
+                            <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-secondary)' }}>{p.price}<span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>/mes</span></span>
+                          </div>
+                          <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: 1.4 }}>
+                            {p.desc}
+                          </p>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                            {p.features.map((f, fi) => (
+                              <span key={fi} style={{
+                                fontSize: '0.6875rem',
+                                background: 'rgba(255, 255, 255, 0.02)',
+                                border: '1px solid rgba(255, 255, 255, 0.05)',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                color: 'var(--text-muted)'
+                              }}>
+                                ✓ {f}
+                              </span>
+                            ))}
+                          </div>
+                          <div style={{
+                            marginTop: '10px',
+                            fontSize: '0.75rem',
+                            fontWeight: 700,
+                            color: 'var(--color-secondary)',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px'
+                          }}>
+                            ✨ Probás este plan 5 días gratis
+                          </div>
+                        </div>
+                      )
+                    })}
                   </div>
-                )}
 
-                <div className="form-group">
-                  <label className="form-label required">Contraseña</label>
-                  <input
-                    className={`form-input ${errors.password ? 'error' : ''}`}
-                    type="password"
-                    placeholder="Mínimo 6 caracteres"
-                    value={form.password}
-                    onChange={e => updateForm('password', e.target.value)}
-                  />
-                  {errors.password && <span className="form-error">{errors.password}</span>}
-                </div>
-
-                <div className="form-group">
-                  <label className="form-label required">Confirmar contraseña</label>
-                  <input
-                    className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
-                    type="password"
-                    placeholder="Repetí la contraseña"
-                    value={form.confirmPassword}
-                    onChange={e => updateForm('confirmPassword', e.target.value)}
-                    onKeyDown={e => e.key === 'Enter' && !loading && handleRegister()}
-                  />
-                  {errors.confirmPassword && <span className="form-error">{errors.confirmPassword}</span>}
-                </div>
-              </div>
-
-              <div style={{ marginTop: 'var(--space-6)', display: 'flex', gap: 'var(--space-3)' }}>
-                {!inviteTenant && (
                   <button
-                    className="btn btn-ghost"
-                    style={{ flex: '0 0 auto' }}
-                    onClick={() => setStep(1)}
+                    className="btn btn-primary btn-lg"
+                    style={{ width: '100%', justifyContent: 'center' }}
+                    onClick={() => setStep(2)}
                   >
-                    ← Atrás
+                    Probar gratis por 5 días →
                   </button>
-                )}
-                <button
-                  className="btn btn-primary btn-lg"
-                  style={{ flex: 1, justifyContent: 'center' }}
-                  onClick={handleRegister}
-                  disabled={loading}
-                >
-                  {loading ? (
-                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                      Procesando...
-                    </span>
-                  ) : inviteTenant ? 'Unirse al Equipo 🚀' : 'Crear cuenta gratis 🎉'}
-                </button>
-              </div>
+                </>
+              ) : step === 2 && !inviteTenant ? (
+                <>
+                  <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '6px', color: '#fff' }}>
+                    ¿Qué tipo de negocio tenés?
+                  </h1>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 'var(--space-6)' }}>
+                    Esto nos ayuda a personalizar Smart Caja para vos.
+                  </p>
 
-              <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 'var(--space-4)' }}>
-                {inviteTenant ? 'Al registrarte te unís al comercio respectivo.' : 'Al registrarte aceptás nuestros términos de uso. 5 días gratis, sin tarjeta.'}
-              </p>
-            </>
-          )}
+                  <div className="form-group" style={{ marginBottom: 'var(--space-5)' }}>
+                    <label className="form-label required">Nombre del negocio</label>
+                    <input
+                      className={`form-input ${errors.business_name ? 'error' : ''}`}
+                      placeholder="Ej: Almacén La Esperanza"
+                      value={form.business_name}
+                      onChange={e => updateForm('business_name', e.target.value)}
+                      autoFocus
+                    />
+                    {errors.business_name && <span className="form-error">{errors.business_name}</span>}
+                  </div>
+
+                  <div className="form-group" style={{ marginBottom: 'var(--space-6)' }}>
+                    <label className="form-label required">Rubro</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
+                      {businessTypes.map(bt => (
+                        <button
+                          key={bt.value}
+                          onClick={() => updateForm('business_type', bt.value)}
+                          style={{
+                            padding: 'var(--space-3)',
+                            background: form.business_type === bt.value ? 'var(--color-primary-light)' : 'var(--bg-input)',
+                            border: `1px solid ${form.business_type === bt.value ? 'var(--color-primary)' : 'var(--border-color)'}`,
+                            borderRadius: 'var(--radius-lg)',
+                            cursor: 'pointer', transition: 'all 0.2s',
+                            textAlign: 'left',
+                          }}
+                        >
+                          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{bt.label}</div>
+                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{bt.desc}</div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+                    <button
+                      className="btn btn-ghost"
+                      style={{ flex: '0 0 auto' }}
+                      onClick={() => setStep(1)}
+                    >
+                      ← Atrás
+                    </button>
+                    <button
+                      className="btn btn-primary btn-lg"
+                      style={{ flex: 1, justifyContent: 'center' }}
+                      onClick={() => validateStep1() && setStep(3)}
+                    >
+                      Continuar →
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '6px', color: '#fff' }}>
+                    {inviteTenant ? 'Registro de Colaborador' : 'Creá tu cuenta'}
+                  </h1>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 'var(--space-6)' }}>
+                    {inviteTenant ? 'Unite al equipo de tu comercio en Smart Caja' : `Para ${form.business_name}`}
+                  </p>
+
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+                    <div className="form-group">
+                      <label className="form-label required">Tu nombre completo</label>
+                      <input
+                        className={`form-input ${errors.full_name ? 'error' : ''}`}
+                        placeholder="Juan García"
+                        value={form.full_name}
+                        onChange={e => updateForm('full_name', e.target.value)}
+                        autoFocus
+                      />
+                      {errors.full_name && <span className="form-error">{errors.full_name}</span>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label required">Email</label>
+                      <input
+                        className={`form-input ${errors.email ? 'error' : ''}`}
+                        type="email"
+                        placeholder="juan@comercio.com"
+                        value={form.email}
+                        onChange={e => updateForm('email', e.target.value)}
+                        disabled={!!inviteTenant && !!inviteEmail}
+                      />
+                      {errors.email && <span className="form-error">{errors.email}</span>}
+                    </div>
+
+                    {/* Ocultar campo de teléfono si es un colaborador invitado */}
+                    {!inviteTenant && (
+                      <div className="form-group">
+                        <label className="form-label required">WhatsApp / Celular (soporte y contacto)</label>
+                        <input
+                          className={`form-input ${errors.phone ? 'error' : ''}`}
+                          type="tel"
+                          placeholder="Ej: +54 9 11 1234-5678"
+                          value={form.phone}
+                          onChange={e => updateForm('phone', e.target.value)}
+                        />
+                        {errors.phone && <span className="form-error">{errors.phone}</span>}
+                      </div>
+                    )}
+
+                    <div className="form-group">
+                      <label className="form-label required">Contraseña</label>
+                      <input
+                        className={`form-input ${errors.password ? 'error' : ''}`}
+                        type="password"
+                        placeholder="Mínimo 6 caracteres"
+                        value={form.password}
+                        onChange={e => updateForm('password', e.target.value)}
+                      />
+                      {errors.password && <span className="form-error">{errors.password}</span>}
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label required">Confirmar contraseña</label>
+                      <input
+                        className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
+                        type="password"
+                        placeholder="Repetí la contraseña"
+                        value={form.confirmPassword}
+                        onChange={e => updateForm('confirmPassword', e.target.value)}
+                        onKeyDown={e => e.key === 'Enter' && !loading && handleRegister()}
+                      />
+                      {errors.confirmPassword && <span className="form-error">{errors.confirmPassword}</span>}
+                    </div>
+                  </div>
+
+                  <div style={{ marginTop: 'var(--space-6)', display: 'flex', gap: 'var(--space-3)' }}>
+                    {!inviteTenant && (
+                      <button
+                        className="btn btn-ghost"
+                        style={{ flex: '0 0 auto' }}
+                        onClick={() => setStep(2)}
+                      >
+                        ← Atrás
+                      </button>
+                    )}
+                    <button
+                      className="btn btn-primary btn-lg"
+                      style={{ flex: 1, justifyContent: 'center' }}
+                      onClick={handleRegister}
+                      disabled={loading}
+                    >
+                      {loading ? (
+                        <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                          Procesando...
+                        </span>
+                      ) : inviteTenant ? 'Unirse al Equipo 🚀' : 'Crear cuenta gratis 🎉'}
+                    </button>
+                  </div>
+
+                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 'var(--space-4)' }}>
+                    {inviteTenant ? 'Al registrarte te unís al comercio respectivo.' : 'Al registrarte aceptás nuestros términos de uso. 5 días gratis, sin tarjeta.'}
+                  </p>
+                </>
+              )}
             </>
           )}
         </div>
