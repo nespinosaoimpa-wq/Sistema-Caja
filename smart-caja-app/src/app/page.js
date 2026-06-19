@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import styles from './page.module.css'
 
@@ -101,6 +101,12 @@ const PLANS = [
 
 export default function LandingPage() {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [isWeekend, setIsWeekend] = useState(false)
+
+  useEffect(() => {
+    const day = new Date().getDay()
+    setIsWeekend(day === 0 || day === 5 || day === 6)
+  }, [])
 
   // Savings Calculator State
   const [monthlySales, setMonthlySales] = useState(800000)
@@ -148,7 +154,7 @@ export default function LandingPage() {
 
       {/* ── Top Promo Banner ── */}
       <div style={{
-        background: 'linear-gradient(90deg, #7C3AED, #B76DFF)',
+        background: isWeekend ? 'linear-gradient(90deg, #10B981, #059669)' : 'linear-gradient(90deg, #7C3AED, #B76DFF)',
         color: '#fff',
         padding: '10px 24px',
         textAlign: 'center',
@@ -157,26 +163,52 @@ export default function LandingPage() {
         position: 'sticky',
         top: 0,
         zIndex: 1001,
-        boxShadow: '0 4px 12px rgba(124, 58, 237, 0.25)',
+        boxShadow: isWeekend ? '0 4px 12px rgba(16, 185, 129, 0.25)' : '0 4px 12px rgba(124, 58, 237, 0.25)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         gap: '12px',
-        flexWrap: 'wrap'
+        flexWrap: 'wrap',
+        transition: 'all 0.3s ease'
       }}>
-        <span>🔥 50% de DESCUENTO en tu primer mes con el código: <strong style={{ borderBottom: '2px solid #fff' }}>LANZAMIENTO50</strong></span>
-        <Link href="/register?coupon=LANZAMIENTO50" style={{
-          background: '#fff',
-          color: '#7C3AED',
-          padding: '4px 12px',
-          borderRadius: '9999px',
-          fontSize: '0.75rem',
-          fontWeight: 800,
-          textDecoration: 'none',
-          boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
-        }}>
-          Obtener 50% OFF
-        </Link>
+        {isWeekend ? (
+          <>
+            <span>⚡ <strong>PROMO FIN DE SEMANA:</strong> Registrate hoy y obtené <strong>Migración de Stock Gratis</strong> + <strong>15 días de prueba completa</strong> sin cargo.</span>
+            <a 
+              href={`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '543425162372'}?text=Hola!%20Quiero%20aprovechar%20la%20promo%20del%20fin%20de%20semana%20de%20Migración%20Gratuita%20de%20Excel%20y%2015%20días%20gratis.`}
+              target="_blank"
+              rel="noopener noreferrer"
+              style={{
+                background: '#fff',
+                color: '#059669',
+                padding: '4px 12px',
+                borderRadius: '9999px',
+                fontSize: '0.75rem',
+                fontWeight: 800,
+                textDecoration: 'none',
+                boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+              }}
+            >
+              Reclamar Promo 💬
+            </a>
+          </>
+        ) : (
+          <>
+            <span>🔥 50% de DESCUENTO en tu primer mes con el código: <strong style={{ borderBottom: '2px solid #fff' }}>LANZAMIENTO50</strong></span>
+            <Link href="/register?coupon=LANZAMIENTO50" style={{
+              background: '#fff',
+              color: '#7C3AED',
+              padding: '4px 12px',
+              borderRadius: '9999px',
+              fontSize: '0.75rem',
+              fontWeight: 800,
+              textDecoration: 'none',
+              boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
+            }}>
+              Obtener 50% OFF
+            </Link>
+          </>
+        )}
       </div>
 
       {/* ── Navbar ── */}
@@ -293,6 +325,54 @@ export default function LandingPage() {
               <p>{step.desc}</p>
             </div>
           ))}
+        </div>
+      </section>
+
+      {/* ── Migration Support Promo Section ── */}
+      <section style={{
+        maxWidth: '900px',
+        margin: '0 auto 80px',
+        padding: '0 24px',
+        textAlign: 'center'
+      }}>
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(37, 211, 102, 0.15) 0%, rgba(6, 14, 32, 0.6) 100%)',
+          border: '1px solid rgba(37, 211, 102, 0.4)',
+          borderRadius: '24px',
+          padding: '40px 32px',
+          textAlign: 'center',
+          boxShadow: '0 20px 40px rgba(0,0,0,0.3)',
+        }}>
+          <span style={{ fontSize: '2.5rem', marginBottom: '16px', display: 'inline-block' }}>🚚</span>
+          <h2 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.75rem', fontWeight: 800, color: '#fff', marginBottom: '12px' }}>
+            ¿Ya tenés tu stock en Excel u otro sistema?
+          </h2>
+          <p style={{ color: 'var(--text-secondary)', fontSize: '1rem', maxWidth: '600px', margin: '0 auto 24px', lineHeight: 1.5 }}>
+            ¡No cargues todo de nuevo! Nosotros nos encargamos de migrar todo tu inventario a <strong>Smart Caja</strong> completamente gratis y en menos de 24 horas.
+          </p>
+          <a 
+            href={`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '543425162372'}?text=Hola!%20Vi%20la%20promo%20de%20migración%20gratuita%20de%20Excel%20en%20la%20web%20y%20me%20gustaría%20mudarme%20a%20Smart%20Caja.`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="btn"
+            style={{ 
+              background: '#25D366', 
+              color: '#fff', 
+              border: 'none', 
+              display: 'inline-flex', 
+              alignItems: 'center', 
+              gap: '8px', 
+              fontSize: '1rem', 
+              fontWeight: 700, 
+              padding: '12px 28px', 
+              borderRadius: '9999px', 
+              textDecoration: 'none',
+              boxShadow: '0 4px 14px rgba(37, 211, 102, 0.3)',
+              cursor: 'pointer'
+            }}
+          >
+            💬 Consultar por Migración Gratuita
+          </a>
         </div>
       </section>
 

@@ -13,7 +13,7 @@ import QuickProductModal from '@/components/ui/QuickProductModal'
 const BarcodeScanner = dynamic(() => import('@/components/ui/BarcodeScanner'), { ssr: false })
 
 export default function InventoryPage() {
-  const { tenant } = useAuth()
+  const { tenant, user } = useAuth()
   const router = useRouter()
   const toast = useToast()
   const supabase = createClient()
@@ -649,6 +649,21 @@ export default function InventoryPage() {
                 </div>
                 <div style={{ fontWeight: 600 }}>{importingFile ? 'Procesando...' : 'Hacé clic para elegir un archivo'}</div>
                 <input type="file" id="csv-upload" accept=".csv" style={{ display: 'none' }} onChange={handleImportCSV} disabled={importingFile} />
+              </div>
+
+              <div style={{ marginTop: 'var(--space-6)', padding: 'var(--space-4)', background: 'rgba(37, 211, 102, 0.08)', border: '1px solid rgba(37, 211, 102, 0.2)', borderRadius: 'var(--radius-md)', textAlign: 'center' }}>
+                <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: 1.4 }}>
+                  ¿Tenés problemas con el formato o preferís que lo hagamos por vos? Escribinos y te ayudamos a migrar tus datos.
+                </p>
+                <a 
+                  href={`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '543425162372'}?text=Hola!%20No%20puedo%20subir%20mi%20excel%20de%20productos%20a%20Smart%20Caja.%20¿Me%20ayudan%20a%20subirlo?%20Mi%20negocio%20es:%20${encodeURIComponent(tenant?.name || '')}%20y%20mi%20email%20de%20registro%20es:%20${encodeURIComponent(user?.email || '')}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="btn btn-sm"
+                  style={{ background: '#25D366', color: '#fff', border: 'none', display: 'inline-flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', fontWeight: 600, padding: '8px 16px', borderRadius: 'var(--radius-md)', textDecoration: 'none' }}
+                >
+                  💬 Enviar Excel por WhatsApp
+                </a>
               </div>
             </div>
           </div>
