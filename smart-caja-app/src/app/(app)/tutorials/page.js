@@ -63,7 +63,7 @@ const MODULES = [
       { title: 'Alertas de stock mínimo', body: 'Cada producto tiene un campo "Stock Mínimo". Cuando el stock real baje a ese valor o menos, aparecerá en el inventario con un indicador rojo y se contará en el widget de "Alertas de Stock" en el Dashboard.' },
       { title: 'Categorías', body: 'Las categorías agrupan tus productos y permiten filtrarlos rápido en la Caja. Creá categorías con ícono emoji y color desde el botón "Categorías" en el Inventario.' },
       { title: 'Variantes de producto', body: 'Para productos con talle o color (ej. remeras), activá la opción de variantes al editar un producto. Cada variante tiene su propio stock y puede tener un precio adicional.' },
-      { title: 'Importación masiva CSV', body: 'Si ya tenés una lista de productos en Excel, exportala como CSV y subila desde el botón "CSV". El formato requerido es: Nombre, Costo, Precio Venta, Stock, Código Barras (opcional).' },
+      { title: 'Importación masiva CSV', body: 'Si ya tenés una lista de productos en Excel, exportala como CSV y subila desde el botón "CSV". El formato requerido es: Nombre, Costo, Precio Venta, Stock, Código Barras (opcional). ¿Problemas con el formato? Escribinos por WhatsApp desde el modal de importación y te migramos todo gratis.' },
       { title: 'Escanear para buscar o crear', body: 'Usá el botón 📷 en el Inventario para escanear un código con la cámara. Si el producto existe, te lleva directo a editarlo. Si no existe, abre el formulario de alta rápida con el código pre-cargado.' },
     ],
   },
