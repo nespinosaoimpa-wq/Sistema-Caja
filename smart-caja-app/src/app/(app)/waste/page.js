@@ -339,6 +339,37 @@ export default function WastePage() {
           opacity: 0.08;
           pointer-events: none;
         }
+        .table-wrapper {
+          width: 100%;
+          overflow-x: auto;
+          background: var(--bg-card);
+        }
+        .table {
+          width: 100%;
+          min-width: 700px;
+          border-collapse: collapse;
+          font-size: 0.8125rem;
+          text-align: left;
+        }
+        .table th {
+          padding: 12px 14px;
+          color: var(--text-secondary);
+          font-weight: 700;
+          border-bottom: 1px solid var(--border-color);
+          text-transform: uppercase;
+          font-size: 0.72rem;
+          letter-spacing: 0.05em;
+          white-space: nowrap;
+        }
+        .table td {
+          padding: 12px 14px;
+          border-bottom: 1px solid rgba(255, 255, 255, 0.03);
+          color: var(--text-primary);
+          vertical-align: middle;
+        }
+        .table tr:hover td {
+          background: rgba(255, 255, 255, 0.01);
+        }
       `}</style>
 
       {/* Header */}

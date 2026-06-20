@@ -748,7 +748,7 @@ export default function POSPage() {
   }
 
   const cashReceivedNum = parseFloat(cashReceived) || 0
-  const cashChange = cashReceivedNum - cartTotal
+  const cashChange = cashReceivedNum - finalTotal
 
   // Build receipt HTML for thermal printer (80mm)
   const buildReceiptHTML = (saleData, items, loadedOrderInfo = null) => {
@@ -2377,6 +2377,33 @@ export default function POSPage() {
                     <span>Descuento ({receiptData.saleData?.discount_type === 'percentage' ? `${receiptData.saleData?.discount_value}%` : formatCurrency(receiptData.saleData?.discount_value)}):</span>
                     <span>-{formatCurrency(receiptData.saleData?.discount_amount)}</span>
                   </div>
+                )}
+                {/* Exchange/Return section in preview modal */}
+                {receiptData.saleData?.exchange_items && receiptData.saleData.exchange_items.length > 0 && (
+                  <>
+                    <div style={{ borderTop: '1px dashed #999', margin: '8px 0' }} />
+                    <div style={{ fontSize: '10px', fontWeight: 'bold', marginBottom: '4px' }}>🔄 CAMBIOS / DEVOLUCIONES:</div>
+                    <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '10px', marginBottom: '4px' }}>
+                      <tbody>
+                        {receiptData.saleData.exchange_items.map((ei, idx) => {
+                          const qty = ei.quantity || ei.qty || 0
+                          const subtotal = qty * ei.unit_price
+                          return (
+                            <tr key={idx}>
+                              <td style={{ textAlign: 'left', padding: '2px 0' }}>{ei.product_name} <span style={{ fontSize: '8px', color: '#666' }}>({ei.reason})</span></td>
+                              <td style={{ textAlign: 'center', padding: '2px 0' }}>{qty}</td>
+                              <td style={{ textAlign: 'right', padding: '2px 0' }}>{formatCurrency(ei.unit_price)}</td>
+                              <td style={{ textAlign: 'right', padding: '2px 0', color: '#c00' }}>-{formatCurrency(subtotal)}</td>
+                            </tr>
+                          )
+                        })}
+                      </tbody>
+                    </table>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '11px', color: '#c00', fontWeight: 'bold' }}>
+                      <span>Total cambios:</span>
+                      <span>-{formatCurrency(receiptData.saleData.exchange_total || 0)}</span>
+                    </div>
+                  </>
                 )}
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '14px', fontWeight: 'bold', margin: '4px 0' }}>
                   <span>TOTAL:</span>
