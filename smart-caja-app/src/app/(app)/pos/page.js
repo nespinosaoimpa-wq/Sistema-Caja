@@ -859,6 +859,7 @@ export default function POSPage() {
         tenant_id: tenant.id, 
         user_id: profile.id, 
         shift_id: activeShift.id,
+        branch_id: activeShift.branch_id || null,
         ticket_number: ticketNumber,
         subtotal: cartTotal, 
         discount_type: discountType || null,

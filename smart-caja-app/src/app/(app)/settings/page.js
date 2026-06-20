@@ -75,7 +75,7 @@ export default function SettingsPage() {
   // Team & Branch states
   const [teamMembers, setTeamMembers] = useState([])
   const [loadingTeam, setLoadingTeam] = useState(false)
-  const [inviteForm, setInviteForm] = useState({ full_name: '', email: '', role: 'cashier' })
+  const [inviteForm, setInviteForm] = useState({ full_name: '', email: '', role: 'cashier', branch_id: '' })
   const [inviting, setInviting] = useState(false)
 
   const [branches, setBranches] = useState([])
@@ -181,6 +181,7 @@ export default function SettingsPage() {
     if (activeTab === 'users') {
       const timer = setTimeout(() => {
         fetchTeamMembers()
+        fetchBranches()
       }, 0)
       return () => clearTimeout(timer)
     } else if (activeTab === 'branches') {
@@ -253,7 +254,8 @@ export default function SettingsPage() {
         body: JSON.stringify({
           email: inviteForm.email,
           full_name: inviteForm.full_name,
-          role: inviteForm.role
+          role: inviteForm.role,
+          branch_id: inviteForm.branch_id || null
         })
       })
 
@@ -272,7 +274,7 @@ export default function SettingsPage() {
         toast.success(data.message || 'Colaborador agregado con éxito')
       }
 
-      setInviteForm({ full_name: '', email: '', role: 'cashier' })
+      setInviteForm({ full_name: '', email: '', role: 'cashier', branch_id: '' })
       fetchTeamMembers()
     } catch (err) {
       console.error(err)
@@ -1455,6 +1457,7 @@ export default function SettingsPage() {
                         <tr style={{ borderBottom: '1px solid var(--border-color)', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
                           <th style={{ padding: '12px 16px', fontWeight: 600 }}>Usuario</th>
                           <th style={{ padding: '12px 16px', fontWeight: 600 }}>Rol</th>
+                          <th style={{ padding: '12px 16px', fontWeight: 600 }}>Sucursal</th>
                           <th style={{ padding: '12px 16px', fontWeight: 600 }}>Email</th>
                           <th style={{ padding: '12px 16px', fontWeight: 600 }}>Ingreso</th>
                           <th style={{ padding: '12px 16px', fontWeight: 600, textAlign: 'right' }}>Acciones</th>
@@ -1463,13 +1466,13 @@ export default function SettingsPage() {
                       <tbody>
                         {loadingTeam ? (
                           <tr>
-                            <td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            <td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
                               Cargando equipo...
                             </td>
                           </tr>
                         ) : teamMembers.length === 0 ? (
                           <tr>
-                            <td colSpan="5" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                            <td colSpan="6" style={{ padding: '24px', textAlign: 'center', color: 'var(--text-muted)' }}>
                               No hay otros colaboradores registrados.
                             </td>
                           </tr>
@@ -1510,6 +1513,37 @@ export default function SettingsPage() {
                                   <Shield size={12} />
                                   {member.role === 'owner' ? 'Dueño' : member.role === 'admin' ? 'Admin' : 'Cajero'}
                                 </span>
+                              </td>
+                              <td style={{ padding: '16px' }}>
+                                {tenant?.subscription_plan === 'enterprise' && member.role !== 'owner' ? (
+                                  <select
+                                    value={member.branch_id || ''}
+                                    onChange={async (e) => {
+                                      const bId = e.target.value || null
+                                      const { error } = await supabase
+                                        .from('profiles')
+                                        .update({ branch_id: bId })
+                                        .eq('id', member.id)
+                                      if (error) {
+                                        toast.error('Error al actualizar sucursal: ' + error.message)
+                                      } else {
+                                        toast.success('Sucursal asignada con éxito')
+                                        fetchTeamMembers()
+                                      }
+                                    }}
+                                    className="form-select form-input text-xs"
+                                    style={{ padding: '4px 8px', fontSize: '0.75rem', width: '150px', height: '32px' }}
+                                  >
+                                    <option value="">Casa Central / Todas</option>
+                                    {branches.map(b => (
+                                      <option key={b.id} value={b.id}>{b.name}</option>
+                                    ))}
+                                  </select>
+                                ) : (
+                                  <span style={{ fontSize: '0.875rem', color: 'var(--text-muted)' }}>
+                                    {member.role === 'owner' ? 'Acceso Total' : 'Casa Central'}
+                                  </span>
+                                )}
                               </td>
                               <td style={{ padding: '16px', color: 'var(--text-muted)' }}>{member.email}</td>
                               <td style={{ padding: '16px', color: 'var(--text-muted)', fontSize: '0.8125rem' }}>
@@ -1581,7 +1615,7 @@ export default function SettingsPage() {
                     </div>
                     
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                      <div className="form-group" style={{ minWidth: '200px' }}>
+                      <div className="form-group" style={{ minWidth: '200px', flex: 1 }}>
                         <label className="form-label required" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Rol Asignado</label>
                         <select
                           className="form-select form-input"
@@ -1594,6 +1628,23 @@ export default function SettingsPage() {
                           <option value="owner">Dueño (Acceso y control total del comercio)</option>
                         </select>
                       </div>
+                      
+                      {tenant?.subscription_plan === 'enterprise' && inviteForm.role !== 'owner' && (
+                        <div className="form-group" style={{ minWidth: '200px', flex: 1 }}>
+                          <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Sucursal Asignada</label>
+                          <select
+                            className="form-select form-input"
+                            value={inviteForm.branch_id}
+                            onChange={e => setInviteForm(prev => ({ ...prev, branch_id: e.target.value }))}
+                            style={{ marginTop: '6px' }}
+                          >
+                            <option value="">Casa Central / Todas</option>
+                            {branches.map(b => (
+                              <option key={b.id} value={b.id}>{b.name}</option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
                       
                       <button
                         type="submit"

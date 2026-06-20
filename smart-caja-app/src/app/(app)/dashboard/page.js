@@ -37,13 +37,16 @@ export default function DashboardPage() {
     stagnantProducts: []
   })
 
+  // Branch states
+  const [branches, setBranches] = useState([])
+  const [selectedBranch, setSelectedBranch] = useState('all')
+  const [rawData, setRawData] = useState(null)
+
   const loadStats = useCallback(async () => {
     setLoading(true)
     
     try {
       const today = new Date()
-      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate()).toISOString()
-      const yesterdayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate() - 1).toISOString()
       const monthStart = new Date(today.getFullYear(), today.getMonth(), 1).toISOString()
       
       const thirtyDaysAgo = new Date()
@@ -52,7 +55,7 @@ export default function DashboardPage() {
       // Fetch all completed sales (for chart + month + today)
       const { data: sales } = await supabase
         .from('sales')
-        .select('total, created_at, source, online_order_id')
+        .select('total, created_at, source, online_order_id, branch_id')
         .eq('tenant_id', tenant.id)
         .eq('status', 'completed')
         .gte('created_at', monthStart)
@@ -60,7 +63,7 @@ export default function DashboardPage() {
       // Fetch recent sales for activity feed (real data)
       const { data: latestSales } = await supabase
         .from('sales')
-        .select('id, ticket_number, total, payment_method, created_at, profiles:user_id(full_name)')
+        .select('id, ticket_number, total, payment_method, created_at, profiles:user_id(full_name), branch_id')
         .eq('tenant_id', tenant.id)
         .eq('status', 'completed')
         .order('created_at', { ascending: false })
@@ -83,22 +86,20 @@ export default function DashboardPage() {
         console.error('Error fetching stock products for count:', stockError)
       }
 
-      const calculatedLowStockCount = stockProducts
-        ? stockProducts.filter(p => p.control_stock !== false && p.stock_quantity <= p.min_stock_alert).length
-        : 0
-
       // Fetch open shifts
-      const { count: shiftCount } = await supabase
+      const { data: openShifts } = await supabase
         .from('shifts')
-        .select('*', { count: 'exact', head: true })
+        .select('id, branch_id')
         .eq('tenant_id', tenant.id)
         .eq('status', 'open')
 
-      const { count: totalShiftsCount } = await supabase
+      // Fetch all shifts
+      const { data: allShifts } = await supabase
         .from('shifts')
-        .select('*', { count: 'exact', head: true })
+        .select('id, branch_id')
         .eq('tenant_id', tenant.id)
 
+      // Fetch total sales count
       const { count: totalSalesCount } = await supabase
         .from('sales')
         .select('*', { count: 'exact', head: true })
@@ -107,7 +108,7 @@ export default function DashboardPage() {
       // Fetch sale items of the current month for best sellers
       const { data: monthItems } = await supabase
         .from('sale_items')
-        .select('product_name, quantity, subtotal')
+        .select('product_name, quantity, subtotal, sales:sale_id(branch_id)')
         .eq('tenant_id', tenant.id)
         .gte('created_at', monthStart)
 
@@ -123,7 +124,7 @@ export default function DashboardPage() {
       // Fetch operations expenses of the month
       const { data: expensesData } = await supabase
         .from('cash_movements')
-        .select('amount, category, reason, created_at')
+        .select('amount, category, reason, created_at, shift_id, shifts:shift_id(branch_id)')
         .eq('tenant_id', tenant.id)
         .eq('type', 'expense')
         .gte('created_at', monthStart)
@@ -151,140 +152,228 @@ export default function DashboardPage() {
         .order('last_sold_at', { ascending: true })
         .limit(5)
 
-      // Calculate KPIs from real data
-      let todayTotal = 0
-      let todayCajaTotal = 0
-      let todayPedidoTotal = 0
-      let yesterdayTotal = 0
-      let monthTotal = 0
-      let monthCajaTotal = 0
-      let monthPedidoTotal = 0
-
-      const hours = ['08h', '10h', '12h', '14h', '16h', '18h', '20h']
-      const hourlyTotalsCaja = { '08h': 0, '10h': 0, '12h': 0, '14h': 0, '16h': 0, '18h': 0, '20h': 0 }
-      const hourlyTotalsPedido = { '08h': 0, '10h': 0, '12h': 0, '14h': 0, '16h': 0, '18h': 0, '20h': 0 }
-
-      if (sales) {
-        sales.forEach(sale => {
-          const date = new Date(sale.created_at)
-          const isOrder = sale.online_order_id !== null || (sale.source !== null && sale.source !== 'caja')
-          const amt = Number(sale.total)
-
-          if (date.toDateString() === today.toDateString()) {
-            todayTotal += amt
-            const hour = date.getHours()
-            const timeLabel = hour < 10 ? '08h' : hour < 12 ? '10h' : hour < 14 ? '12h' : hour < 16 ? '14h' : hour < 18 ? '16h' : hour < 20 ? '18h' : '20h'
-            if (isOrder) {
-              todayPedidoTotal += amt
-              hourlyTotalsPedido[timeLabel] += amt
-            } else {
-              todayCajaTotal += amt
-              hourlyTotalsCaja[timeLabel] += amt
-            }
-          }
-          const yesterday = new Date(today)
-          yesterday.setDate(today.getDate() - 1)
-          if (date.toDateString() === yesterday.toDateString()) {
-            yesterdayTotal += amt
-          }
-          monthTotal += amt
-          if (isOrder) {
-            monthPedidoTotal += amt
-          } else {
-            monthCajaTotal += amt
-          }
-        })
-      }
-
-      // Best Sellers processing
-      const productQtyMap = {}
-      if (monthItems) {
-        monthItems.forEach(item => {
-          const name = item.product_name
-          productQtyMap[name] = (productQtyMap[name] || 0) + (item.quantity || 1)
-        })
-      }
-      const bestSellers = Object.entries(productQtyMap)
-        .map(([name, qty]) => ({ name, qty }))
-        .sort((a, b) => b.qty - a.qty)
-        .slice(0, 5)
-
-      // Expenses processing
-      const expenseCategoryTotals = {}
-      let totalExpenses = 0
-      if (expensesData) {
-        expensesData.forEach(exp => {
-          const cat = exp.category || 'general'
-          const amt = Number(exp.amount)
-          expenseCategoryTotals[cat] = (expenseCategoryTotals[cat] || 0) + amt
-          totalExpenses += amt
-        })
-      }
-
-      // Waste processing
-      const wasteSummary = []
-      if (wasteData) {
-        wasteData.forEach(w => {
-          const cost = Number(w.products?.cost_price || 0)
-          const qty = Math.abs(Number(w.quantity_change || 0))
-          const dateStr = new Date(w.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
-          wasteSummary.push({
-            id: w.id,
-            product_name: w.products?.name || 'Producto Eliminado',
-            qty,
-            cost_price: cost,
-            total_loss: cost * qty,
-            date: dateStr,
-            reason: w.notes?.replace('[DESPERDICIO] ', '') || 'Mermas'
-          })
-        })
-      }
-
-      // Stagnant processing
-      const stagnantProducts = (stagnantProds || []).map(p => ({
-        name: p.name,
-        days: p.last_sold_at ? Math.floor((Date.now() - new Date(p.last_sold_at).getTime()) / (1000 * 60 * 60 * 24)) : 30
-      }))
-
-      const actualProducts = prodCount || 0
-      const actualSales = totalSalesCount || 0
-      const hasSales = actualSales > 0
-
-      const chartData = hours.map(h => ({
-        name: h,
-        Caja: hasSales ? hourlyTotalsCaja[h] : (h === '08h' ? 0 : h === '10h' ? 8000 : h === '12h' ? 15000 : h === '14h' ? 10000 : h === '16h' ? 20000 : h === '18h' ? 25000 : 30000),
-        Pedidos: hasSales ? hourlyTotalsPedido[h] : (h === '08h' ? 0 : h === '10h' ? 4000 : h === '12h' ? 10000 : h === '14h' ? 8000 : h === '16h' ? 12000 : h === '18h' ? 20000 : 28000),
-        total: hasSales ? (hourlyTotalsCaja[h] + hourlyTotalsPedido[h]) : (h === '08h' ? 0 : h === '10h' ? 12000 : h === '12h' ? 25000 : h === '14h' ? 18000 : h === '16h' ? 32000 : h === '18h' ? 45000 : 58000)
-      }))
-
-      setRecentSales(latestSales || [])
-      setLowStockCount(calculatedLowStockCount)
-      setStats({
-        todaySales: todayTotal,
-        todayCajaSales: todayCajaTotal,
-        todayPedidoSales: todayPedidoTotal,
-        yesterdaySales: yesterdayTotal,
-        monthSales: monthTotal,
-        monthCajaSales: monthCajaTotal,
-        monthPedidoSales: monthPedidoTotal,
-        totalProducts: actualProducts,
-        openShifts: shiftCount || 0,
-        totalShifts: totalShiftsCount || 0,
-        totalSales: actualSales,
-        chartData,
-        bestSellers,
-        topCustomers: topCusts || [],
-        expenseCategoryTotals,
-        totalExpenses,
-        wasteSummary: wasteSummary.slice(0, 5),
-        stagnantProducts
+      setRawData({
+        sales: sales || [],
+        latestSales: latestSales || [],
+        prodCount: prodCount || 0,
+        stockProducts: stockProducts || [],
+        openShifts: openShifts || [],
+        allShifts: allShifts || [],
+        totalSalesCount: totalSalesCount || 0,
+        monthItems: monthItems || [],
+        topCusts: topCusts || [],
+        expensesData: expensesData || [],
+        wasteData: wasteData || [],
+        stagnantProds: stagnantProds || []
       })
+
     } catch (error) {
       console.error('Error loading stats:', error)
     } finally {
       setLoading(false)
     }
   }, [supabase, tenant])
+
+  useEffect(() => {
+    if (tenant?.id && tenant.subscription_plan === 'enterprise') {
+      supabase
+        .from('branches')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .eq('is_active', true)
+        .order('name')
+        .then(({ data }) => {
+          if (data) setBranches(data)
+        })
+    }
+  }, [tenant, supabase])
+
+  // Lock branch filter for cashiers with fixed branch
+  useEffect(() => {
+    if (profile?.branch_id) {
+      setSelectedBranch(profile.branch_id)
+    }
+  }, [profile])
+
+  // Aggregate stats in memory based on selected branch
+  useEffect(() => {
+    if (!rawData) return
+
+    const today = new Date()
+    const thirtyDaysAgo = new Date()
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30)
+
+    const branchFilter = selectedBranch
+    const isFiltered = branchFilter !== 'all'
+
+    // 1. Filter Sales
+    const filteredSales = rawData.sales.filter(sale => {
+      if (!isFiltered) return true
+      if (branchFilter === 'central') return !sale.branch_id
+      return sale.branch_id === branchFilter
+    })
+
+    const filteredLatestSales = rawData.latestSales.filter(sale => {
+      if (!isFiltered) return true
+      if (branchFilter === 'central') return !sale.branch_id
+      return sale.branch_id === branchFilter
+    })
+
+    // 2. Filter shifts counts
+    const filteredOpenShifts = rawData.openShifts.filter(shift => {
+      if (!isFiltered) return true
+      if (branchFilter === 'central') return !shift.branch_id
+      return shift.branch_id === branchFilter
+    })
+
+    const filteredAllShifts = rawData.allShifts.filter(shift => {
+      if (!isFiltered) return true
+      if (branchFilter === 'central') return !shift.branch_id
+      return shift.branch_id === branchFilter
+    })
+
+    // 3. Filter month items (for best sellers)
+    const filteredMonthItems = rawData.monthItems.filter(item => {
+      const saleBranch = item.sales?.branch_id
+      if (!isFiltered) return true
+      if (branchFilter === 'central') return !saleBranch
+      return saleBranch === branchFilter
+    })
+
+    // 4. Filter expenses
+    const filteredExpenses = rawData.expensesData.filter(exp => {
+      const shiftBranch = exp.shifts?.branch_id
+      if (!isFiltered) return true
+      if (branchFilter === 'central') return !shiftBranch
+      return shiftBranch === branchFilter
+    })
+
+    // KPI Calculations
+    let todayTotal = 0
+    let todayCajaTotal = 0
+    let todayPedidoTotal = 0
+    let yesterdayTotal = 0
+    let monthTotal = 0
+    let monthCajaTotal = 0
+    let monthPedidoTotal = 0
+
+    const hours = ['08h', '10h', '12h', '14h', '16h', '18h', '20h']
+    const hourlyTotalsCaja = { '08h': 0, '10h': 0, '12h': 0, '14h': 0, '16h': 0, '18h': 0, '20h': 0 }
+    const hourlyTotalsPedido = { '08h': 0, '10h': 0, '12h': 0, '14h': 0, '16h': 0, '18h': 0, '20h': 0 }
+
+    filteredSales.forEach(sale => {
+      const date = new Date(sale.created_at)
+      const isOrder = sale.online_order_id !== null || (sale.source !== null && sale.source !== 'caja')
+      const amt = Number(sale.total)
+
+      if (date.toDateString() === today.toDateString()) {
+        todayTotal += amt
+        const hour = date.getHours()
+        const timeLabel = hour < 10 ? '08h' : hour < 12 ? '10h' : hour < 14 ? '12h' : hour < 16 ? '14h' : hour < 18 ? '16h' : hour < 20 ? '18h' : '20h'
+        if (isOrder) {
+          todayPedidoTotal += amt
+          hourlyTotalsPedido[timeLabel] += amt
+        } else {
+          todayCajaTotal += amt
+          hourlyTotalsCaja[timeLabel] += amt
+        }
+      }
+      const yesterday = new Date(today)
+      yesterday.setDate(today.getDate() - 1)
+      if (date.toDateString() === yesterday.toDateString()) {
+        yesterdayTotal += amt
+      }
+      monthTotal += amt
+      if (isOrder) {
+        monthPedidoTotal += amt
+      } else {
+        monthCajaTotal += amt
+      }
+    })
+
+    // Best Sellers processing
+    const productQtyMap = {}
+    filteredMonthItems.forEach(item => {
+      const name = item.product_name
+      productQtyMap[name] = (productQtyMap[name] || 0) + (item.quantity || 1)
+    })
+    const bestSellers = Object.entries(productQtyMap)
+      .map(([name, qty]) => ({ name, qty }))
+      .sort((a, b) => b.qty - a.qty)
+      .slice(0, 5)
+
+    // Expenses processing
+    const expenseCategoryTotals = {}
+    let totalExpenses = 0
+    filteredExpenses.forEach(exp => {
+      const cat = exp.category || 'general'
+      const amt = Number(exp.amount)
+      expenseCategoryTotals[cat] = (expenseCategoryTotals[cat] || 0) + amt
+      totalExpenses += amt
+    })
+
+    // Waste processing
+    const wasteSummary = []
+    rawData.wasteData.forEach(w => {
+      const cost = Number(w.products?.cost_price || 0)
+      const qty = Math.abs(Number(w.quantity_change || 0))
+      const dateStr = new Date(w.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+      wasteSummary.push({
+        id: w.id,
+        product_name: w.products?.name || 'Producto Eliminado',
+        qty,
+        cost_price: cost,
+        total_loss: cost * qty,
+        date: dateStr,
+        reason: w.notes?.replace('[DESPERDICIO] ', '') || 'Mermas'
+      })
+    })
+
+    // Stagnant processing
+    const stagnantProducts = (rawData.stagnantProds || []).map(p => ({
+      name: p.name,
+      days: p.last_sold_at ? Math.floor((Date.now() - new Date(p.last_sold_at).getTime()) / (1000 * 60 * 60 * 24)) : 30
+    }))
+
+    const actualProducts = rawData.prodCount || 0
+    const actualSales = isFiltered ? filteredSales.length : rawData.totalSalesCount
+    const hasSales = actualSales > 0
+
+    const chartData = hours.map(h => ({
+      name: h,
+      Caja: hasSales ? hourlyTotalsCaja[h] : (h === '08h' ? 0 : h === '10h' ? 8000 : h === '12h' ? 15000 : h === '14h' ? 10000 : h === '16h' ? 20000 : h === '18h' ? 25000 : 30000),
+      Pedidos: hasSales ? hourlyTotalsPedido[h] : (h === '08h' ? 0 : h === '10h' ? 4000 : h === '12h' ? 10000 : h === '14h' ? 8000 : h === '16h' ? 12000 : h === '18h' ? 20000 : 28000),
+      total: hasSales ? (hourlyTotalsCaja[h] + hourlyTotalsPedido[h]) : (h === '08h' ? 0 : h === '10h' ? 12000 : h === '12h' ? 25000 : h === '14h' ? 18000 : h === '16h' ? 32000 : h === '18h' ? 45000 : 58000)
+    }))
+
+    const calculatedLowStockCount = rawData.stockProducts
+      ? rawData.stockProducts.filter(p => p.control_stock !== false && p.stock_quantity <= p.min_stock_alert).length
+      : 0
+
+    setRecentSales(filteredLatestSales || [])
+    setLowStockCount(calculatedLowStockCount)
+    setStats({
+      todaySales: todayTotal,
+      todayCajaSales: todayCajaTotal,
+      todayPedidoSales: todayPedidoTotal,
+      yesterdaySales: yesterdayTotal,
+      monthSales: monthTotal,
+      monthCajaSales: monthCajaTotal,
+      monthPedidoSales: monthPedidoTotal,
+      totalProducts: actualProducts,
+      openShifts: filteredOpenShifts.length || 0,
+      totalShifts: filteredAllShifts.length || 0,
+      totalSales: actualSales,
+      chartData,
+      bestSellers,
+      topCustomers: rawData.topCusts || [],
+      expenseCategoryTotals,
+      totalExpenses,
+      wasteSummary: wasteSummary.slice(0, 5),
+      stagnantProducts
+    })
+
+  }, [rawData, selectedBranch, profile, tenant])
 
   useEffect(() => {
     if (tenant?.id) {
@@ -431,7 +520,32 @@ export default function DashboardPage() {
         </div>
 
         {/* Acciones a la derecha */}
-        <div style={{ display: 'flex', gap: 'var(--space-3)', position: 'relative', zIndex: 2 }}>
+        <div style={{ display: 'flex', gap: 'var(--space-3)', alignItems: 'center', position: 'relative', zIndex: 2 }}>
+          {tenant?.subscription_plan === 'enterprise' && !profile?.branch_id && (
+            <select
+              className="form-select btn-sm"
+              value={selectedBranch}
+              onChange={e => setSelectedBranch(e.target.value)}
+              style={{
+                width: 'auto',
+                background: 'rgba(255, 255, 255, 0.05)',
+                border: '1px solid rgba(255, 255, 255, 0.1)',
+                color: '#fff',
+                padding: '8px 16px',
+                borderRadius: 'var(--radius-md)',
+                fontSize: '0.875rem',
+                fontWeight: 600,
+                cursor: 'pointer'
+              }}
+            >
+              <option value="all">Todas las sucursales</option>
+              <option value="central">Casa Central (Matriz)</option>
+              {branches.map(b => (
+                <option key={b.id} value={b.id}>{b.name}</option>
+              ))}
+            </select>
+          )}
+
           <button className="btn btn-ghost" style={{ borderRadius: 'var(--radius-full)', padding: '10px' }}>
             <Bell size={20} />
           </button>

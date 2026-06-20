@@ -8,7 +8,7 @@ import { formatCurrency, formatDateTime, PAYMENT_METHOD_LABELS, getPaymentMethod
 const PAGE_SIZE = 20
 
 export default function SalesPage() {
-  const { tenant } = useAuth()
+  const { tenant, profile } = useAuth()
   const supabase = createClient()
   const [sales, setSales] = useState([])
   const [loading, setLoading] = useState(true)
@@ -17,6 +17,10 @@ export default function SalesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [dateFilter, setDateFilter] = useState('all') // all, today, this_week, this_month
   const [paymentFilter, setPaymentFilter] = useState('all')
+
+  // Branch states
+  const [branches, setBranches] = useState([])
+  const [branchFilter, setBranchFilter] = useState('all')
 
   const loadSales = useCallback(async (reset = false) => {
     if (reset) {
@@ -35,7 +39,8 @@ export default function SalesPage() {
         *,
         profiles:user_id(full_name),
         sale_items(*),
-        online_orders:online_order_id(order_number, source)
+        online_orders:online_order_id(order_number, source),
+        branches:branch_id(name)
       `)
       .eq('tenant_id', tenant.id)
       .order('created_at', { ascending: false })
@@ -60,6 +65,27 @@ export default function SalesPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id])
 
+  useEffect(() => {
+    if (tenant?.id && tenant.subscription_plan === 'enterprise') {
+      supabase
+        .from('branches')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .eq('is_active', true)
+        .order('name')
+        .then(({ data }) => {
+          if (data) setBranches(data)
+        })
+    }
+  }, [tenant, supabase])
+
+  // Lock branch filter for cashiers with fixed branch
+  useEffect(() => {
+    if (profile?.branch_id) {
+      setBranchFilter(profile.branch_id)
+    }
+  }, [profile])
+
   // Filters
   const filteredSales = sales.filter(sale => {
     // Search by ticket number
@@ -82,8 +108,20 @@ export default function SalesPage() {
         matchesDate = saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear()
       }
     }
+
+    // Branch filter
+    let matchesBranch = true
+    if (profile?.branch_id) {
+      matchesBranch = sale.branch_id === profile.branch_id
+    } else if (tenant?.subscription_plan === 'enterprise' && branchFilter !== 'all') {
+      if (branchFilter === 'central') {
+        matchesBranch = !sale.branch_id
+      } else {
+        matchesBranch = sale.branch_id === branchFilter
+      }
+    }
     
-    return matchesSearch && matchesPayment && matchesDate
+    return matchesSearch && matchesPayment && matchesDate && matchesBranch
   })
 
   const [selectedSale, setSelectedSale] = useState(null)
@@ -147,6 +185,7 @@ export default function SalesPage() {
           <div>Fecha: ${dateStr}</div>
           <div>Ticket: #${sale.ticket_number}</div>
           <div>Cajero: ${sale.profiles?.full_name || 'N/A'}</div>
+          ${tenant?.subscription_plan === 'enterprise' ? `<div>Sucursal: ${sale.branches?.name || 'Casa Central'}</div>` : ''}
           <div>Origen: ${sale.online_orders ? `Pedido #${sale.online_orders.order_number} (${{
             online: 'Tienda Online',
             whatsapp: 'WhatsApp',
@@ -290,6 +329,22 @@ export default function SalesPage() {
                 <option key={key} value={key}>{label}</option>
               ))}
             </select>
+
+            {/* Branch selector */}
+            {tenant?.subscription_plan === 'enterprise' && !profile?.branch_id && (
+              <select 
+                className="form-select" 
+                style={{ width: 'auto', minWidth: '150px' }}
+                value={branchFilter}
+                onChange={e => setBranchFilter(e.target.value)}
+              >
+                <option value="all">Todas las sucursales</option>
+                <option value="central">Casa Central (Matriz)</option>
+                {branches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            )}
           </div>
         </div>
 
@@ -328,8 +383,13 @@ export default function SalesPage() {
                   </div>
                   <div>
                     <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: 'var(--color-primary)' }}>#{sale.ticket_number}</div>
-                    <div style={{ fontSize: '0.75rem', color: sale.online_orders ? 'var(--color-secondary)' : 'var(--text-secondary)', marginTop: '2px', fontWeight: 600 }}>
-                      {sale.online_orders ? `🛒 Pedido #${sale.online_orders.order_number}` : '🏪 Caja'}
+                    <div style={{ fontSize: '0.75rem', color: sale.online_orders ? 'var(--color-secondary)' : 'var(--text-secondary)', marginTop: '2px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                      <span>{sale.online_orders ? `🛒 Pedido #${sale.online_orders.order_number}` : '🏪 Caja'}</span>
+                      {tenant?.subscription_plan === 'enterprise' && (
+                        <span style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', padding: '1px 4px', borderRadius: '3px', fontSize: '0.65rem' }}>
+                          🏢 {sale.branches?.name || 'Casa Central'}
+                        </span>
+                      )}
                     </div>
                   </div>
                   <div>
@@ -393,6 +453,9 @@ export default function SalesPage() {
               <div style={{ fontSize: '0.8125rem', color: '#666' }}>{formatDateTime(selectedSale.created_at)}</div>
               {selectedSale.profiles?.full_name && (
                 <div style={{ fontSize: '0.8125rem', color: '#666' }}>Cajero: {selectedSale.profiles.full_name}</div>
+              )}
+              {tenant?.subscription_plan === 'enterprise' && (
+                <div style={{ fontSize: '0.8125rem', color: '#666' }}>Sucursal: {selectedSale.branches?.name || 'Casa Central'}</div>
               )}
               <div style={{ fontSize: '0.8125rem', color: '#666' }}>
                 Origen: {selectedSale.online_orders ? `Pedido #${selectedSale.online_orders.order_number} (${{

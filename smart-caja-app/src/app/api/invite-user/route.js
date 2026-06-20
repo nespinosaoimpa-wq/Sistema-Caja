@@ -3,10 +3,11 @@ import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 
 export async function POST(request) {
   try {
-    const { email, full_name, role } = await request.json()
+    const { email, full_name, role, branch_id } = await request.json()
     if (!email || !full_name || !role) {
       return Response.json({ error: 'Faltan campos requeridos' }, { status: 400 })
     }
+    const branchId = (role !== 'owner' && branch_id) ? branch_id : null
 
     // 1. Autenticar al usuario que invita
     const supabase = await createClient()
@@ -101,7 +102,8 @@ export async function POST(request) {
           .update({
             full_name,
             role,
-            is_active: true
+            is_active: true,
+            branch_id: branchId
           })
           .eq('id', existingProfile.id)
 
@@ -129,14 +131,14 @@ export async function POST(request) {
           }, { status: 400 })
         }
 
-        // Transfer them to this tenant
         const { error: updateError } = await supabaseAdmin
           .from('profiles')
           .update({
             tenant_id: tenantId,
             full_name,
             role,
-            is_active: true
+            is_active: true,
+            branch_id: branchId
           })
           .eq('id', existingProfile.id)
 
@@ -201,7 +203,8 @@ export async function POST(request) {
               full_name,
               email: emailNormalized,
               role,
-              is_active: true
+              is_active: true,
+              branch_id: branchId
             })
           
           if (insertProfileError) {
@@ -234,7 +237,8 @@ export async function POST(request) {
         tenant_id: tenantId,
         full_name,
         email: emailNormalized,
-        role
+        role,
+        branch_id: branchId
       })
 
     if (insertProfileError) {

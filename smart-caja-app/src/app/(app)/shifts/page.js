@@ -32,6 +32,11 @@ export default function ShiftsPage() {
   const [openingCashInput, setOpeningCashInput] = useState('')
   const [openingShift, setOpeningShift] = useState(false)
 
+  // Branch states
+  const [branches, setBranches] = useState([])
+  const [openingBranchId, setOpeningBranchId] = useState('')
+  const [historyBranchFilter, setHistoryBranchFilter] = useState('all')
+
 
   const calculateTotalBills = () => {
     return Object.entries(bills).reduce((sum, [val, qty]) => sum + (parseFloat(val) * parseInt(qty || 0)), 0)
@@ -49,15 +54,36 @@ export default function ShiftsPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tenant?.id])
 
+  useEffect(() => {
+    if (tenant?.id && tenant.subscription_plan === 'enterprise') {
+      supabase
+        .from('branches')
+        .select('*')
+        .eq('tenant_id', tenant.id)
+        .eq('is_active', true)
+        .order('name')
+        .then(({ data }) => {
+          if (data) setBranches(data)
+        })
+    }
+  }, [tenant, supabase])
+  
   async function loadShifts() {
     setLoading(true)
-    const { data } = await supabase
+    
+    let query = supabase
       .from('shifts')
-      .select('*, profiles:user_id(full_name)')
+      .select('*, profiles:user_id(full_name), branches:branch_id(name)')
       .eq('tenant_id', tenant.id)
+
+    if (profile?.branch_id) {
+      query = query.eq('branch_id', profile.branch_id)
+    }
+
+    const { data } = await query
       .order('opened_at', { ascending: false })
       .limit(50)
-
+      
     if (data) {
       setShifts(data)
       const open = data.find(s => s.status === 'open' && s.user_id === profile.id)
@@ -207,6 +233,14 @@ export default function ShiftsPage() {
   const handleOpenShift = async () => {
     const openingCash = parseFloat(openingCashInput) || 0
     setOpeningShift(true)
+    
+    let assignedBranchId = null
+    if (profile?.branch_id) {
+      assignedBranchId = profile.branch_id
+    } else if (tenant?.subscription_plan === 'enterprise') {
+      assignedBranchId = openingBranchId || null
+    }
+
     try {
       const { error } = await supabase
         .from('shifts')
@@ -215,6 +249,7 @@ export default function ShiftsPage() {
           user_id: profile.id,
           opening_cash: openingCash,
           status: 'open',
+          branch_id: assignedBranchId
         })
       if (error) throw error
       toast.success('¡Caja abierta exitosamente!')
@@ -245,6 +280,15 @@ export default function ShiftsPage() {
     .reduce((sum, m) => sum + parseFloat(m.amount || 0), 0)
 
   const expectedCash = (activeShift?.opening_cash || 0) + cashSales + deposits - withdrawals - cashExpenses
+ 
+  const filteredShifts = shifts.filter(s => {
+    if (profile?.branch_id) {
+      return s.branch_id === profile.branch_id
+    }
+    if (historyBranchFilter === 'all') return true
+    if (historyBranchFilter === 'central') return !s.branch_id
+    return s.branch_id === historyBranchFilter
+  })
 
   return (
     <div>
@@ -466,8 +510,23 @@ export default function ShiftsPage() {
 
         {/* History */}
         <div className="card">
-          <div className="card-header">
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
             <span className="card-title">Historial de Turnos</span>
+            
+            {tenant?.subscription_plan === 'enterprise' && !profile?.branch_id && (
+              <select
+                className="form-select btn-sm"
+                value={historyBranchFilter}
+                onChange={e => setHistoryBranchFilter(e.target.value)}
+                style={{ width: 'auto', background: 'rgba(255,255,255,0.05)', border: 'none', color: '#fff', fontSize: '0.8125rem', padding: '6px 12px' }}
+              >
+                <option value="all">Todas las sucursales</option>
+                <option value="central">Casa Central (Matriz)</option>
+                {branches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name}</option>
+                ))}
+              </select>
+            )}
           </div>
           {loading ? (
             <div style={{ padding: 'var(--space-6)', textAlign: 'center' }}>Cargando...</div>
@@ -478,6 +537,7 @@ export default function ShiftsPage() {
                   <tr>
                     <th>Estado</th>
                     <th>Cajero</th>
+                    {tenant?.subscription_plan === 'enterprise' && <th>Sucursal</th>}
                     <th>Apertura</th>
                     <th>Cierre</th>
                     <th style={{ textAlign: 'right' }}>Caja Inicial</th>
@@ -486,7 +546,7 @@ export default function ShiftsPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {shifts.map(shift => {
+                  {filteredShifts.map(shift => {
                     const diff = shift.closing_cash !== null ? shift.closing_cash - shift.opening_cash : null;
                     return (
                       <tr key={shift.id}>
@@ -496,6 +556,9 @@ export default function ShiftsPage() {
                           </span>
                         </td>
                         <td>{shift.profiles?.full_name}</td>
+                        {tenant?.subscription_plan === 'enterprise' && (
+                          <td>{shift.branches?.name || 'Casa Central'}</td>
+                        )}
                         <td>{formatDateTime(shift.opened_at)}</td>
                         <td>{shift.closed_at ? formatDateTime(shift.closed_at) : '-'}</td>
                         <td style={{ textAlign: 'right' }}>{formatCurrency(shift.opening_cash)}</td>
@@ -608,6 +671,36 @@ export default function ShiftsPage() {
                 Ingresá el efectivo inicial con el que empezás el turno.
               </p>
             </div>
+
+            {/* Branch Selector */}
+            {tenant?.subscription_plan === 'enterprise' && !profile?.branch_id && branches.length > 0 && (
+              <div style={{ marginBottom: '16px' }}>
+                <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)', marginBottom: '8px', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                  Sucursal de caja
+                </label>
+                <select
+                  className="form-select form-input"
+                  value={openingBranchId}
+                  onChange={e => setOpeningBranchId(e.target.value)}
+                  style={{
+                    background: 'var(--bg-surface)',
+                    border: '2px solid var(--border-color)',
+                    borderRadius: 'var(--radius-lg)',
+                    color: '#fff',
+                    padding: '10px 16px',
+                    fontSize: '1rem',
+                    height: 'auto',
+                    width: '100%',
+                    marginTop: '4px'
+                  }}
+                >
+                  <option value="">Casa Central (Matriz)</option>
+                  {branches.map(b => (
+                    <option key={b.id} value={b.id}>{b.name}</option>
+                  ))}
+                </select>
+              </div>
+            )}
 
             {/* Amount Input */}
             <div style={{ marginBottom: '24px' }}>
