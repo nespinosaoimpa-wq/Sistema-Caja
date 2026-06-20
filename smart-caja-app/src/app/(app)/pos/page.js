@@ -92,6 +92,12 @@ export default function POSPage() {
   const [loadedOrderId, setLoadedOrderId] = useState(null)
   const [loadedOrder, setLoadedOrder] = useState(null)
 
+  // Exchange / Return (Cambios) states
+  const [exchangeItems, setExchangeItems] = useState([]) // items devueltos por el cliente
+  const [showExchangePanel, setShowExchangePanel] = useState(false)
+  const [exchangeSearch, setExchangeSearch] = useState('')
+  const [showExchangeDropdown, setShowExchangeDropdown] = useState(false)
+
   // Fetch order helper
   const fetchOrder = useCallback(async (orderId) => {
     try {
@@ -648,7 +654,98 @@ export default function POSPage() {
   }
   const discountAmount = calculateDiscountAmount()
   const cartTotal = Math.max(0, cartSubtotal - discountAmount)
-  const finalTotal = cartTotal
+
+  // Exchange/Return totals
+  const exchangeTotal = exchangeItems.reduce((sum, item) => sum + (item.qty * item.unit_price), 0)
+  const finalTotal = Math.max(0, cartTotal - exchangeTotal)
+
+  // Motivos de cambio adaptativos por tipo de rubro
+  const getExchangeReasons = () => {
+    const businessType = tenant?.business_type || 'general'
+    const commonReasons = [
+      { value: 'Vencido / Vencida', label: '🗓 Vencido / Vencida' },
+      { value: 'Dañado / En mal estado', label: '💔 Dañado / En mal estado' },
+      { value: 'Sobrante del día anterior', label: '📦 Sobrante del día anterior' },
+      { value: 'Rotura / Paquete abierto', label: '🪣 Rotura / Paquete abierto' },
+    ]
+    const byType = {
+      panaderia: [
+        { value: 'Pan viejo / Duro', label: '🍞 Pan viejo / Duro' },
+        { value: 'Facturas del día anterior', label: '🥐 Facturas del día anterior' },
+        { value: 'Medialunas sobrantes', label: '🥐 Medialunas sobrantes' },
+        { value: 'Húmedo / Podrido', label: '💧 Húmedo / Podrido' },
+      ],
+      verduleria: [
+        { value: 'Podrido / Pasado', label: '🍂 Podrido / Pasado' },
+        { value: 'Golpeado / Machucado', label: '💥 Golpeado / Machucado' },
+        { value: 'Madurez excesiva', label: '🍌 Madurez excesiva' },
+        { value: 'Merma natural', label: '⚖️ Merma natural' },
+      ],
+      carniceria: [
+        { value: 'Vencido / Fecha expirada', label: '⏰ Vencido / Fecha expirada' },
+        { value: 'Color / Apariencia alterada', label: '🔴 Color / Apariencia alterada' },
+        { value: 'Congelado incorrecto', label: '🧊 Congelado incorrecto' },
+      ],
+      farmacia: [
+        { value: 'Vencido', label: '💊 Vencido' },
+        { value: 'Embalaje dañado', label: '📦 Embalaje dañado' },
+        { value: 'Error de dispensación', label: '⚕️ Error de dispensación' },
+      ],
+      lubricentro: [
+        { value: 'Producto incorrecto', label: '🔧 Producto incorrecto' },
+        { value: 'Envase roto', label: '🛢 Envase roto' },
+        { value: 'No compatible', label: '❌ No compatible' },
+      ],
+    }
+    const specificReasons = byType[businessType] || []
+    return [
+      ...specificReasons,
+      ...commonReasons,
+      { value: 'Otro motivo', label: '📝 Otro motivo' },
+    ]
+  }
+  const exchangeReasons = getExchangeReasons()
+
+  // Products filtered for exchange search
+  const exchangeFilteredProducts = products.filter(p =>
+    exchangeSearch.trim() !== '' &&
+    (p.name.toLowerCase().includes(exchangeSearch.toLowerCase()) ||
+     (p.barcode && p.barcode.toLowerCase().includes(exchangeSearch.toLowerCase())))
+  )
+
+  const addExchangeItem = (product) => {
+    setExchangeItems(prev => {
+      const existing = prev.find(i => i.product_id === product.id && !i.variant_id)
+      if (existing) {
+        return prev.map(i => i.product_id === product.id && !i.variant_id
+          ? { ...i, qty: i.qty + 1 }
+          : i
+        )
+      }
+      return [...prev, {
+        product_id: product.id,
+        product_name: product.name,
+        unit_price: product.sale_price,
+        cost_price: product.cost_price || 0,
+        qty: 1,
+        variant_id: null,
+        variant_label: null,
+        reason: exchangeReasons[0]?.value || 'Sobrante del día anterior'
+      }]
+    })
+    setExchangeSearch('')
+    setShowExchangeDropdown(false)
+  }
+
+  const removeExchangeItem = (index) => {
+    setExchangeItems(prev => prev.filter((_, i) => i !== index))
+  }
+
+  const updateExchangeItem = (index, field, value) => {
+    setExchangeItems(prev => prev.map((item, i) =>
+      i === index ? { ...item, [field]: field === 'qty' ? Math.max(0.001, parseFloat(value) || 0) : value } : item
+    ))
+  }
 
   const cashReceivedNum = parseFloat(cashReceived) || 0
   const cashChange = cashReceivedNum - cartTotal
@@ -672,6 +769,30 @@ export default function POSPage() {
     if (saleData.discount_amount > 0) {
       const discValLabel = saleData.discount_type === 'percentage' ? `${saleData.discount_value}%` : formatCurrency(saleData.discount_value)
       discountHTML = `<div style="display:flex;justify-content:space-between;color:#555;"><span>Descuento (${discValLabel}):</span><span>-${formatCurrency(saleData.discount_amount)}</span></div>`
+    }
+
+    // Exchange/return section in receipt
+    let exchangeHTML = ''
+    const exchItems = saleData.exchange_items || []
+    if (exchItems.length > 0) {
+      const exchangeRowsHTML = exchItems.map(ei => {
+        const subtotal = ei.qty * ei.unit_price
+        return `<tr>
+          <td style="text-align:left;padding:2px 0;">${ei.product_name}</td>
+          <td style="text-align:center;padding:2px 0;">${ei.qty}</td>
+          <td style="text-align:right;padding:2px 0;">${formatCurrency(ei.unit_price)}</td>
+          <td style="text-align:right;padding:2px 0;color:#c00;">-${formatCurrency(subtotal)}</td>
+        </tr>`
+      }).join('')
+      const exchangeTotalVal = exchItems.reduce((s, ei) => s + ei.qty * ei.unit_price, 0)
+      exchangeHTML = `
+        <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+        <div style="font-size:10px;font-weight:bold;margin-bottom:3px;">🔄 CAMBIOS / DEVOLUCIONES:</div>
+        <table style="width:100%;border-collapse:collapse;font-size:10px;">
+          <tbody>${exchangeRowsHTML}</tbody>
+        </table>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#c00;margin-top:3px;"><span>Cambios:</span><span>-${formatCurrency(exchangeTotalVal)}</span></div>
+      `
     }
 
     let paymentInfo = ''
@@ -753,8 +874,9 @@ export default function POSPage() {
           <tbody>${itemsHTML}</tbody>
         </table>
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+        ${exchangeHTML}
         <div style="font-size:12px;">
-          <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>${formatCurrency(cartTotal)}</span></div>
+          <div style="display:flex;justify-content:space-between;"><span>Subtotal:</span><span>${formatCurrency(cartSubtotal)}</span></div>
           ${discountHTML}
           <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin:4px 0;"><span>TOTAL:</span><span>${formatCurrency(saleData.total)}</span></div>
         </div>
@@ -871,7 +993,20 @@ export default function POSPage() {
         customer_id: selectedCustomerId || null,
         payment_details: paymentDetails,
         online_order_id: loadedOrderId || null,
-        source: (loadedOrderId && loadedOrder) ? (loadedOrder.source || 'online') : 'caja'
+        source: (loadedOrderId && loadedOrder) ? (loadedOrder.source || 'online') : 'caja',
+        // Exchange/return data (no stock deduction — goods were already deducted when originally sold)
+        exchange_items: exchangeItems.length > 0 ? exchangeItems.map(ei => ({
+          product_id: ei.product_id,
+          product_name: ei.product_name,
+          quantity: ei.qty,
+          unit_price: ei.unit_price,
+          cost_price: ei.cost_price,
+          subtotal: ei.qty * ei.unit_price,
+          variant_id: ei.variant_id || null,
+          variant_label: ei.variant_label || null,
+          reason: ei.reason
+        })) : null,
+        exchange_total: exchangeTotal > 0 ? exchangeTotal : 0
       }
 
       if (paymentMethod === 'cash') {
@@ -1014,6 +1149,10 @@ export default function POSPage() {
         }
       }
 
+      // Attach exchange_items to saleData for receipt building
+      saleData.exchange_items = salePayload.exchange_items
+      saleData.exchange_total = salePayload.exchange_total
+
       // Build receipt and store ticket
       const receiptHTML = buildReceiptHTML(saleData, cart, loadedOrder)
       
@@ -1048,6 +1187,10 @@ export default function POSPage() {
       setMixedCash('')
       setMixedCard('')
       setMixedMP('')
+      // Reset exchange state
+      setExchangeItems([])
+      setExchangeSearch('')
+      setShowExchangePanel(false)
       setSelectedCustomerId('')
       
       // Reload products to refresh stock quantities
@@ -1727,11 +1870,141 @@ export default function POSPage() {
               )}
             </div>
 
+            {/* ── EXCHANGE / RETURN PANEL ── */}
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.9375rem', color: 'var(--text-secondary)' }}>
+                <span style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                  <ArrowLeftRight size={15} style={{ color: 'var(--color-error)' }} />
+                  Cambios / Devoluciones
+                </span>
+                <button
+                  type="button"
+                  id="pos-btn-cambios"
+                  onClick={() => setShowExchangePanel(p => !p)}
+                  style={{
+                    border: `1px solid ${showExchangePanel || exchangeItems.length > 0 ? 'var(--color-error)' : 'var(--border-color)'}`,
+                    padding: '4px 10px',
+                    borderRadius: '6px',
+                    fontSize: '0.75rem',
+                    background: showExchangePanel || exchangeItems.length > 0 ? 'rgba(239,68,68,0.12)' : 'transparent',
+                    color: showExchangePanel || exchangeItems.length > 0 ? 'var(--color-error)' : 'var(--text-secondary)',
+                    fontWeight: 600,
+                    cursor: 'pointer',
+                    transition: 'var(--transition)'
+                  }}
+                >
+                  {exchangeItems.length > 0 ? `${exchangeItems.length} item${exchangeItems.length !== 1 ? 's' : ''}` : '+ Agregar'}
+                </button>
+              </div>
+
+              {/* Exchange Panel */}
+              {showExchangePanel && (
+                <div style={{ background: 'rgba(239,68,68,0.04)', border: '1px solid rgba(239,68,68,0.2)', borderRadius: 'var(--radius-lg)', padding: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'rgba(239,68,68,0.85)', fontWeight: 600, textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+                    🔄 Mercadería devuelta (no descuenta stock)
+                  </div>
+
+                  {/* Search products for exchange */}
+                  <div style={{ position: 'relative' }}>
+                    <input
+                      type="text"
+                      placeholder="Buscar producto devuelto..."
+                      value={exchangeSearch}
+                      onChange={e => { setExchangeSearch(e.target.value); setShowExchangeDropdown(true) }}
+                      onFocus={() => setShowExchangeDropdown(true)}
+                      onBlur={() => setTimeout(() => setShowExchangeDropdown(false), 200)}
+                      style={{
+                        width: '100%', padding: '8px 10px', borderRadius: '6px',
+                        background: 'var(--bg-surface)', border: '1px solid rgba(239,68,68,0.3)',
+                        color: '#fff', fontSize: '0.8125rem', outline: 'none', boxSizing: 'border-box'
+                      }}
+                    />
+                    {showExchangeDropdown && exchangeFilteredProducts.length > 0 && (
+                      <div style={{
+                        position: 'absolute', top: '100%', left: 0, right: 0,
+                        background: 'var(--bg-card)', border: '1px solid var(--border-color)',
+                        borderRadius: 'var(--radius-md)', maxHeight: '180px', overflowY: 'auto',
+                        zIndex: 200, marginTop: '4px', boxShadow: '0 10px 25px rgba(0,0,0,0.5)'
+                      }}>
+                        {exchangeFilteredProducts.map(prod => (
+                          <div
+                            key={prod.id}
+                            onMouseDown={() => addExchangeItem(prod)}
+                            style={{ padding: '8px 12px', cursor: 'pointer', borderBottom: '1px solid var(--border-color)', fontSize: '0.8125rem' }}
+                            onMouseOver={e => e.currentTarget.style.background = 'var(--bg-card-hover)'}
+                            onMouseOut={e => e.currentTarget.style.background = 'transparent'}
+                          >
+                            <div style={{ fontWeight: 600, color: '#fff' }}>{prod.name}</div>
+                            <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem' }}>{formatCurrency(prod.sale_price)} · Stock: {prod.stock_quantity}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Exchange items list */}
+                  {exchangeItems.map((ei, idx) => (
+                    <div key={idx} style={{ background: 'rgba(239,68,68,0.06)', border: '1px solid rgba(239,68,68,0.15)', borderRadius: '6px', padding: '8px 10px', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <span style={{ fontWeight: 600, fontSize: '0.8125rem', color: '#fff' }}>{ei.product_name}</span>
+                        <button
+                          type="button"
+                          onClick={() => removeExchangeItem(idx)}
+                          style={{ color: 'var(--color-error)', background: 'transparent', border: 'none', cursor: 'pointer', padding: '2px' }}
+                        ><Trash2 size={14} /></button>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: '0 0 70px' }}>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Cant.</span>
+                          <input
+                            type="number" min="0.001" step="0.001"
+                            value={ei.qty}
+                            onChange={e => updateExchangeItem(idx, 'qty', e.target.value)}
+                            style={{ width: '100%', padding: '4px 6px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '4px', color: '#fff', fontWeight: 600, fontSize: '0.8125rem', outline: 'none', boxSizing: 'border-box' }}
+                          />
+                        </div>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '2px', flex: 1 }}>
+                          <span style={{ fontSize: '0.65rem', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Motivo</span>
+                          <select
+                            value={ei.reason}
+                            onChange={e => updateExchangeItem(idx, 'reason', e.target.value)}
+                            style={{ width: '100%', padding: '4px 6px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', borderRadius: '4px', color: '#fff', fontSize: '0.75rem', outline: 'none', boxSizing: 'border-box' }}
+                          >
+                            {exchangeReasons.map(r => (
+                              <option key={r.value} value={r.value}>{r.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                      </div>
+                      <div style={{ textAlign: 'right', fontSize: '0.8125rem', color: 'var(--color-error)', fontWeight: 700 }}>
+                        -{formatCurrency(ei.qty * ei.unit_price)}
+                      </div>
+                    </div>
+                  ))}
+
+                  {exchangeItems.length > 0 && (
+                    <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--color-error)', fontWeight: 700, borderTop: '1px solid rgba(239,68,68,0.2)', paddingTop: '6px' }}>
+                      <span>Total cambios:</span>
+                      <span>-{formatCurrency(exchangeTotal)}</span>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Exchange summary (when panel is collapsed but has items) */}
+              {!showExchangePanel && exchangeItems.length > 0 && (
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', color: 'var(--color-error)', fontWeight: 600 }}>
+                  <span style={{ fontSize: '0.8125rem' }}>{exchangeItems.map(ei => `${ei.qty}× ${ei.product_name}`).join(', ')}</span>
+                  <span>-{formatCurrency(exchangeTotal)}</span>
+                </div>
+              )}
+            </div>
+
             {/* IVA Tax */}
             {tenant?.theme_config?.tax_rate > 0 && (
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: '0.875rem', color: 'var(--text-muted)' }}>
                 <span>{tenant?.theme_config?.tax_name || 'IVA'} ({tenant?.theme_config?.tax_rate}%) Incluido</span>
-                <span>{formatCurrency((cartTotal * Number(tenant.theme_config.tax_rate)) / (100 + Number(tenant.theme_config.tax_rate)))}</span>
+                <span>{formatCurrency((finalTotal * Number(tenant.theme_config.tax_rate)) / (100 + Number(tenant.theme_config.tax_rate)))}</span>
               </div>
             )}
 

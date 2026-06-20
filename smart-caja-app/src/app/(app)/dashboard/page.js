@@ -142,6 +142,15 @@ export default function DashboardPage() {
         .gte('created_at', thirtyDaysAgo.toISOString())
         .order('created_at', { ascending: false })
 
+      // Fetch sales with exchanges in the last 30 days
+      const { data: exchangeSalesData } = await supabase
+        .from('sales')
+        .select('id, ticket_number, created_at, exchange_items, exchange_total, branch_id')
+        .eq('tenant_id', tenant.id)
+        .not('exchange_items', 'is', null)
+        .gte('created_at', thirtyDaysAgo.toISOString())
+        .order('created_at', { ascending: false })
+
       // Fetch stagnant products (no sales in last 30 days)
       const { data: stagnantProds } = await supabase
         .from('products')
@@ -164,6 +173,7 @@ export default function DashboardPage() {
         topCusts: topCusts || [],
         expensesData: expensesData || [],
         wasteData: wasteData || [],
+        exchangeSalesData: exchangeSalesData || [],
         stagnantProds: stagnantProds || []
       })
 
@@ -312,8 +322,17 @@ export default function DashboardPage() {
       totalExpenses += amt
     })
 
-    // Waste processing
+    // Filter exchange sales
+    const filteredExchangeSales = (rawData.exchangeSalesData || []).filter(sale => {
+      if (!isFiltered) return true
+      if (branchFilter === 'central') return !sale.branch_id
+      return sale.branch_id === branchFilter
+    })
+
+    // Waste processing (both manual waste and exchange losses)
     const wasteSummary = []
+    
+    // Add manual waste
     rawData.wasteData.forEach(w => {
       const cost = Number(w.products?.cost_price || 0)
       const qty = Math.abs(Number(w.quantity_change || 0))
@@ -325,9 +344,33 @@ export default function DashboardPage() {
         cost_price: cost,
         total_loss: cost * qty,
         date: dateStr,
-        reason: w.notes?.replace('[DESPERDICIO] ', '') || 'Mermas'
+        reason: w.notes?.replace('[DESPERDICIO] ', '') || 'Mermas',
+        timestamp: new Date(w.created_at).getTime()
       })
     })
+
+    // Add exchange losses
+    filteredExchangeSales.forEach(sale => {
+      const items = sale.exchange_items || []
+      const dateStr = new Date(sale.created_at).toLocaleDateString('es-AR', { day: '2-digit', month: '2-digit' })
+      items.forEach(ei => {
+        const qty = parseFloat(ei.quantity || ei.qty || 0)
+        const cost = parseFloat(ei.cost_price || 0)
+        wasteSummary.push({
+          id: `${sale.id}-${ei.product_id}`,
+          product_name: ei.product_name,
+          qty,
+          cost_price: cost,
+          total_loss: cost * qty,
+          date: dateStr,
+          reason: `Cambio (${ei.reason || 'N/A'}) - Ticket #${sale.ticket_number}`,
+          timestamp: new Date(sale.created_at).getTime()
+        })
+      })
+    })
+
+    // Sort combined waste summary chronologically (newest first)
+    wasteSummary.sort((a, b) => b.timestamp - a.timestamp)
 
     // Stagnant processing
     const stagnantProducts = (rawData.stagnantProds || []).map(p => ({

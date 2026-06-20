@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { formatCurrency, formatDateTime } from '@/lib/utils/formatters'
 import { useToast } from '@/lib/hooks/useToast'
-import { Trash2, AlertTriangle, Package, Calendar, ArrowRight } from 'lucide-react'
+import { Trash2, AlertTriangle, Package, Calendar, ArrowRight, RefreshCw } from 'lucide-react'
 
 export default function WastePage() {
   const { tenant, profile } = useAuth()
@@ -14,8 +14,10 @@ export default function WastePage() {
 
   const [products, setProducts] = useState([])
   const [history, setHistory] = useState([])
+  const [exchangeSales, setExchangeSales] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
+  const [activeTab, setActiveTab] = useState('manual') // 'manual' | 'exchanges'
 
   // Form states
   const [selectedProductId, setSelectedProductId] = useState('')
@@ -63,6 +65,17 @@ export default function WastePage() {
 
       if (movsErr) throw movsErr
       setHistory(movs || [])
+
+      // 3. Fetch sales with exchanges
+      const { data: exchSales, error: exchErr } = await supabase
+        .from('sales')
+        .select('id, ticket_number, created_at, exchange_items, exchange_total')
+        .eq('tenant_id', tenant.id)
+        .not('exchange_items', 'is', null)
+        .order('created_at', { ascending: false })
+
+      if (exchErr) throw exchErr
+      setExchangeSales(exchSales || [])
     } catch (err) {
       console.error('[loadData] Error:', err)
       toast.error('Error al cargar datos: ' + err.message)
@@ -180,7 +193,40 @@ export default function WastePage() {
     return true
   })
 
-  // Calculate monthly stats
+  // Filter exchange sales based on dates
+  const filteredExchangeSales = exchangeSales.filter(sale => {
+    if (filterDate === 'all') return true
+    const itemDate = new Date(sale.created_at)
+    const now = new Date()
+    if (filterDate === 'month') {
+      return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear()
+    }
+    if (filterDate === 'week') {
+      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+      return itemDate >= oneWeekAgo
+    }
+    return true
+  })
+
+  // Flatten exchange items for the filtered table list
+  const flatExchangeItems = []
+  filteredExchangeSales.forEach(sale => {
+    const items = sale.exchange_items || []
+    items.forEach(ei => {
+      flatExchangeItems.push({
+        id: `${sale.id}-${ei.product_id}`,
+        ticket_number: sale.ticket_number,
+        created_at: sale.created_at,
+        product_name: ei.product_name,
+        quantity: ei.quantity || ei.qty || 0,
+        unit_price: ei.unit_price || 0,
+        cost_price: ei.cost_price || 0,
+        reason: ei.reason || 'N/A'
+      })
+    })
+  })
+
+  // Calculate monthly stats for manual waste
   const totalMonthlyLossValue = history
     .filter(item => {
       const itemDate = new Date(item.created_at)
@@ -200,6 +246,23 @@ export default function WastePage() {
       return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear()
     })
     .reduce((sum, item) => sum + Math.abs(parseFloat(item.quantity_change || 0)), 0)
+
+  // Calculate monthly stats for exchanges (valued at cost price)
+  const totalMonthlyExchangeLossValue = exchangeSales
+    .filter(sale => {
+      const itemDate = new Date(sale.created_at)
+      const now = new Date()
+      return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear()
+    })
+    .reduce((sum, sale) => {
+      const items = sale.exchange_items || []
+      const saleSum = items.reduce((s, item) => {
+        const qty = parseFloat(item.quantity || item.qty || 0)
+        const cost = parseFloat(item.cost_price || 0)
+        return s + (qty * cost)
+      }, 0)
+      return sum + saleSum
+    }, 0)
 
   // Filter products for autocomplete autocomplete
   const filteredProductsDropdown = products.filter(p =>
@@ -298,11 +361,25 @@ export default function WastePage() {
             <AlertTriangle size={24} />
           </div>
           <div>
-            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Costo Perdido (Mes Actual)</div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Costo Perdido Manual (Mes)</div>
             <div style={{ fontFamily: 'var(--font-headline)', fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-error)' }}>
               {formatCurrency(totalMonthlyLossValue)}
             </div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Pérdidas valoradas a precio de costo.</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Desperdicios a precio de costo.</span>
+          </div>
+        </div>
+
+        <div className="kpi-card loss" style={{ borderLeftColor: 'var(--color-secondary)' }}>
+          <div className="kpi-glow" style={{ background: 'var(--color-secondary)', opacity: 0.05 }} />
+          <div style={{ width: '48px', height: '48px', borderRadius: 'var(--radius-lg)', background: 'rgba(59, 130, 246, 0.1)', color: 'var(--color-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <RefreshCw size={24} />
+          </div>
+          <div>
+            <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em', fontWeight: 600 }}>Pérdida por Cambios (Mes)</div>
+            <div style={{ fontFamily: 'var(--font-headline)', fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-secondary)' }}>
+              {formatCurrency(totalMonthlyExchangeLossValue)}
+            </div>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Recambios/Devoluciones a costo.</span>
           </div>
         </div>
 
@@ -315,7 +392,7 @@ export default function WastePage() {
             <div style={{ fontFamily: 'var(--font-headline)', fontSize: '1.75rem', fontWeight: 800, color: '#fff' }}>
               {totalMonthlyLossQty.toFixed(2).replace(/\.00$/, '')} unidades/kg
             </div>
-            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Volumen total de descarte.</span>
+            <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>Desechos manuales registrados.</span>
           </div>
         </div>
       </div>
@@ -460,8 +537,43 @@ export default function WastePage() {
 
         {/* Right Side: Waste History list */}
         <div className="card">
-          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <span className="card-title">Historial de Desperdicios</span>
+          <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <div style={{ display: 'flex', gap: '4px', background: 'rgba(255,255,255,0.02)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
+              <button
+                type="button"
+                onClick={() => setActiveTab('manual')}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  fontSize: '0.75rem',
+                  fontWeight: activeTab === 'manual' ? 700 : 500,
+                  background: activeTab === 'manual' ? 'var(--bg-card-hover)' : 'transparent',
+                  color: activeTab === 'manual' ? '#fff' : 'var(--text-muted)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'var(--transition)'
+                }}
+              >
+                🗑️ Desperdicios Manuales
+              </button>
+              <button
+                type="button"
+                onClick={() => setActiveTab('exchanges')}
+                style={{
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  fontSize: '0.75rem',
+                  fontWeight: activeTab === 'exchanges' ? 700 : 500,
+                  background: activeTab === 'exchanges' ? 'var(--bg-card-hover)' : 'transparent',
+                  color: activeTab === 'exchanges' ? '#fff' : 'var(--text-muted)',
+                  border: 'none',
+                  cursor: 'pointer',
+                  transition: 'var(--transition)'
+                }}
+              >
+                🔄 Cambios en Ventas
+              </button>
+            </div>
             <div style={{ display: 'flex', gap: '6px' }}>
               {['month', 'week', 'all'].map(t => (
                 <button
@@ -488,47 +600,95 @@ export default function WastePage() {
           <div className="card-body" style={{ padding: 0 }}>
             {loading ? (
               <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>Cargando historial...</div>
-            ) : filteredHistory.length === 0 ? (
-              <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
-                No se registraron desperdicios en este período.
-              </div>
+            ) : activeTab === 'manual' ? (
+              filteredHistory.length === 0 ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No se registraron desperdicios manuales en este período.
+                </div>
+              ) : (
+                <div className="table-wrapper" style={{ border: 'none', borderRadius: 0 }}>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Producto</th>
+                        <th style={{ textAlign: 'right' }}>Cantidad</th>
+                        <th style={{ textAlign: 'right' }}>Costo Unit.</th>
+                        <th style={{ textAlign: 'right' }}>Pérdida Total</th>
+                        <th>Detalle/Motivo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {filteredHistory.map(item => {
+                        const cost = parseFloat(item.products?.cost_price || 0)
+                        const qty = Math.abs(parseFloat(item.quantity_change || 0))
+                        const totalLoss = cost * qty
+                        const displayNotes = item.notes?.replace('[DESPERDICIO] ', '') || ''
+                        return (
+                          <tr key={item.id}>
+                            <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(item.created_at)}</td>
+                            <td style={{ fontWeight: 600, color: '#fff' }}>{item.products?.name || 'Producto Eliminado'}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                              {qty} {item.products?.unit_label || 'un'}
+                            </td>
+                            <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{formatCurrency(cost)}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-error)' }}>
+                              {formatCurrency(totalLoss)}
+                            </td>
+                            <td style={{ fontSize: '0.8125rem' }}>{displayNotes}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )
             ) : (
-              <div className="table-wrapper" style={{ border: 'none', borderRadius: 0 }}>
-                <table className="table">
-                  <thead>
-                    <tr>
-                      <th>Fecha</th>
-                      <th>Producto</th>
-                      <th style={{ textAlign: 'right' }}>Cantidad</th>
-                      <th style={{ textAlign: 'right' }}>Costo Unit.</th>
-                      <th style={{ textAlign: 'right' }}>Pérdida Total</th>
-                      <th>Detalle/Motivo</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredHistory.map(item => {
-                      const cost = parseFloat(item.products?.cost_price || 0)
-                      const qty = Math.abs(parseFloat(item.quantity_change || 0))
-                      const totalLoss = cost * qty
-                      const displayNotes = item.notes?.replace('[DESPERDICIO] ', '') || ''
-                      return (
-                        <tr key={item.id}>
-                          <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(item.created_at)}</td>
-                          <td style={{ fontWeight: 600, color: '#fff' }}>{item.products?.name || 'Producto Eliminado'}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 600 }}>
-                            {qty} {item.products?.unit_label || 'un'}
-                          </td>
-                          <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{formatCurrency(cost)}</td>
-                          <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-error)' }}>
-                            {formatCurrency(totalLoss)}
-                          </td>
-                          <td style={{ fontSize: '0.8125rem' }}>{displayNotes}</td>
-                        </tr>
-                      )
-                    })}
-                  </tbody>
-                </table>
-              </div>
+              flatExchangeItems.length === 0 ? (
+                <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-muted)' }}>
+                  No se registraron cambios/devoluciones en ventas en este período.
+                </div>
+              ) : (
+                <div className="table-wrapper" style={{ border: 'none', borderRadius: 0 }}>
+                  <table className="table">
+                    <thead>
+                      <tr>
+                        <th>Fecha</th>
+                        <th>Venta</th>
+                        <th>Producto</th>
+                        <th style={{ textAlign: 'right' }}>Cantidad</th>
+                        <th style={{ textAlign: 'right' }}>Costo Unit.</th>
+                        <th style={{ textAlign: 'right' }}>Pérdida Total</th>
+                        <th>Motivo</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {flatExchangeItems.map((item, idx) => {
+                        const cost = parseFloat(item.cost_price || 0)
+                        const qty = parseFloat(item.quantity || 0)
+                        const totalLoss = cost * qty
+                        return (
+                          <tr key={item.id || idx}>
+                            <td style={{ whiteSpace: 'nowrap' }}>{formatDateTime(item.created_at)}</td>
+                            <td style={{ fontFamily: 'monospace', fontWeight: 600, color: 'var(--color-secondary)' }}>
+                              #{item.ticket_number}
+                            </td>
+                            <td style={{ fontWeight: 600, color: '#fff' }}>{item.product_name}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 600 }}>
+                              {qty}
+                            </td>
+                            <td style={{ textAlign: 'right', color: 'var(--text-muted)' }}>{formatCurrency(cost)}</td>
+                            <td style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-error)' }}>
+                              {formatCurrency(totalLoss)}
+                            </td>
+                            <td style={{ fontSize: '0.8125rem' }}>{item.reason}</td>
+                          </tr>
+                        )
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )
             )}
           </div>
         </div>

@@ -143,6 +143,30 @@ export default function SalesPage() {
       </tr>`
     }).join('')
 
+    // Exchange/return section for reprint
+    let exchangePrintHTML = ''
+    const exchItems = sale.exchange_items || []
+    if (exchItems.length > 0) {
+      const exchangeRowsHTML = exchItems.map(ei => {
+        const subtotal = (ei.quantity || ei.qty || 0) * (ei.unit_price || 0)
+        return `<tr>
+          <td style="text-align:left;padding:2px 0;">${ei.product_name}</td>
+          <td style="text-align:center;padding:2px 0;">${ei.quantity || ei.qty}</td>
+          <td style="text-align:right;padding:2px 0;">${formatCurrency(ei.unit_price)}</td>
+          <td style="text-align:right;padding:2px 0;color:#c00;">-${formatCurrency(subtotal)}</td>
+        </tr>`
+      }).join('')
+      const exchangeTotalVal = exchItems.reduce((s, ei) => s + (ei.quantity || ei.qty || 0) * (ei.unit_price || 0), 0)
+      exchangePrintHTML = `
+        <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+        <div style="font-size:10px;font-weight:bold;margin-bottom:3px;">🔄 CAMBIOS / DEVOLUCIONES:</div>
+        <table style="width:100%;border-collapse:collapse;font-size:10px;">
+          <tbody>${exchangeRowsHTML}</tbody>
+        </table>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:#c00;margin-top:3px;"><span>Cambios:</span><span>-${formatCurrency(exchangeTotalVal)}</span></div>
+      `
+    }
+
     let paymentInfo = ''
     const paymentMethod = sale.payment_method
     if (paymentMethod === 'cash') {
@@ -207,6 +231,7 @@ export default function SalesPage() {
           <tbody>${itemsHTML}</tbody>
         </table>
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
+        ${exchangePrintHTML}
         <div style="font-size:12px;">
           <div style="display:flex;justify-content:space-between;font-size:16px;font-weight:bold;margin:4px 0;"><span>TOTAL:</span><span>${formatCurrency(sale.total)}</span></div>
         </div>
@@ -382,7 +407,12 @@ export default function SalesPage() {
                     <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formatDateTime(sale.created_at).split(', ')[1]}</div>
                   </div>
                   <div>
-                    <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: 'var(--color-primary)' }}>#{sale.ticket_number}</div>
+                    <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                      #{sale.ticket_number}
+                      {sale.exchange_items && sale.exchange_items.length > 0 && (
+                        <span title={`${sale.exchange_items.length} cambio(s) registrado(s)`} style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--color-error)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 700, padding: '1px 5px', letterSpacing: '0.02em' }}>🔄 CAMBIO</span>
+                      )}
+                    </div>
                     <div style={{ fontSize: '0.75rem', color: sale.online_orders ? 'var(--color-secondary)' : 'var(--text-secondary)', marginTop: '2px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
                       <span>{sale.online_orders ? `🛒 Pedido #${sale.online_orders.order_number}` : '🏪 Caja'}</span>
                       {tenant?.subscription_plan === 'enterprise' && (
@@ -468,14 +498,34 @@ export default function SalesPage() {
               </div>
             </div>
 
-            <div style={{ marginBottom: 'var(--space-6)', minHeight: '150px' }}>
+            <div style={{ marginBottom: 'var(--space-4)', minHeight: '60px' }}>
               {selectedSale.sale_items?.map((item, idx) => (
-                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px', fontSize: '0.875rem' }}>
-                  <div>{item.quantity}x {item.product_name}</div>
+                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '6px', fontSize: '0.875rem' }}>
+                  <div>{item.quantity}× {item.product_name}</div>
                   <div style={{ fontWeight: 600 }}>{formatCurrency(item.subtotal)}</div>
                 </div>
               ))}
             </div>
+
+            {/* Exchange/Return section in modal */}
+            {selectedSale.exchange_items && selectedSale.exchange_items.length > 0 && (
+              <div style={{ borderTop: '1px dashed #ccc', paddingTop: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#c00', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>🔄 Cambios / Devoluciones:</div>
+                {selectedSale.exchange_items.map((ei, idx) => {
+                  const qty = ei.quantity || ei.qty || 0
+                  return (
+                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px', fontSize: '0.8125rem' }}>
+                      <div style={{ color: '#c00' }}>-{qty}× {ei.product_name} <span style={{ fontSize: '0.7rem', color: '#999' }}>({ei.reason})</span></div>
+                      <div style={{ fontWeight: 600, color: '#c00' }}>-{formatCurrency(qty * ei.unit_price)}</div>
+                    </div>
+                  )
+                })}
+                <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.875rem', fontWeight: 700, color: '#c00', borderTop: '1px solid #f5c6c6', paddingTop: '4px', marginTop: '4px' }}>
+                  <span>Total cambios:</span>
+                  <span>-{formatCurrency(selectedSale.exchange_total || selectedSale.exchange_items.reduce((s, ei) => s + (ei.quantity || ei.qty || 0) * ei.unit_price, 0))}</span>
+                </div>
+              </div>
+            )}
 
             <div style={{ borderTop: '1px dashed #ccc', paddingTop: 'var(--space-4)', marginBottom: 'var(--space-6)' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '1.25rem', fontWeight: 800 }}>
