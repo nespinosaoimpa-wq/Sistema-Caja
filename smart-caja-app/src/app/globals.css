@@ -118,6 +118,7 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   min-height: 100vh;
   display: flex;
   flex-direction: column;
+  min-width: 0;
 }
 
 .app-header {
@@ -132,6 +133,7 @@ input, select, textarea { font-family: var(--font-body); outline: none; }
   flex: 1;
   padding: 0 var(--space-8) var(--space-8) var(--space-8);
   overflow-y: auto;
+  min-width: 0;
 }
 
 /* ============================================================

@@ -198,11 +198,11 @@ export default function ExpensesPage() {
       <style>{`
         .expenses-grid {
           display: grid;
-          grid-template-columns: 380px 1fr;
+          grid-template-columns: 380px minmax(0, 1fr);
           gap: var(--space-6);
           align-items: start;
         }
-        @media (max-width: 1024px) {
+        @media (max-width: 1200px) {
           .expenses-grid {
             grid-template-columns: 1fr;
           }

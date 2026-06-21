@@ -1277,14 +1277,18 @@ export default function POSPage() {
       <style>{`
         .pos-container {
           display: grid;
-          grid-template-columns: 1fr 420px;
+          grid-template-columns: minmax(0, 1fr) 380px;
           gap: var(--space-6);
           align-items: start;
           padding-bottom: var(--space-8);
         }
-        @media (max-width: 1024px) {
+        @media (max-width: 1200px) {
           .pos-container {
             grid-template-columns: 1fr;
+          }
+          .pos-right {
+            position: relative !important;
+            top: 0 !important;
           }
         }
         .pos-left {

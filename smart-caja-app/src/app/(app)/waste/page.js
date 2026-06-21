@@ -274,11 +274,11 @@ export default function WastePage() {
       <style>{`
         .waste-grid {
           display: grid;
-          grid-template-columns: 380px 1fr;
+          grid-template-columns: 380px minmax(0, 1fr);
           gap: var(--space-6);
           align-items: start;
         }
-        @media (max-width: 1024px) {
+        @media (max-width: 1200px) {
           .waste-grid {
             grid-template-columns: 1fr;
           }
