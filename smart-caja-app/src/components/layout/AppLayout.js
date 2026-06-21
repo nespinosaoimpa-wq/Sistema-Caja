@@ -28,6 +28,9 @@ import {
   TrendingDown,
   Trash2,
   Gift,
+  Wrench,
+  Zap,
+  Car,
 } from 'lucide-react'
 
 
@@ -46,6 +49,9 @@ const NAV_ITEMS = [
   { href: '/installments', label: 'Cuotas', icon: CreditCard, minPlan: 'professional' },
   { href: '/purchases', label: 'Compras', icon: ShoppingBag, minPlan: 'enterprise' },
   { href: '/referrals', label: 'Referidos 🤝', icon: Gift, minPlan: 'basic' },
+  { href: '/work-orders', label: 'Órdenes', icon: Wrench, minPlan: 'basic', onlyForRubros: ['lubricentro', 'mecanica', 'gomeria', 'lavadero', 'otro'] },
+  { href: '/express', label: 'Express', icon: Zap, minPlan: 'basic', onlyForRubros: ['lubricentro', 'mecanica', 'gomeria', 'lavadero', 'otro'] },
+  { href: '/vehicles', label: 'Vehículos', icon: Car, minPlan: 'basic', onlyForRubros: ['lubricentro', 'mecanica', 'gomeria', 'lavadero', 'otro'] },
 ]
 
 const PLAN_WEIGHTS = {
@@ -614,6 +620,9 @@ export default function AppLayout({ children }) {
 
         <nav className="sidebar-nav" style={{ marginTop: 'var(--space-4)' }}>
           {NAV_ITEMS.map((item) => {
+            if (item.onlyForRubros && !item.onlyForRubros.includes(tenant?.business_type)) {
+              return null
+            }
             const isActive = pathname?.startsWith(item.href)
             const itemPlanWeight = PLAN_WEIGHTS[item.minPlan]
             const isLocked = userPlanWeight < itemPlanWeight
