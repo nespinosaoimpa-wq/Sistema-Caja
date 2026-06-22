@@ -411,20 +411,22 @@ export default function NewProductPage() {
                 </div>
               )}
 
-              <div className="form-group" style={{ marginTop: 'var(--space-2)' }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', background: 'var(--bg-input)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                  <input 
-                    type="checkbox" 
-                    checked={form.has_variants}
-                    onChange={(e) => updateForm('has_variants', e.target.checked)}
-                    style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
-                  />
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>El producto tiene variantes</div>
-                    <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Talles, colores, etc. Podrás gestionarlas después de guardar el producto.</div>
-                  </div>
-                </label>
-              </div>
+              {tenant?.features_config?.variants !== false && (
+                <div className="form-group" style={{ marginTop: 'var(--space-2)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', background: 'var(--bg-input)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                    <input 
+                      type="checkbox" 
+                      checked={form.has_variants}
+                      onChange={(e) => updateForm('has_variants', e.target.checked)}
+                      style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                    />
+                    <div>
+                      <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>El producto tiene variantes</div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Talles, colores, etc. Podrás gestionarlas después de guardar el producto.</div>
+                    </div>
+                  </label>
+                </div>
+              )}
 
               <div className="form-group" style={{ marginTop: 'var(--space-2)' }}>
                 <label className="form-label">Tipo de Unidad</label>

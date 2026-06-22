@@ -2596,7 +2596,7 @@ export default function POSPage() {
             </div>
 
             <div style={{ display: 'flex', gap: '8px' }}>
-              {scaleSupported && (
+              {scaleSupported && tenant?.features_config?.weight_scale !== false && (
                 <button 
                   className={`btn ${scaleConnected ? 'btn-primary' : 'btn-secondary'}`}
                   onClick={() => scaleConnected ? disconnectScale() : connectScale()}

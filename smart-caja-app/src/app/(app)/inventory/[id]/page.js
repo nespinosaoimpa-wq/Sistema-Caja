@@ -582,33 +582,35 @@ export default function EditProductPage() {
                 </div>
               )}
 
-              <div className="form-group" style={{ marginTop: 'var(--space-2)' }}>
-                <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', cursor: 'pointer', background: 'var(--bg-input)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <input 
-                      type="checkbox" 
-                      checked={form.has_variants}
-                      onChange={(e) => updateForm('has_variants', e.target.checked)}
-                      style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
-                    />
-                    <div>
-                      <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>El producto tiene variantes</div>
-                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Talles, colores, etc.</div>
+              {tenant?.features_config?.variants !== false && (
+                <div className="form-group" style={{ marginTop: 'var(--space-2)' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '12px', cursor: 'pointer', background: 'var(--bg-input)', padding: '14px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <input 
+                        type="checkbox" 
+                        checked={form.has_variants}
+                        onChange={(e) => updateForm('has_variants', e.target.checked)}
+                        style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                      />
+                      <div>
+                        <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>El producto tiene variantes</div>
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Talles, colores, etc.</div>
+                      </div>
                     </div>
-                  </div>
-                  {form.has_variants && (
-                    <button
-                      className="btn btn-secondary btn-sm"
-                      onClick={(e) => {
-                        e.preventDefault()
-                        router.push(`/inventory/${id}/variants`)
-                      }}
-                    >
-                      Administrar Variantes →
-                    </button>
-                  )}
-                </label>
-              </div>
+                    {form.has_variants && (
+                      <button
+                        className="btn btn-secondary btn-sm"
+                        onClick={(e) => {
+                          e.preventDefault()
+                          router.push(`/inventory/${id}/variants`)
+                        }}
+                      >
+                        Administrar Variantes →
+                      </button>
+                    )}
+                  </label>
+                </div>
+              )}
             </div>
           </div>
 

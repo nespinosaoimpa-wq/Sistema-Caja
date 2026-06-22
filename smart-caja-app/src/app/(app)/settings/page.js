@@ -70,6 +70,7 @@ export default function SettingsPage() {
     ecommerce_description: '',
     ecommerce_whatsapp: '',
     ecommerce_delivery_modes: ['pickup'],
+    features_config: {},
   })
 
   // Team & Branch states
@@ -111,6 +112,7 @@ export default function SettingsPage() {
           ecommerce_description: tenant.ecommerce_description || '',
           ecommerce_whatsapp: tenant.ecommerce_whatsapp || '',
           ecommerce_delivery_modes: tenant.ecommerce_delivery_modes || ['pickup'],
+          features_config: tenant.features_config || {},
         })
       }, 0)
       return () => clearTimeout(timer)
@@ -346,6 +348,7 @@ export default function SettingsPage() {
         ecommerce_description: form.ecommerce_description,
         ecommerce_whatsapp: form.ecommerce_whatsapp,
         ecommerce_delivery_modes: form.ecommerce_delivery_modes,
+        features_config: form.features_config,
         theme_config: {
           primary_color: form.primary_color,
           secondary_color: form.secondary_color,
@@ -466,6 +469,7 @@ export default function SettingsPage() {
     { id: 'billing', label: 'Suscripción', desc: 'Planes y facturación', icon: Receipt },
   ] : [
     { id: 'general', label: 'General', desc: 'Identificación y formatos', icon: Store },
+    { id: 'modules', label: 'Módulos', desc: 'Herramientas activas', icon: Settings },
     { id: 'appearance', label: 'Apariencia', desc: 'Logos, temas y preview', icon: Palette },
     { id: 'users', label: 'Equipo', desc: 'Colaboradores y roles', icon: Users },
     { id: 'store', label: 'Tienda Online', desc: 'Catálogo y pedidos', icon: ShoppingBag },
@@ -532,6 +536,47 @@ export default function SettingsPage() {
           .appearance-grid {
             grid-template-columns: 1fr !important;
           }
+        }
+        /* Switch/Toggle styles */
+        .switch {
+          position: relative;
+          display: inline-block;
+          width: 46px;
+          height: 24px;
+        }
+        .switch input { 
+          opacity: 0;
+          width: 0;
+          height: 0;
+        }
+        .slider {
+          position: absolute;
+          cursor: pointer;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background-color: var(--border-color);
+          transition: .3s;
+          border-radius: 24px;
+        }
+        .slider:before {
+          position: absolute;
+          content: "";
+          height: 18px;
+          width: 18px;
+          left: 3px;
+          bottom: 3px;
+          background-color: #DAE2FD;
+          transition: .3s;
+          border-radius: 50%;
+        }
+        input:checked + .slider {
+          background-color: var(--color-primary-border);
+        }
+        input:checked + .slider:before {
+          transform: translateX(22px);
+          background-color: #fff;
         }
       `}</style>
 
@@ -856,6 +901,254 @@ export default function SettingsPage() {
                       />
                     </div>
                   </div>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* TAB MÓDULOS */}
+          {activeTab === 'modules' && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+              <div className="card">
+                <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                    <Settings size={18} style={{ color: 'var(--color-primary)' }} />
+                    <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Personalización de Módulos</h3>
+                  </div>
+                  <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                    Activá o desactivá las herramientas de la plataforma según las necesidades de tu rubro para mantener la interfaz limpia y rápida.
+                  </p>
+                </div>
+                
+                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '20px' }}>
+                  
+                  {/* Module: Vehiculos & OT */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ flex: 1, paddingRight: '16px' }}>
+                      <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9375rem', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        <span>🚗 Control de Vehículos y Órdenes de Trabajo</span>
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Habilita el panel de recepción de vehículos, checklists técnicos de entrada en PSI y facturación de servicios con cálculo de comisiones.
+                      </div>
+                    </div>
+                    <label className="switch">
+                      <input 
+                        type="checkbox"
+                        checked={form.features_config?.work_orders ?? false}
+                        onChange={(e) => {
+                          const val = e.target.checked
+                          setForm(prev => ({
+                            ...prev,
+                            features_config: {
+                              ...prev.features_config,
+                              work_orders: val,
+                              vehicles: val,
+                              express: val
+                            }
+                          }))
+                        }}
+                      />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
+
+                  {/* Module: Talles y colores */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ flex: 1, paddingRight: '16px' }}>
+                      <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9375rem' }}>
+                        🏷️ Variantes de Talle, Medida y Color
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Habilita la carga y control de stock de productos segmentados por talle o color. (Ideal para tiendas de ropa y calzado).
+                      </div>
+                    </div>
+                    <label className="switch">
+                      <input 
+                        type="checkbox"
+                        checked={form.features_config?.variants ?? false}
+                        onChange={(e) => {
+                          setForm(prev => ({
+                            ...prev,
+                            features_config: {
+                              ...prev.features_config,
+                              variants: e.target.checked
+                            }
+                          }))
+                        }}
+                      />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
+
+                  {/* Module: Balanza */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ flex: 1, paddingRight: '16px' }}>
+                      <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9375rem' }}>
+                        ⚖️ Integración con Balanza Digital (Venta por Peso)
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Habilita la lectura directa de peso desde balanzas comerciales conectadas por puerto serie en la pantalla de cobro.
+                      </div>
+                    </div>
+                    <label className="switch">
+                      <input 
+                        type="checkbox"
+                        checked={form.features_config?.weight_scale ?? false}
+                        onChange={(e) => {
+                          setForm(prev => ({
+                            ...prev,
+                            features_config: {
+                              ...prev.features_config,
+                              weight_scale: e.target.checked
+                            }
+                          }))
+                        }}
+                      />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
+
+                  {/* Module: Gastos */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ flex: 1, paddingRight: '16px' }}>
+                      <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9375rem' }}>
+                        💸 Gestión de Gastos y Costos Operativos
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Habilita la solapa de Gastos para registrar facturas de proveedores, servicios fijos, alquileres y egresos manuales de caja.
+                      </div>
+                    </div>
+                    <label className="switch">
+                      <input 
+                        type="checkbox"
+                        checked={form.features_config?.expenses ?? false}
+                        onChange={(e) => {
+                          setForm(prev => ({
+                            ...prev,
+                            features_config: {
+                              ...prev.features_config,
+                              expenses: e.target.checked
+                            }
+                          }))
+                        }}
+                      />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
+
+                  {/* Module: Mermas / Desperdicios */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ flex: 1, paddingRight: '16px' }}>
+                      <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9375rem' }}>
+                        🗑️ Registro de Mermas y Desperdicios
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Rastrea pérdidas financieras por vencimiento de insumos, roturas o devoluciones del día.
+                      </div>
+                    </div>
+                    <label className="switch">
+                      <input 
+                        type="checkbox"
+                        checked={form.features_config?.waste ?? false}
+                        onChange={(e) => {
+                          setForm(prev => ({
+                            ...prev,
+                            features_config: {
+                              ...prev.features_config,
+                              waste: e.target.checked
+                            }
+                          }))
+                        }}
+                      />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
+
+                  {/* Module: Cuotas (Installments) */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ flex: 1, paddingRight: '16px' }}>
+                      <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9375rem' }}>
+                        💳 Cuentas Corrientes y Ventas Fiadas (Cuotas)
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Habilita la solapa de Cuotas para gestionar saldos adeudados por clientes fieles y registrar pagos parciales de saldo.
+                      </div>
+                    </div>
+                    <label className="switch">
+                      <input 
+                        type="checkbox"
+                        checked={form.features_config?.installments ?? false}
+                        onChange={(e) => {
+                          setForm(prev => ({
+                            ...prev,
+                            features_config: {
+                              ...prev.features_config,
+                              installments: e.target.checked
+                            }
+                          }))
+                        }}
+                      />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
+
+                  {/* Module: Pedidos (Orders) */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ flex: 1, paddingRight: '16px' }}>
+                      <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9375rem' }}>
+                        📋 Pedidos y Despacho de Reparto
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Permite registrar pedidos pendientes de distribución, entregas a domicilio y estados de despacho.
+                      </div>
+                    </div>
+                    <label className="switch">
+                      <input 
+                        type="checkbox"
+                        checked={form.features_config?.orders ?? false}
+                        onChange={(e) => {
+                          setForm(prev => ({
+                            ...prev,
+                            features_config: {
+                              ...prev.features_config,
+                              orders: e.target.checked
+                            }
+                          }))
+                        }}
+                      />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
+
+                  {/* Module: Preventista */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                    <div style={{ flex: 1, paddingRight: '16px' }}>
+                      <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.9375rem' }}>
+                        📱 Preventa Externa (Vendedores de Calle)
+                      </div>
+                      <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Permite a tus preventistas de calle levantar pedidos móviles asociados al inventario general.
+                      </div>
+                    </div>
+                    <label className="switch">
+                      <input 
+                        type="checkbox"
+                        checked={form.features_config?.preventista ?? false}
+                        onChange={(e) => {
+                          setForm(prev => ({
+                            ...prev,
+                            features_config: {
+                              ...prev.features_config,
+                              preventista: e.target.checked
+                            }
+                          }))
+                        }}
+                      />
+                      <span className="slider"></span>
+                    </label>
+                  </div>
+
                 </div>
               </div>
             </div>

@@ -40,18 +40,18 @@ const NAV_ITEMS = [
   { href: '/inventory', label: 'Inventario', icon: Package, minPlan: 'basic' },
   { href: '/shifts', label: 'Turnos', icon: Clock, minPlan: 'basic' },
   { href: '/sales', label: 'Ventas', icon: Receipt, minPlan: 'basic' },
-  { href: '/expenses', label: 'Gastos', icon: TrendingDown, minPlan: 'professional' },
-  { href: '/waste', label: 'Desperdicios', icon: Trash2, minPlan: 'professional' },
-  { href: '/orders', label: 'Pedidos', icon: ClipboardList, minPlan: 'professional' },
-  { href: '/preventista', label: 'Preventa', icon: Smartphone, minPlan: 'professional' },
+  { href: '/expenses', label: 'Gastos', icon: TrendingDown, minPlan: 'professional', featureKey: 'expenses' },
+  { href: '/waste', label: 'Desperdicios', icon: Trash2, minPlan: 'professional', featureKey: 'waste' },
+  { href: '/orders', label: 'Pedidos', icon: ClipboardList, minPlan: 'professional', featureKey: 'orders' },
+  { href: '/preventista', label: 'Preventa', icon: Smartphone, minPlan: 'professional', featureKey: 'preventista' },
   { href: '/customers', label: 'Clientes', icon: Users, minPlan: 'professional' },
   { href: '/analytics', label: 'Estadísticas', icon: TrendingUp, minPlan: 'professional' },
-  { href: '/installments', label: 'Cuotas', icon: CreditCard, minPlan: 'professional' },
+  { href: '/installments', label: 'Cuotas', icon: CreditCard, minPlan: 'professional', featureKey: 'installments' },
   { href: '/purchases', label: 'Compras', icon: ShoppingBag, minPlan: 'enterprise' },
   { href: '/referrals', label: 'Referidos 🤝', icon: Gift, minPlan: 'basic' },
-  { href: '/work-orders', label: 'Órdenes', icon: Wrench, minPlan: 'basic', onlyForRubros: ['lubricentro', 'mecanica', 'gomeria', 'lavadero', 'otro'] },
-  { href: '/express', label: 'Express', icon: Zap, minPlan: 'basic', onlyForRubros: ['lubricentro', 'mecanica', 'gomeria', 'lavadero', 'otro'] },
-  { href: '/vehicles', label: 'Vehículos', icon: Car, minPlan: 'basic', onlyForRubros: ['lubricentro', 'mecanica', 'gomeria', 'lavadero', 'otro'] },
+  { href: '/work-orders', label: 'Órdenes', icon: Wrench, minPlan: 'basic', featureKey: 'work_orders', onlyForRubros: ['lubricentro', 'mecanica', 'gomeria', 'lavadero', 'otro'] },
+  { href: '/express', label: 'Express', icon: Zap, minPlan: 'basic', featureKey: 'express', onlyForRubros: ['lubricentro', 'mecanica', 'gomeria', 'lavadero', 'otro'] },
+  { href: '/vehicles', label: 'Vehículos', icon: Car, minPlan: 'basic', featureKey: 'vehicles', onlyForRubros: ['lubricentro', 'mecanica', 'gomeria', 'lavadero', 'otro'] },
 ]
 
 const PLAN_WEIGHTS = {
@@ -620,7 +620,11 @@ export default function AppLayout({ children }) {
 
         <nav className="sidebar-nav" style={{ marginTop: 'var(--space-4)' }}>
           {NAV_ITEMS.map((item) => {
-            if (item.onlyForRubros && !item.onlyForRubros.includes(tenant?.business_type)) {
+            if (item.featureKey && tenant?.features_config) {
+              if (tenant.features_config[item.featureKey] === false) {
+                return null
+              }
+            } else if (item.onlyForRubros && !item.onlyForRubros.includes(tenant?.business_type)) {
               return null
             }
             const isActive = pathname?.startsWith(item.href)
