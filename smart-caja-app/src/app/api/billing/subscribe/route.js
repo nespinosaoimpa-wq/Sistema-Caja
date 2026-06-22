@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
 const PLAN_PRICES = {
-  test: { name: 'Prueba', price: 50 },
   basic: { name: 'Básico', price: 20000 },
   professional: { name: 'Profesional', price: 35000 },
   enterprise: { name: 'Empresa', price: 60000 }

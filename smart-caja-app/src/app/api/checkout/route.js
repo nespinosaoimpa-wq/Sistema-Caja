@@ -4,7 +4,6 @@ import { NextResponse } from 'next/server'
 // Supports: basic ($20.000), professional ($35.000), enterprise ($60.000)
 
 const PLAN_PRICES = {
-  test: { name: 'Prueba', price: 50 },
   basic: { name: 'Básico', price: 20000 },
   professional: { name: 'Profesional', price: 35000 },
   enterprise: { name: 'Empresa', price: 60000 },

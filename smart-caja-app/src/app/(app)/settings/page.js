@@ -2332,48 +2332,6 @@ export default function SettingsPage() {
                 
                 <div className="pricing-grid">
                   
-                  {/* Plan de Prueba (Solo visible para Nicolás) */}
-                  {profile?.email === 'nespinosa.oimpa@gmail.com' && (
-                    <div style={{
-                      background: 'var(--bg-card)',
-                      border: tenant?.subscription_plan === 'test' ? '2px solid #009EE3' : '1px dashed #009EE3',
-                      borderRadius: 'var(--radius-xl)',
-                      padding: '24px',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      justifyContent: 'space-between',
-                      opacity: tenant?.subscription_plan === 'test' ? 1 : 0.85,
-                      boxShadow: tenant?.subscription_plan === 'test' ? '0 8px 24px rgba(0, 158, 227, 0.1)' : 'none',
-                      transition: 'all 0.2s'
-                    }}>
-                      <div>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                          <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#009EE3' }}>Prueba MP</h4>
-                          {tenant?.subscription_plan === 'test' && (
-                            <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', background: 'rgba(0,158,227,0.15)', color: '#009EE3', borderRadius: '9999px' }}>
-                              Activo
-                            </span>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '20px' }}>
-                          <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff' }}>$50</span>
-                          <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>ARS / mes</span>
-                        </div>
-                        <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.4 }}>
-                          Plan de prueba especial para verificar cobros y suscripciones de Mercado Pago.
-                        </p>
-                      </div>
-                      <button 
-                        className="btn btn-primary btn-sm"
-                        style={{ marginTop: '24px', width: '100%', background: '#009EE3', color: '#fff', border: 'none', fontWeight: 700 }}
-                        disabled={tenant?.subscription_plan === 'test' || upgrading === 'test'}
-                        onClick={() => handleUpgrade('test')}
-                      >
-                        {upgrading === 'test' ? 'Procesando...' : tenant?.subscription_plan === 'test' ? 'Tu Plan Actual' : 'Comenzar Prueba $50'}
-                      </button>
-                    </div>
-                  )}
-
                   {/* Plan Básico */}
                   <div style={{
                     background: 'var(--bg-card)',
