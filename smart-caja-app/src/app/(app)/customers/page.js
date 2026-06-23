@@ -18,6 +18,7 @@ export default function CustomersPage() {
 
   // Modals state
   const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [showPayModal, setShowPayModal] = useState(false)
   const [selectedCustomer, setSelectedCustomer] = useState(null)
 
@@ -27,8 +28,21 @@ export default function CustomersPage() {
   const [newCustEmail, setNewCustEmail] = useState('')
   const [newCustDni, setNewCustDni] = useState('')
   const [newCustAddress, setNewCustAddress] = useState('')
+  const [newCustLocality, setNewCustLocality] = useState('')
   const [newCustNotes, setNewCustNotes] = useState('')
   const [isSaving, setIsSaving] = useState(false)
+
+  // Form states for editing customer
+  const [editCustName, setEditCustName] = useState('')
+  const [editCustPhone, setEditCustPhone] = useState('')
+  const [editCustEmail, setEditCustEmail] = useState('')
+  const [editCustDni, setEditCustDni] = useState('')
+  const [editCustAddress, setEditCustAddress] = useState('')
+  const [editCustLocality, setEditCustLocality] = useState('')
+  const [editCustNotes, setEditCustNotes] = useState('')
+
+  // Filter states
+  const [selectedLocality, setSelectedLocality] = useState('')
 
   // Form states for recording payment
   const [paymentAmount, setPaymentAmount] = useState('')
@@ -75,6 +89,7 @@ export default function CustomersPage() {
           email: newCustEmail.trim() || null,
           dni: newCustDni.trim() || null,
           address: newCustAddress.trim() || null,
+          locality: newCustLocality.trim() || null,
           notes: newCustNotes.trim() || null,
           balance: 0,
           is_active: true
@@ -88,6 +103,7 @@ export default function CustomersPage() {
       setNewCustEmail('')
       setNewCustDni('')
       setNewCustAddress('')
+      setNewCustLocality('')
       setNewCustNotes('')
       // Reload
       loadCustomers()
@@ -125,12 +141,48 @@ export default function CustomersPage() {
     }
   }
 
-  const filteredCustomers = customers.filter(c => 
-    c.name.toLowerCase().includes(search.toLowerCase()) ||
-    (c.email && c.email.toLowerCase().includes(search.toLowerCase())) ||
-    (c.phone && c.phone.includes(search)) ||
-    (c.dni && c.dni.includes(search))
-  )
+  const handleEditCustomer = async (e) => {
+    e.preventDefault()
+    if (!editCustName.trim()) return toast.error('El nombre es requerido')
+    setIsSaving(true)
+    try {
+      const { error } = await supabase
+        .from('customers')
+        .update({
+          name: editCustName.trim(),
+          phone: editCustPhone.trim() || null,
+          email: editCustEmail.trim() || null,
+          dni: editCustDni.trim() || null,
+          address: editCustAddress.trim() || null,
+          locality: editCustLocality.trim() || null,
+          notes: editCustNotes.trim() || null
+        })
+        .eq('id', selectedCustomer.id)
+      if (error) throw error
+
+      toast.success('Cliente actualizado con éxito')
+      setShowEditModal(false)
+      setSelectedCustomer(null)
+      loadCustomers()
+    } catch (err) {
+      toast.error('Error al actualizar el cliente: ' + err.message)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const localities = Array.from(new Set(customers.map(c => c.locality).filter(Boolean))).sort()
+
+  const filteredCustomers = customers.filter(c => {
+    const matchesSearch = c.name.toLowerCase().includes(search.toLowerCase()) ||
+      (c.email && c.email.toLowerCase().includes(search.toLowerCase())) ||
+      (c.phone && c.phone.includes(search)) ||
+      (c.dni && c.dni.includes(search))
+
+    const matchesLocality = !selectedLocality || c.locality === selectedLocality
+
+    return matchesSearch && matchesLocality
+  })
 
   if (isGated) {
     return (
@@ -188,7 +240,7 @@ export default function CustomersPage() {
 
       {/* Filter and Table */}
       <div className="card" style={{ padding: 'var(--space-6)' }}>
-        <div style={{ marginBottom: 'var(--space-4)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
           <input 
             className="form-input" 
             placeholder="🔎 Buscar por nombre, DNI, email o teléfono..." 
@@ -196,6 +248,17 @@ export default function CustomersPage() {
             onChange={(e) => setSearch(e.target.value)}
             style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: '#fff' }}
           />
+          <select
+            className="form-input"
+            value={selectedLocality}
+            onChange={(e) => setSelectedLocality(e.target.value)}
+            style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: '#fff', padding: '8px 12px' }}
+          >
+            <option value="">📍 Todas las localidades</option>
+            {localities.map(loc => (
+              <option key={loc} value={loc}>{loc}</option>
+            ))}
+          </select>
         </div>
 
         <div style={{ overflowX: 'auto' }}>
@@ -208,6 +271,7 @@ export default function CustomersPage() {
                   <th style={{ padding: '12px 16px' }}>Nombre</th>
                   <th style={{ padding: '12px 16px' }}>DNI</th>
                   <th style={{ padding: '12px 16px' }}>Teléfono</th>
+                  <th style={{ padding: '12px 16px' }}>Localidad</th>
                   <th style={{ padding: '12px 16px' }}>Email</th>
                   <th style={{ padding: '12px 16px' }}>Última Compra</th>
                   <th style={{ padding: '12px 16px', textAlign: 'right' }}>Saldo Cta. Cte.</th>
@@ -222,6 +286,7 @@ export default function CustomersPage() {
                       <td style={{ padding: '14px 16px', fontWeight: 600, color: '#fff' }}>{cust.name}</td>
                       <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{cust.dni || '-'}</td>
                       <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{cust.phone || '-'}</td>
+                      <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{cust.locality || '-'}</td>
                       <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>{cust.email || '-'}</td>
                       <td style={{ padding: '14px 16px', color: 'var(--text-secondary)' }}>
                         {cust.last_purchase_at ? formatDateTime(cust.last_purchase_at).split(' ')[0] : 'Sin compras'}
@@ -230,17 +295,36 @@ export default function CustomersPage() {
                         {balanceNum > 0 ? formatCurrency(balanceNum) : 'Al día'}
                       </td>
                       <td style={{ padding: '14px 16px', textAlign: 'center' }}>
-                        <button 
-                          onClick={() => {
-                            setSelectedCustomer(cust)
-                            setPaymentAmount(balanceNum > 0 ? balanceNum.toString() : '')
-                            setShowPayModal(true)
-                          }}
-                          className="btn btn-primary btn-sm" 
-                          style={{ background: 'rgba(78, 222, 163, 0.1)', color: 'var(--color-secondary)', borderColor: 'var(--color-secondary)' }}
-                        >
-                          💳 Cobrar
-                        </button>
+                        <div style={{ display: 'flex', gap: '8px', justifyContent: 'center', alignItems: 'center' }}>
+                          <button 
+                            onClick={() => {
+                              setSelectedCustomer(cust)
+                              setPaymentAmount(balanceNum > 0 ? balanceNum.toString() : '')
+                              setShowPayModal(true)
+                            }}
+                            className="btn btn-primary btn-sm" 
+                            style={{ background: 'rgba(78, 222, 163, 0.1)', color: 'var(--color-secondary)', borderColor: 'var(--color-secondary)' }}
+                          >
+                            💳 Cobrar
+                          </button>
+                          <button 
+                            onClick={() => {
+                              setSelectedCustomer(cust)
+                              setEditCustName(cust.name || '')
+                              setEditCustPhone(cust.phone || '')
+                              setEditCustEmail(cust.email || '')
+                              setEditCustDni(cust.dni || '')
+                              setEditCustAddress(cust.address || '')
+                              setEditCustLocality(cust.locality || '')
+                              setEditCustNotes(cust.notes || '')
+                              setShowEditModal(true)
+                            }}
+                            className="btn btn-sm" 
+                            style={{ background: 'rgba(59, 130, 246, 0.1)', color: '#3b82f6', borderColor: '#3b82f6' }}
+                          >
+                            ✏️ Editar
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   )
@@ -326,15 +410,27 @@ export default function CustomersPage() {
               />
             </div>
 
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Dirección</label>
-              <input 
-                className="form-input" 
-                placeholder="Av. Corrientes 1234, CABA" 
-                value={newCustAddress}
-                onChange={e => setNewCustAddress(e.target.value)}
-                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: '#fff' }}
-              />
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Dirección</label>
+                <input 
+                  className="form-input" 
+                  placeholder="Av. Corrientes 1234" 
+                  value={newCustAddress}
+                  onChange={e => setNewCustAddress(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: '#fff' }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Localidad</label>
+                <input 
+                  className="form-input" 
+                  placeholder="Ej. Pilar" 
+                  value={newCustLocality}
+                  onChange={e => setNewCustLocality(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: '#fff' }}
+                />
+              </div>
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
@@ -365,6 +461,137 @@ export default function CustomersPage() {
                 style={{ flex: 1, padding: '12px', fontWeight: 600, background: 'var(--color-primary-hover)' }}
               >
                 {isSaving ? 'Guardando...' : 'Crear Cliente'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* MODAL: Editar Cliente */}
+      {showEditModal && selectedCustomer && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 9999
+        }} onClick={() => {
+          setShowEditModal(false)
+          setSelectedCustomer(null)
+        }}>
+          <form 
+            onSubmit={handleEditCustomer}
+            onClick={(e) => e.stopPropagation()}
+            style={{
+              background: 'var(--bg-card)', borderRadius: 'var(--radius-xl)',
+              border: '1px solid var(--border-color)',
+              maxWidth: '500px', width: '100%', padding: '24px',
+              display: 'flex', flexDirection: 'column', gap: '16px',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.5)'
+            }}
+          >
+            <h3 style={{ fontSize: '1.25rem', fontWeight: 700, color: '#fff', margin: 0 }}>✏️ Editar Cliente</h3>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Nombre Completo *</label>
+              <input 
+                className="form-input" 
+                required
+                placeholder="Ej. Juan Pérez" 
+                value={editCustName}
+                onChange={e => setEditCustName(e.target.value)}
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: '#fff' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>DNI / CUIT</label>
+                <input 
+                  className="form-input" 
+                  placeholder="Ej. 20-35444888-9" 
+                  value={editCustDni}
+                  onChange={e => setEditCustDni(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: '#fff' }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Teléfono</label>
+                <input 
+                  className="form-input" 
+                  placeholder="Ej. 11-5555-1234" 
+                  value={editCustPhone}
+                  onChange={e => setEditCustPhone(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: '#fff' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Email</label>
+              <input 
+                className="form-input" 
+                type="email"
+                placeholder="juan@email.com" 
+                value={editCustEmail}
+                onChange={e => setEditCustEmail(e.target.value)}
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: '#fff' }}
+              />
+            </div>
+
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Dirección</label>
+                <input 
+                  className="form-input" 
+                  placeholder="Av. Corrientes 1234" 
+                  value={editCustAddress}
+                  onChange={e => setEditCustAddress(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: '#fff' }}
+                />
+              </div>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Localidad</label>
+                <input 
+                  className="form-input" 
+                  placeholder="Ej. Pilar" 
+                  value={editCustLocality}
+                  onChange={e => setEditCustLocality(e.target.value)}
+                  style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: '#fff' }}
+                />
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <label style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', fontWeight: 600 }}>Notas / Límite de Crédito</label>
+              <textarea 
+                className="form-input" 
+                rows="2"
+                placeholder="Notas adicionales sobre este cliente..." 
+                value={editCustNotes}
+                onChange={e => setEditCustNotes(e.target.value)}
+                style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: '#fff', resize: 'none', padding: '8px 12px' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', gap: '12px', marginTop: '8px' }}>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowEditModal(false)
+                  setSelectedCustomer(null)
+                }}
+                className="btn"
+                style={{ flex: 1, padding: '12px', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', fontWeight: 600 }}
+              >
+                Cancelar
+              </button>
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="btn btn-primary"
+                style={{ flex: 1, padding: '12px', fontWeight: 600, background: 'var(--color-primary-hover)' }}
+              >
+                {isSaving ? 'Guardando...' : 'Guardar Cambios'}
               </button>
             </div>
           </form>
