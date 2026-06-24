@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
-import { formatCurrency } from '@/lib/utils/formatters'
+import { formatCurrency, formatDatabaseError } from '@/lib/utils/formatters'
 import UpgradePrompt from '@/components/ui/UpgradePrompt'
 import {
   Search, ShoppingCart, User, Calendar, DollarSign,
@@ -293,7 +293,7 @@ export default function PreventistaPage() {
 
     } catch (e) {
       console.error('[handleSaveOrder]', e)
-      toast.error('Error al guardar el pedido: ' + e.message)
+      toast.error(formatDatabaseError(e, 'Error al guardar el pedido'))
     } finally {
       setSavingOrder(false)
     }
@@ -312,7 +312,7 @@ export default function PreventistaPage() {
       toast.info(`Pedido #${orderNumber} cancelado`)
       loadData()
     } catch (e) {
-      toast.error('Error al cancelar: ' + e.message)
+      toast.error(formatDatabaseError(e, 'Error al cancelar el pedido'))
     }
   }
 
