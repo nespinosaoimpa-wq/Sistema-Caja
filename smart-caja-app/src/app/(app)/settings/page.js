@@ -2532,7 +2532,7 @@ export default function SettingsPage() {
                     <div>
                       <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Alias de Pago</div>
                       <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-secondary)', fontFamily: 'monospace' }}>smart05</div>
-                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Titular: Smart Caja</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Titular: Nicolas Espinosa (Naranja X)</div>
                     </div>
                     <button 
                       onClick={() => {

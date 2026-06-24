@@ -323,7 +323,7 @@ function CheckoutContent() {
               textAlign: 'left'
             }}>
               <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                💡 ¿Inconvenientes para pagar? Podés realizar transferencia directa al alias <strong style={{ color: '#fff', fontFamily: 'monospace' }}>smart05</strong> (Titular: Smart Caja) y enviar el comprobante a nuestro WhatsApp de soporte para habilitar tu membresía.
+                💡 ¿Inconvenientes para pagar? Podés realizar transferencia directa al alias <strong style={{ color: '#fff', fontFamily: 'monospace' }}>smart05</strong> (Titular: Nicolas Espinosa - Naranja X) y enviar el comprobante a nuestro WhatsApp de soporte para habilitar tu membresía.
               </p>
             </div>
           </>
