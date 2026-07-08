@@ -42,7 +42,7 @@ const NAV_ITEMS = [
   { href: '/sales', label: 'Ventas', icon: Receipt, minPlan: 'basic' },
   { href: '/expenses', label: 'Gastos', icon: TrendingDown, minPlan: 'professional', featureKey: 'expenses' },
   { href: '/waste', label: 'Desperdicios', icon: Trash2, minPlan: 'professional', featureKey: 'waste' },
-  { href: '/orders', label: 'Pedidos', icon: ClipboardList, minPlan: 'professional', featureKey: 'orders' },
+  { href: '/orders', label: 'Pedidos', icon: ClipboardList, minPlan: 'basic', featureKey: 'orders' },
   { href: '/preventista', label: 'Preventa', icon: Smartphone, minPlan: 'professional', featureKey: 'preventista' },
   { href: '/customers', label: 'Clientes', icon: Users, minPlan: 'professional' },
   { href: '/analytics', label: 'Estadísticas', icon: TrendingUp, minPlan: 'professional' },
