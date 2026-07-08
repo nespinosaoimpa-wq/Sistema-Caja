@@ -196,8 +196,8 @@ export default function LandingPage() {
           </>
         ) : (
           <>
-            <span>🔥 50% de DESCUENTO en tu primer mes con el código: <strong style={{ borderBottom: '2px solid #fff' }}>LANZAMIENTO50</strong></span>
-            <Link href="/register?coupon=LANZAMIENTO50" style={{
+            <span>🎁 <strong>NUEVO:</strong> Creá tu Tienda Online con catálogo y pedidos por WhatsApp <strong>100% GRATIS</strong> (ahorrate $45.000+/mes).</span>
+            <Link href="/catalogo-gratis" style={{
               background: '#fff',
               color: '#7C3AED',
               padding: '4px 12px',
@@ -207,7 +207,7 @@ export default function LandingPage() {
               textDecoration: 'none',
               boxShadow: '0 2px 6px rgba(0,0,0,0.15)'
             }}>
-              Obtener 50% OFF
+              Crear Tienda Gratis ➔
             </Link>
           </>
         )}
@@ -250,6 +250,45 @@ export default function LandingPage() {
 
       {/* ── Hero ── */}
       <section className={styles.hero} style={{ paddingTop: '130px' }}>
+        {/* NEW ISOLATED FEATURE PROMO CARD */}
+        <div style={{
+          background: 'linear-gradient(135deg, rgba(78, 222, 163, 0.12) 0%, rgba(124, 58, 237, 0.12) 100%)',
+          border: '1px solid rgba(78, 222, 163, 0.3)',
+          borderRadius: '16px',
+          padding: '12px 20px',
+          marginBottom: '24px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '12px',
+          justifyContent: 'center',
+          flexWrap: 'wrap',
+          boxShadow: '0 4px 20px rgba(78, 222, 163, 0.1)',
+          maxWidth: '750px',
+          margin: '0 auto 24px'
+        }}>
+          <span style={{ fontSize: '1.25rem' }}>🎁</span>
+          <span style={{ fontSize: '0.875rem', color: '#fff', fontWeight: 600 }}>
+            <strong style={{ color: '#4edea3', textTransform: 'uppercase' }}>¡Catálogo Online Gratis!</strong> 
+            {" "}Creá tu tienda digital y recibí pedidos por WhatsApp. Sin comisiones. Ahorrate los <strong>$35.000 - $85.000/mes</strong>.
+          </span>
+          <Link href="/catalogo-gratis" style={{
+            background: '#4edea3',
+            color: '#000',
+            fontWeight: 800,
+            fontSize: '0.78rem',
+            padding: '6px 14px',
+            borderRadius: '20px',
+            textDecoration: 'none',
+            transition: 'transform 0.1s ease',
+            display: 'inline-block'
+          }}
+            onMouseOver={e => e.currentTarget.style.transform = 'scale(1.03)'}
+            onMouseOut={e => e.currentTarget.style.transform = 'scale(1)'}
+          >
+            Ver catálogo gratis ➔
+          </Link>
+        </div>
+
         <div className={styles.trustBadge}>
           <span className={styles.activeDot}></span>
           Más de 200 comercios activos hoy
