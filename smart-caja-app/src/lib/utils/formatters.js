@@ -216,3 +216,46 @@ export const SUBSCRIPTION_STATUS_LABELS = {
   suspended: 'Suspendida',
   cancelled: 'Cancelada',
 }
+
+/**
+ * Translate database errors to user-friendly messages in Spanish
+ */
+export function formatDatabaseError(error, defaultMsg = 'Ocurrió un error en la base de datos') {
+  if (!error) return defaultMsg
+  const msg = typeof error === 'string' ? error : (error.message || '')
+
+  if (msg.includes('null value in column') && msg.includes('violates not-null constraint')) {
+    const match = msg.match(/column "([^"]+)"/)
+    const column = match ? match[1] : ''
+    
+    const columnsDict = {
+      customer_phone: 'número de teléfono del cliente',
+      customer_name: 'nombre del cliente',
+      customer_email: 'email del cliente',
+      customer_address: 'dirección del cliente',
+      name: 'nombre',
+      phone: 'teléfono',
+      dni: 'DNI / CUIT',
+      barcode: 'código de barras',
+      reference_code: 'código de referencia',
+      sale_price: 'precio de venta',
+      cost_price: 'precio de costo'
+    }
+    
+    const friendlyColumn = columnsDict[column] || column
+    return `Falta cargar un dato obligatorio: ${friendlyColumn}`
+  }
+
+  if (msg.includes('unique constraint') || msg.includes('violates unique constraint')) {
+    if (msg.includes('barcode')) return 'El código de barras ya está registrado en otro producto.'
+    if (msg.includes('dni')) return 'El DNI o CUIT ya está registrado para otro cliente.'
+    if (msg.includes('reference_code')) return 'El código de referencia ya está registrado.'
+    return 'Ya existe un registro con estos datos únicos.'
+  }
+
+  if (msg.includes('foreign key constraint') || msg.includes('violates foreign key constraint')) {
+    return 'Los datos hacen referencia a un registro que no existe.'
+  }
+
+  return msg || defaultMsg
+}

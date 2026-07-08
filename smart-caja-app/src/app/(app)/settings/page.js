@@ -3219,6 +3219,58 @@ export default function SettingsPage() {
                   
                 </div>
 
+                <div style={{
+                  background: 'rgba(124, 58, 237, 0.05)',
+                  border: '1px solid rgba(124, 58, 237, 0.2)',
+                  borderRadius: 'var(--radius-xl)',
+                  padding: '24px',
+                  marginTop: '32px',
+                  textAlign: 'left'
+                }}>
+                  <h4 style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#fff', marginBottom: '8px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                    🏦 Pago por Transferencia Bancaria (Alternativo)
+                  </h4>
+                  <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', lineHeight: 1.5, marginBottom: '16px' }}>
+                    Si tenés inconvenientes para realizar el pago a través de Mercado Pago, podés transferir directamente utilizando nuestro alias y enviarnos el comprobante por WhatsApp para activar tu membresía al instante.
+                  </p>
+                  <div style={{
+                    background: 'var(--bg-base)',
+                    border: '1px solid var(--border-color)',
+                    borderRadius: 'var(--radius-md)',
+                    padding: '16px',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    gap: '16px',
+                    marginBottom: '16px'
+                  }}>
+                    <div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textTransform: 'uppercase', fontWeight: 600, letterSpacing: '0.05em' }}>Alias de Pago</div>
+                      <div style={{ fontSize: '1.25rem', fontWeight: 800, color: 'var(--color-secondary)', fontFamily: 'monospace' }}>smart05</div>
+                      <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>Titular: Nicolas Espinosa (Naranja X)</div>
+                    </div>
+                    <button 
+                      onClick={() => {
+                        navigator.clipboard.writeText('smart05');
+                        toast.success('Alias "smart05" copiado al portapapeles');
+                      }}
+                      className="btn btn-ghost btn-sm"
+                      style={{ padding: '8px 12px', fontSize: '0.75rem' }}
+                    >
+                      Copiar Alias
+                    </button>
+                  </div>
+                  <a 
+                    href={`https://wa.me/543425162372?text=Hola%20Smart%20Caja!%20Acabo%20de%20realizar%20la%20transferencia%20de%20mi%20membres%C3%ADa%20para%20el%20negocio%20${encodeURIComponent(tenant?.name || '')}.%20Adjunto%20comprobante.`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="btn btn-secondary"
+                    style={{ display: 'inline-flex', width: '100%', justifyContent: 'center', padding: '12px', fontWeight: 700, gap: '8px' }}
+                  >
+                    Enviar Comprobante por WhatsApp 💬
+                  </a>
+                </div>
+
               </div>
 
               {/* Developer/Testing sandbox drawer */}

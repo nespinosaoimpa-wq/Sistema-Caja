@@ -4,7 +4,7 @@ import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
-import { formatCurrency, formatDateTime } from '@/lib/utils/formatters'
+import { formatCurrency, formatDateTime, formatDatabaseError } from '@/lib/utils/formatters'
 import { 
   Maximize, Minimize, Search, Zap, Edit, Banknote, CreditCard, Landmark, Split, Calendar, 
   ShoppingCart, User, Clock, Trash2, Printer, Package, ArrowLeftRight, CheckCircle
@@ -237,7 +237,7 @@ export default function POSPage() {
       setCart([])
     } catch (err) {
       console.error('[handleSaveAsOrder]', err)
-      toast.error('Error al guardar el pedido: ' + err.message)
+      toast.error(formatDatabaseError(err, 'Error al guardar el pedido'))
     } finally {
       setSavingOrder(false)
     }
@@ -1196,7 +1196,7 @@ export default function POSPage() {
       // Reload products to refresh stock quantities
       loadData()
     } catch (err) {
-      toast.error(err.message)
+      toast.error(formatDatabaseError(err, 'Error al registrar la venta'))
     } finally {
       setIsProcessing(false)
     }

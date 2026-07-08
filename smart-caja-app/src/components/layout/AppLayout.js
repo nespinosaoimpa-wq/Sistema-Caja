@@ -733,8 +733,12 @@ export default function AppLayout({ children }) {
                 </p>
                 <div style={{ background: 'rgba(255, 180, 171, 0.1)', border: '1px solid rgba(255, 180, 171, 0.2)', borderRadius: 'var(--radius-md)', padding: '16px', marginBottom: '24px', textAlign: 'left' }}>
                   <div style={{ fontWeight: 600, color: '#fff', fontSize: '0.875rem', marginBottom: '4px' }}>¿Cómo solucionarlo?</div>
+                  <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '8px' }}>
+                    Para reestablecer las operaciones y habilitar la caja registradora, seleccioná tu plan en la pestaña de Configuración.
+                  </div>
+                  <div style={{ height: '1px', background: 'rgba(255, 180, 171, 0.2)', margin: '8px 0' }} />
                   <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-                    Para reestablecer las operaciones y habilitar la caja registradora, selecciona tu plan e integra Mercado Pago en la pestaña de Configuración.
+                    O si preferís transferencia bancaria, podés transferir al alias <strong style={{ color: '#fff', fontFamily: 'monospace' }}>smart05</strong> (Titular: Nicolas Espinosa - Naranja X) y enviar el comprobante a nuestro WhatsApp de soporte.
                   </div>
                 </div>
                 <Link href="/settings" style={{
