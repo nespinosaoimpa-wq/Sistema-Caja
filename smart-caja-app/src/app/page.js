@@ -34,8 +34,10 @@ const PLANS = [
       { label: 'Conciliación cupones POSnet', ok: true, exclusive: true },
       { label: 'Soporte por WhatsApp en horario hábil', ok: true },
       { label: 'Facturación ARCA', ok: false, soon: true },
+      { label: 'Tienda Online + Pedidos WhatsApp (¡GRATIS!)', ok: true },
+      { label: 'Sincronización con Tiendanube (¡GRATIS!)', ok: true },
       { label: 'Control de Gastos y Desperdicios', ok: false },
-      { label: 'Módulo de Pedidos y Preventa', ok: false },
+      { label: 'Gestión de Preventistas móviles', ok: false },
       { label: 'Roles cajero / admin', ok: false },
       { label: 'Estadísticas avanzadas y rentabilidad', ok: false },
       { label: 'Cuotas e intereses', ok: false },
@@ -60,7 +62,7 @@ const PLANS = [
       { label: 'Cuotas e intereses configurables', ok: true, exclusive: true },
       { label: 'Cuentas Corrientes avanzadas + alertas de deuda', ok: true, exclusive: true },
       { label: 'Control de Gastos y Desperdicios', ok: true },
-      { label: 'Gestión de Pedidos y Preventistas', ok: true },
+      { label: 'Gestión de Preventistas móviles', ok: true },
       { label: 'Exportación CSV para tu contador', ok: true, exclusive: true },
       { label: 'Logo propio en tickets de venta', ok: true, exclusive: true },
       { label: 'Personalización visual (colores + logo en la app)', ok: true, exclusive: true },
@@ -743,6 +745,186 @@ export default function LandingPage() {
               </div>
             </form>
           )}
+        </div>
+      </section>
+
+      {/* ── Tienda Online / Tiendanube Section (High Anchor Pricing) ── */}
+      <section style={{
+        padding: '80px 24px',
+        background: 'linear-gradient(180deg, rgba(124, 58, 237, 0.05) 0%, rgba(6, 14, 32, 0.8) 100%)',
+        borderTop: '1px solid var(--border-color)',
+        borderBottom: '1px solid var(--border-color)',
+        position: 'relative',
+        overflow: 'hidden'
+      }}>
+        {/* Decorative ambient light */}
+        <div style={{
+          position: 'absolute',
+          top: '20%',
+          left: '50%',
+          transform: 'translateX(-50%)',
+          width: '500px',
+          height: '250px',
+          background: 'radial-gradient(circle, rgba(124, 58, 237, 0.12) 0%, transparent 70%)',
+          pointerEvents: 'none',
+          zIndex: 1
+        }} />
+
+        <div style={{ maxWidth: '1100px', margin: '0 auto', position: 'relative', zIndex: 2 }}>
+          
+          <div style={{ textAlign: 'center', marginBottom: '50px' }}>
+            <div style={{
+              display: 'inline-block',
+              background: 'rgba(124, 58, 237, 0.15)',
+              color: 'var(--color-primary)',
+              padding: '6px 16px',
+              borderRadius: '20px',
+              fontSize: '0.8rem',
+              fontWeight: 800,
+              textTransform: 'uppercase',
+              letterSpacing: '0.05em',
+              marginBottom: '16px'
+            }}>
+              Módulo de Ventas Online
+            </div>
+            <h2 style={{
+              fontFamily: 'var(--font-headline)',
+              fontSize: '2.25rem',
+              fontWeight: 800,
+              color: '#fff',
+              letterSpacing: '-0.02em',
+              lineHeight: 1.2
+            }}>
+              ¿Seguís pagando de más por tu Tienda Online?
+            </h2>
+            <p style={{
+              fontSize: '1.0625rem',
+              color: 'var(--text-muted)',
+              marginTop: '12px',
+              maxWidth: '700px',
+              margin: '12px auto 0',
+              lineHeight: 1.5
+            }}>
+              Otras plataformas te cobran costosas mensualidades fijas y comisiones abusivas por cada venta. En Smart Caja te damos un e-commerce y catálogo WhatsApp profesional **100% GRATIS**.
+            </p>
+          </div>
+
+          {/* Pricing Comparison Anchor Box */}
+          <div style={{
+            background: 'rgba(255, 255, 255, 0.02)',
+            border: '1px solid rgba(255, 255, 255, 0.06)',
+            borderRadius: '24px',
+            padding: '32px',
+            marginBottom: '48px',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.4)',
+            backdropFilter: 'blur(12px)',
+          }}>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: '24px', alignItems: 'center' }}>
+              <div>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', fontWeight: 600, textTransform: 'uppercase' }}>Costo promedio en el mercado</div>
+                <div style={{ fontSize: '1.875rem', fontWeight: 800, color: '#ef4444', margin: '8px 0', textDecoration: 'line-through', opacity: 0.8 }}>
+                  $35.000 a $85.000 / mes
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-muted)', margin: 0, lineHeight: 1.4 }}>
+                  Cobrado por plataformas tradicionales + 2% a 5% de comisión por cada transacción.
+                </p>
+              </div>
+
+              <div style={{ 
+                borderLeft: '1px solid rgba(255, 255, 255, 0.1)', 
+                paddingLeft: '24px',
+                height: '100%',
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'center'
+              }}>
+                <div style={{ fontSize: '0.8125rem', color: 'var(--color-secondary)', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Con Smart Caja</div>
+                <div style={{ fontSize: '3rem', fontWeight: 900, color: '#4edea3', margin: '8px 0', display: 'flex', alignItems: 'baseline', gap: '8px' }}>
+                  $0 <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--text-secondary)' }}>Gratis para siempre</span>
+                </div>
+                <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', margin: 0, lineHeight: 1.4, fontWeight: 600 }}>
+                  Disponible en todos los planes. Sin comisiones por venta. Cero costos de mantenimiento.
+                </p>
+              </div>
+              
+              <div style={{ textAlign: 'center' }}>
+                <Link href="/register" className={styles.registerButton} style={{
+                  padding: '16px 32px',
+                  fontSize: '1rem',
+                  fontWeight: 800,
+                  display: 'inline-block',
+                  width: '100%',
+                  textAlign: 'center',
+                  background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))',
+                  border: 'none',
+                  boxShadow: '0 4px 14px rgba(221, 183, 255, 0.3)',
+                  textDecoration: 'none'
+                }}>
+                  Crear Mi Catálogo Gratis
+                </Link>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '8px' }}>
+                  Listo en menos de 2 minutos · Sin tarjeta
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Feature details grid */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px' }}>
+            
+            <div style={{
+              background: 'rgba(255,255,255,0.01)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              padding: '24px',
+              transition: 'transform 0.2s',
+            }}
+              onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseOut={e => e.currentTarget.style.transform = 'none'}
+            >
+              <div style={{ fontSize: '2rem', marginBottom: '12px' }}>🔌</div>
+              <h4 style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#fff', margin: 0 }}>Sincronización con Tiendanube</h4>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px', lineHeight: 1.5 }}>
+                ¿Ya vendés por Tiendanube? Conectala a Smart Caja en 1 clic e importá tu catálogo completo. El stock físico e imágenes se actualizan solos, centralizando tu control sin duplicar trabajo.
+              </p>
+            </div>
+
+            <div style={{
+              background: 'rgba(255,255,255,0.01)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              padding: '24px',
+              transition: 'transform 0.2s',
+            }}
+              onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseOut={e => e.currentTarget.style.transform = 'none'}
+            >
+              <div style={{ fontSize: '2rem', marginBottom: '12px' }}>⏰</div>
+              <h4 style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#fff', margin: 0 }}>Control de Horarios y Stock</h4>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px', lineHeight: 1.5 }}>
+                Tus clientes ven si estás abierto o cerrado en tiempo real. Además, decidís si preferís mostrar productos sin stock con la etiqueta de "Sin stock" o si querés que se oculten automáticamente.
+              </p>
+            </div>
+
+            <div style={{
+              background: 'rgba(255,255,255,0.01)',
+              border: '1px solid var(--border-color)',
+              borderRadius: '16px',
+              padding: '24px',
+              transition: 'transform 0.2s',
+            }}
+              onMouseOver={e => e.currentTarget.style.transform = 'translateY(-2px)'}
+              onMouseOut={e => e.currentTarget.style.transform = 'none'}
+            >
+              <div style={{ fontSize: '2rem', marginBottom: '12px' }}>💬</div>
+              <h4 style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#fff', margin: 0 }}>Pedidos Directos a WhatsApp</h4>
+              <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '8px', lineHeight: 1.5 }}>
+                Tus clientes cargan sus carritos y te envían el pedido detallado directo a tu WhatsApp y se registra en tu panel de Pedidos de Smart Caja. Coordinás cobro y entrega sin intermediarios.
+              </p>
+            </div>
+
+          </div>
+
         </div>
       </section>
 

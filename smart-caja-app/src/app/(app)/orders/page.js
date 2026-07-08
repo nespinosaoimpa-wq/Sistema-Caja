@@ -52,14 +52,13 @@ export default function OrdersPage() {
 
   useEffect(() => {
     if (!tenant?.id) return
-    if (tenant.subscription_plan === 'basic') { setLoading(false); return }
     const timer = setTimeout(() => loadOrders(), 0)
     return () => clearTimeout(timer)
   }, [tenant, loadOrders])
 
   // Realtime subscription
   useEffect(() => {
-    if (!tenant?.id || tenant.subscription_plan === 'basic') return
+    if (!tenant?.id) return
     const channel = supabase
       .channel(`orders_${tenant.id}`)
       .on('postgres_changes', {
@@ -79,7 +78,7 @@ export default function OrdersPage() {
       .subscribe()
 
     return () => { supabase.removeChannel(channel) }
-  }, [tenant?.id, tenant?.subscription_plan, supabase, toast])
+  }, [tenant?.id, supabase, toast])
 
   const moveOrder = async (orderId, newStatus) => {
     const order = orders.find(o => o.id === orderId)
@@ -137,15 +136,6 @@ export default function OrdersPage() {
     <div style={{ padding: 'var(--space-8)', color: 'var(--text-muted)' }}>Cargando pedidos...</div>
   )
 
-  if (tenant?.subscription_plan === 'basic') {
-    return (
-      <UpgradePrompt
-        title="Módulo de Pedidos Online"
-        description="Recibí pedidos desde tu tienda online pública, gestioná estados en un tablero Kanban y notificá a tus clientes por WhatsApp con un clic."
-        requiredPlan="professional"
-      />
-    )
-  }
 
   const storeUrl = typeof window !== 'undefined'
     ? `${window.location.origin}/tienda/${tenant?.slug}`

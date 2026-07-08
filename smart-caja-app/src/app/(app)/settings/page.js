@@ -45,6 +45,12 @@ export default function SettingsPage() {
   const [upgrading, setUpgrading] = useState(null) // planId string when upgrading, null when idle
   const [activeTab, setActiveTab] = useState('general')
   const [previewScreensaver, setPreviewScreensaver] = useState(false)
+
+  // Store wizard & products states
+  const [wizardStep, setWizardStep] = useState(1)
+  const [storeProducts, setStoreProducts] = useState([])
+  const [loadingStoreProducts, setLoadingStoreProducts] = useState(false)
+  const [syncingNube, setSyncingNube] = useState(false)
   
   const [uploadingLogo, setUploadingLogo] = useState(false)
   const [form, setForm] = useState({
@@ -71,6 +77,22 @@ export default function SettingsPage() {
     ecommerce_whatsapp: '',
     ecommerce_delivery_modes: ['pickup'],
     features_config: {},
+    ecommerce_hours: {
+      enabled: false,
+      days: {
+        monday: { from: '09:00', to: '18:00', closed: false },
+        tuesday: { from: '09:00', to: '18:00', closed: false },
+        wednesday: { from: '09:00', to: '18:00', closed: false },
+        thursday: { from: '09:00', to: '18:00', closed: false },
+        friday: { from: '09:00', to: '18:00', closed: false },
+        saturday: { from: '09:00', to: '14:00', closed: false },
+        sunday: { from: '09:00', to: '18:00', closed: true }
+      }
+    },
+    ecommerce_show_out_of_stock: true,
+    tiendanube_store_id: '',
+    tiendanube_access_token: '',
+    tiendanube_last_sync: null
   })
 
   // Team & Branch states
@@ -113,6 +135,22 @@ export default function SettingsPage() {
           ecommerce_whatsapp: tenant.ecommerce_whatsapp || '',
           ecommerce_delivery_modes: tenant.ecommerce_delivery_modes || ['pickup'],
           features_config: tenant.features_config || {},
+          ecommerce_hours: tenant.ecommerce_hours || {
+            enabled: false,
+            days: {
+              monday: { from: '09:00', to: '18:00', closed: false },
+              tuesday: { from: '09:00', to: '18:00', closed: false },
+              wednesday: { from: '09:00', to: '18:00', closed: false },
+              thursday: { from: '09:00', to: '18:00', closed: false },
+              friday: { from: '09:00', to: '18:00', closed: false },
+              saturday: { from: '09:00', to: '14:00', closed: false },
+              sunday: { from: '09:00', to: '18:00', closed: true }
+            }
+          },
+          ecommerce_show_out_of_stock: tenant.ecommerce_show_out_of_stock !== false,
+          tiendanube_store_id: tenant.tiendanube_store_id || '',
+          tiendanube_access_token: tenant.tiendanube_access_token || '',
+          tiendanube_last_sync: tenant.tiendanube_last_sync || null
         })
       }, 0)
       return () => clearTimeout(timer)
@@ -332,6 +370,95 @@ export default function SettingsPage() {
     }
   }
 
+  // Load products for the storefront catalog publishing step
+  const loadStoreProducts = async () => {
+    if (!tenant?.id) return
+    setLoadingStoreProducts(true)
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('id, name, show_in_store, sale_price, stock_quantity')
+        .eq('tenant_id', tenant.id)
+        .order('name')
+      if (error) throw error
+      setStoreProducts(data || [])
+    } catch (e) {
+      console.error('Error loading products for store:', e)
+      toast.error('Error al cargar productos')
+    } finally {
+      setLoadingStoreProducts(false)
+    }
+  }
+
+  const toggleProductStoreVisibility = async (productId, currentVal) => {
+    try {
+      const newVal = !currentVal
+      // Optimistic update
+      setStoreProducts(prev => prev.map(p => p.id === productId ? { ...p, show_in_store: newVal } : p))
+      
+      const { error } = await supabase
+        .from('products')
+        .update({ show_in_store: newVal })
+        .eq('id', productId)
+      
+      if (error) throw error
+      toast.success(newVal ? 'Producto visible en tienda' : 'Producto ocultado de la tienda')
+    } catch (e) {
+      // Rollback
+      setStoreProducts(prev => prev.map(p => p.id === productId ? { ...p, show_in_store: currentVal } : p))
+      console.error(e)
+      toast.error('Error al actualizar visibilidad')
+    }
+  }
+
+  // Tiendanube Catalog Sync trigger
+  const handleTiendanubeSync = async () => {
+    if (!form.tiendanube_store_id || !form.tiendanube_access_token) {
+      toast.error('Por favor, ingresa el Store ID y el Access Token de Tiendanube.')
+      return
+    }
+    setSyncingNube(true)
+    try {
+      // First save the credentials to the database
+      const { error: saveCredError } = await supabase
+        .from('tenants')
+        .update({
+          tiendanube_store_id: form.tiendanube_store_id,
+          tiendanube_access_token: form.tiendanube_access_token
+        })
+        .eq('id', tenant.id)
+
+      if (saveCredError) throw saveCredError
+
+      // Trigger the sync backend API
+      const res = await fetch('/api/integrations/tiendanube/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Error desconocido')
+
+      toast.success(`🎉 Sincronización exitosa: ${data.imported} importados, ${data.updated} actualizados.`)
+      
+      // Reload products list
+      loadStoreProducts()
+      
+      // Reload profile to update last sync date
+      reloadProfile()
+    } catch (e) {
+      console.error(e)
+      toast.error('Error en la sincronización: ' + e.message)
+    } finally {
+      setSyncingNube(false)
+    }
+  }
+
+  useEffect(() => {
+    if (activeTab === 'store' && wizardStep === 2 && tenant?.id) {
+      loadStoreProducts()
+    }
+  }, [activeTab, wizardStep, tenant?.id])
+
   // Save Tenant settings globally
   const handleSave = async () => {
     setSaving(true)
@@ -349,6 +476,10 @@ export default function SettingsPage() {
         ecommerce_whatsapp: form.ecommerce_whatsapp,
         ecommerce_delivery_modes: form.ecommerce_delivery_modes,
         features_config: form.features_config,
+        ecommerce_hours: form.ecommerce_hours,
+        ecommerce_show_out_of_stock: form.ecommerce_show_out_of_stock,
+        tiendanube_store_id: form.tiendanube_store_id,
+        tiendanube_access_token: form.tiendanube_access_token,
         theme_config: {
           primary_color: form.primary_color,
           secondary_color: form.secondary_color,
@@ -1157,114 +1288,698 @@ export default function SettingsPage() {
           {/* TAB TIENDA ONLINE */}
           {activeTab === 'store' && (
             <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-              <div className="card">
-                <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                    <ShoppingBag size={18} style={{ color: 'var(--color-primary)' }} />
-                    <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Tienda Online</h3>
-                  </div>
-                  {tenant?.slug && (
-                    <a 
-                      href={`/tienda/${tenant.slug}`} 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="btn btn-secondary"
-                      style={{ fontSize: '0.8125rem', padding: '6px 12px', textDecoration: 'none' }}
+              
+              {/* Wizard Steps Progress Header */}
+              <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                background: 'rgba(255, 255, 255, 0.02)',
+                padding: '16px 24px',
+                borderRadius: 'var(--radius-lg)',
+                border: '1px solid var(--border-color)',
+                alignItems: 'center',
+                gap: '12px',
+                overflowX: 'auto'
+              }}>
+                {[
+                  { step: 1, label: '1. Configuración Básica' },
+                  { step: 2, label: '2. Publicar Catálogo' },
+                  { step: 3, label: '3. Enlace y Referidos' }
+                ].map((s) => {
+                  const isActive = wizardStep === s.step
+                  const isCompleted = wizardStep > s.step
+                  return (
+                    <div 
+                      key={s.step} 
+                      onClick={() => setWizardStep(s.step)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
+                        cursor: 'pointer',
+                        opacity: isActive ? 1 : 0.6,
+                        transition: 'all 0.2s',
+                        whiteSpace: 'nowrap'
+                      }}
                     >
-                      Ver mi tienda ↗
-                    </a>
-                  )}
-                </div>
-                <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '20px' }}>
-                  
-                  {tenant?.subscription_plan === 'basic' ? (
-                    <UpgradePrompt
-                      title="Tienda Online Integrada"
-                      description="Habilitá un catálogo público para tus clientes. Recibí pedidos directamente en tu sistema y coordiná por WhatsApp."
-                      requiredPlan="professional"
-                    />
-                  ) : (
-                    <>
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                        <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flex: 1 }}>
-                          <input 
-                            type="checkbox" 
-                            checked={form.ecommerce_enabled}
-                            onChange={(e) => updateForm('ecommerce_enabled', e.target.checked)}
-                            style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
-                          />
-                          <div>
-                            <div style={{ fontWeight: 600, fontSize: '0.9375rem' }}>Habilitar tienda pública</div>
-                            <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Tus clientes podrán ver tus productos (marcados como visibles) y hacer pedidos online.</div>
-                          </div>
-                        </label>
+                      <div style={{
+                        width: '28px',
+                        height: '28px',
+                        borderRadius: '50%',
+                        background: isActive ? 'var(--color-primary)' : isCompleted ? 'var(--color-secondary)' : 'rgba(255,255,255,0.06)',
+                        color: isActive || isCompleted ? '#000' : '#fff',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontWeight: 800,
+                        fontSize: '0.875rem'
+                      }}>
+                        {isCompleted ? '✓' : s.step}
+                      </div>
+                      <span style={{
+                        fontWeight: isActive ? 700 : 500,
+                        fontSize: '0.875rem',
+                        color: isActive ? 'var(--color-primary)' : '#fff'
+                      }}>{s.label}</span>
+                      {s.step < 3 && <div style={{ width: '40px', height: '1px', background: 'rgba(255,255,255,0.1)', marginLeft: '12px' }} />}
+                    </div>
+                  )
+                })}
+              </div>
+
+              {/* STEP 1: INFORMACIÓN BÁSICA */}
+              {wizardStep === 1 && (
+                <div className="card">
+                  <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                      <ShoppingBag size={18} style={{ color: 'var(--color-primary)' }} />
+                      <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Paso 1: Información Básica</h3>
+                    </div>
+                    <div style={{
+                      background: 'rgba(78, 222, 163, 0.12)',
+                      color: '#4edea3',
+                      fontSize: '0.75rem',
+                      fontWeight: 800,
+                      padding: '4px 10px',
+                      borderRadius: '10px',
+                      textTransform: 'uppercase'
+                    }}>
+                      100% Gratis
+                    </div>
+                  </div>
+
+                  <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px', paddingTop: '20px' }}>
+                    
+                    {/* Toggle Habilitar Tienda */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.03)', padding: '16px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', flex: 1 }}>
+                        <input 
+                          type="checkbox" 
+                          checked={form.ecommerce_enabled}
+                          onChange={(e) => updateForm('ecommerce_enabled', e.target.checked)}
+                          style={{ width: '18px', height: '18px', accentColor: 'var(--color-primary)' }}
+                        />
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '0.9375rem', color: '#fff' }}>Habilitar tienda pública</div>
+                          <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Permite que tus clientes vean tu catálogo y hagan pedidos online.</div>
+                        </div>
+                      </label>
+                    </div>
+
+                    <div className="form-group">
+                      <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Descripción del Comercio</label>
+                      <textarea 
+                        className="form-input" 
+                        value={form.ecommerce_description} 
+                        onChange={e => updateForm('ecommerce_description', e.target.value)} 
+                        placeholder="Ej: Vendemos las mejores remeras y buzos de diseño con envío a domicilio..." 
+                        rows={3}
+                        style={{ marginTop: '6px', resize: 'vertical' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>WhatsApp para Pedidos</label>
+                        <input 
+                          className="form-input" 
+                          value={form.ecommerce_whatsapp} 
+                          onChange={e => updateForm('ecommerce_whatsapp', e.target.value)} 
+                          placeholder="Ej: 5493415555555" 
+                          style={{ marginTop: '6px' }}
+                        />
+                        <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>
+                          Número con código de país donde recibirás las alertas de pedidos.
+                        </p>
                       </div>
 
                       <div className="form-group">
-                        <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Descripción del Comercio</label>
-                        <textarea 
-                          className="form-input" 
-                          value={form.ecommerce_description} 
-                          onChange={e => updateForm('ecommerce_description', e.target.value)} 
-                          placeholder="Breve descripción que verán tus clientes al entrar a tu tienda online..." 
-                          rows={3}
-                          style={{ marginTop: '6px', resize: 'vertical' }}
+                        <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Opciones de Entrega</label>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.875rem' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={form.ecommerce_delivery_modes?.includes('pickup')}
+                              onChange={(e) => {
+                                const modes = new Set(form.ecommerce_delivery_modes)
+                                if (e.target.checked) modes.add('pickup')
+                                else modes.delete('pickup')
+                                updateForm('ecommerce_delivery_modes', Array.from(modes))
+                              }}
+                              style={{ accentColor: 'var(--color-primary)' }}
+                            />
+                            Retiro en el local
+                          </label>
+                          <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.875rem' }}>
+                            <input 
+                              type="checkbox" 
+                              checked={form.ecommerce_delivery_modes?.includes('delivery')}
+                              onChange={(e) => {
+                                const modes = new Set(form.ecommerce_delivery_modes)
+                                if (e.target.checked) modes.add('delivery')
+                                else modes.delete('delivery')
+                                updateForm('ecommerce_delivery_modes', Array.from(modes))
+                              }}
+                              style={{ accentColor: 'var(--color-primary)' }}
+                            />
+                            Envío a domicilio (Delivery)
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Stock Preferences Card */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', background: 'rgba(255,255,255,0.01)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                      <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#fff' }}>Preferencia de Stock Agotado</div>
+                      <label style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer', marginTop: '4px' }}>
+                        <input 
+                          type="checkbox" 
+                          checked={form.ecommerce_show_out_of_stock}
+                          onChange={(e) => updateForm('ecommerce_show_out_of_stock', e.target.checked)}
+                          style={{ width: '16px', height: '16px', accentColor: 'var(--color-primary)' }}
                         />
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)' }}>
+                          Mostrar productos sin stock en la tienda pública (con la etiqueta <strong>"Sin Stock"</strong>) en lugar de ocultarlos.
+                        </div>
+                      </label>
+                    </div>
+
+                    {/* Opening Hours Schedule Configuration */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', background: 'rgba(255,255,255,0.01)', padding: '16px', borderRadius: '10px', border: '1px solid var(--border-color)' }}>
+                      <div style={{ display: 'flex', justifyBetween: 'space-between', alignItems: 'center' }}>
+                        <div>
+                          <div style={{ fontWeight: 700, fontSize: '0.875rem', color: '#fff' }}>Horario de Atención</div>
+                          <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>Indica cuándo abres para informar a tus clientes si estás disponible.</div>
+                        </div>
+                        <label className="switch">
+                          <input 
+                            type="checkbox"
+                            checked={form.ecommerce_hours?.enabled ?? false}
+                            onChange={(e) => {
+                              const val = e.target.checked
+                              setForm(prev => ({
+                                ...prev,
+                                ecommerce_hours: {
+                                  ...prev.ecommerce_hours,
+                                  enabled: val
+                                }
+                              }))
+                            }}
+                          />
+                          <span className="slider"></span>
+                        </label>
                       </div>
 
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+                      {form.ecommerce_hours?.enabled && (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '12px' }}>
+                          {['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'].map(day => {
+                            const config = form.ecommerce_hours?.days?.[day] || { from: '09:00', to: '18:00', closed: false }
+                            const dayLabels = {
+                              monday: 'Lunes',
+                              tuesday: 'Martes',
+                              wednesday: 'Miércoles',
+                              thursday: 'Jueves',
+                              friday: 'Viernes',
+                              saturday: 'Sábado',
+                              sunday: 'Domingo'
+                            }
+                            return (
+                              <div key={day} style={{ display: 'grid', gridTemplateColumns: '120px 100px 1fr', alignItems: 'center', gap: '16px', padding: '4px 0' }}>
+                                <span style={{ fontSize: '0.875rem', fontWeight: 600, textTransform: 'capitalize' }}>{dayLabels[day]}</span>
+                                
+                                <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontSize: '0.8125rem' }}>
+                                  <input 
+                                    type="checkbox"
+                                    checked={config.closed}
+                                    onChange={(e) => {
+                                      const closedVal = e.target.checked
+                                      setForm(prev => ({
+                                        ...prev,
+                                        ecommerce_hours: {
+                                          ...prev.ecommerce_hours,
+                                          days: {
+                                            ...prev.ecommerce_hours.days,
+                                            [day]: { ...config, closed: closedVal }
+                                          }
+                                        }
+                                      }))
+                                    }}
+                                    style={{ accentColor: 'var(--color-primary)' }}
+                                  />
+                                  Cerrado
+                                </label>
+
+                                {!config.closed && (
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <input 
+                                      type="time" 
+                                      className="form-input" 
+                                      value={config.from || '09:00'}
+                                      onChange={(e) => {
+                                        const fromVal = e.target.value
+                                        setForm(prev => ({
+                                          ...prev,
+                                          ecommerce_hours: {
+                                            ...prev.ecommerce_hours,
+                                            days: {
+                                              ...prev.ecommerce_hours.days,
+                                              [day]: { ...config, from: fromVal }
+                                            }
+                                          }
+                                        }))
+                                      }}
+                                      style={{ padding: '4px 8px', fontSize: '0.8125rem', width: '90px' }}
+                                    />
+                                    <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>a</span>
+                                    <input 
+                                      type="time" 
+                                      className="form-input" 
+                                      value={config.to || '18:00'}
+                                      onChange={(e) => {
+                                        const toVal = e.target.value
+                                        setForm(prev => ({
+                                          ...prev,
+                                          ecommerce_hours: {
+                                            ...prev.ecommerce_hours,
+                                            days: {
+                                              ...prev.ecommerce_hours.days,
+                                              [day]: { ...config, to: toVal }
+                                            }
+                                          }
+                                        }))
+                                      }}
+                                      style={{ padding: '4px 8px', fontSize: '0.8125rem', width: '90px' }}
+                                    />
+                                  </div>
+                                )}
+                              </div>
+                            )
+                          })}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Step Navigation Buttons */}
+                    <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                      <button 
+                        type="button" 
+                        className="btn btn-primary"
+                        onClick={async () => {
+                          await handleSave()
+                          setWizardStep(2)
+                        }}
+                        style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}
+                      >
+                        Guardar y Continuar <ArrowRight size={16} />
+                      </button>
+                    </div>
+
+                  </div>
+                </div>
+              )}
+
+              {/* STEP 2: PUBLICAR PRODUCTOS / SINCRONIZAR */}
+              {wizardStep === 2 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  
+                  {/* TIENDANUBE CONNECTOR ACCORDION CARD */}
+                  <div className="card" style={{ border: '1px solid rgba(0, 169, 224, 0.25)', background: 'linear-gradient(180deg, rgba(0, 169, 224, 0.03), transparent)' }}>
+                    <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Globe size={18} style={{ color: '#00A9E0' }} />
+                        <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700, color: '#fff' }}>Sincronizar con Tiendanube</h3>
+                      </div>
+                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Conectá tu cuenta e importá todo tu catálogo de productos, stock y variantes en un solo clic de forma fácil.
+                      </p>
+                    </div>
+
+                    <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '20px' }}>
+                      
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr', gap: '16px', flexWrap: 'wrap' }}>
                         <div className="form-group">
-                          <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>WhatsApp para Pedidos</label>
+                          <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Store ID (ID de tienda)</label>
                           <input 
-                            className="form-input" 
-                            value={form.ecommerce_whatsapp} 
-                            onChange={e => updateForm('ecommerce_whatsapp', e.target.value)} 
-                            placeholder="Ej: 5493415555555" 
+                            className="form-input"
+                            value={form.tiendanube_store_id}
+                            onChange={e => updateForm('tiendanube_store_id', e.target.value)}
+                            placeholder="Ej: 123456"
                             style={{ marginTop: '6px' }}
                           />
-                          <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '6px' }}>
-                            Número (con código de país) donde recibirás alertas de nuevos pedidos.
-                          </p>
                         </div>
-
                         <div className="form-group">
-                          <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Opciones de Entrega</label>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.875rem' }}>
-                              <input 
-                                type="checkbox" 
-                                checked={form.ecommerce_delivery_modes.includes('pickup')}
-                                onChange={(e) => {
-                                  const modes = new Set(form.ecommerce_delivery_modes)
-                                  if (e.target.checked) modes.add('pickup')
-                                  else modes.delete('pickup')
-                                  updateForm('ecommerce_delivery_modes', Array.from(modes))
-                                }}
-                                style={{ accentColor: 'var(--color-primary)' }}
-                              />
-                              Retiro en el local
-                            </label>
-                            <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '0.875rem' }}>
-                              <input 
-                                type="checkbox" 
-                                checked={form.ecommerce_delivery_modes.includes('delivery')}
-                                onChange={(e) => {
-                                  const modes = new Set(form.ecommerce_delivery_modes)
-                                  if (e.target.checked) modes.add('delivery')
-                                  else modes.delete('delivery')
-                                  updateForm('ecommerce_delivery_modes', Array.from(modes))
-                                }}
-                                style={{ accentColor: 'var(--color-primary)' }}
-                              />
-                              Envío a domicilio (Delivery)
-                            </label>
-                          </div>
+                          <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Access Token (Token de acceso)</label>
+                          <input 
+                            className="form-input"
+                            type="password"
+                            value={form.tiendanube_access_token}
+                            onChange={e => updateForm('tiendanube_access_token', e.target.value)}
+                            placeholder="Ej: a97405e324efb..."
+                            style={{ marginTop: '6px' }}
+                          />
                         </div>
                       </div>
-                    </>
-                  )}
+
+                      {/* Credentials Guide Info */}
+                      <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
+                        💡 <strong>¿Cómo obtengo estas credenciales?</strong> Ingresá al panel administrador de tu Tiendanube ➔ <strong>Configuraciones ➔ Canales de Venta / API</strong>, creá una aplicación privada y copiá tu ID de tienda y Token de Acceso.
+                      </div>
+
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>
+                        <div style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                          {tenant?.tiendanube_last_sync ? (
+                            <span>Última sincronización: <strong>{new Date(tenant.tiendanube_last_sync).toLocaleString('es-AR')}</strong></span>
+                          ) : (
+                            <span>Aún no se ha realizado ninguna sincronización.</span>
+                          )}
+                        </div>
+                        
+                        <div style={{ display: 'flex', gap: '10px' }}>
+                          <button 
+                            type="button" 
+                            className="btn btn-secondary" 
+                            onClick={async () => {
+                              await supabase
+                                .from('tenants')
+                                .update({
+                                  tiendanube_store_id: form.tiendanube_store_id,
+                                  tiendanube_access_token: form.tiendanube_access_token
+                                })
+                                .eq('id', tenant.id)
+                              toast.success('Credenciales guardadas correctamente')
+                              reloadProfile()
+                            }}
+                            style={{ fontSize: '0.875rem' }}
+                          >
+                            Guardar Credenciales
+                          </button>
+                          
+                          <button
+                            type="button"
+                            className="btn btn-primary"
+                            disabled={syncingNube || !form.tiendanube_store_id || !form.tiendanube_access_token}
+                            onClick={handleTiendanubeSync}
+                            style={{
+                              background: '#00A9E0',
+                              borderColor: '#00A9E0',
+                              color: '#fff',
+                              fontWeight: 700,
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '6px',
+                              cursor: syncingNube ? 'not-allowed' : 'pointer'
+                            }}
+                          >
+                            {syncingNube ? (
+                              <>
+                                <span className="spinner" style={{ width: '12px', height: '12px', border: '2px solid rgba(255,255,255,0.2)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                                Sincronizando...
+                              </>
+                            ) : (
+                              <>
+                                📥 Sincronizar Catálogo
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+
+                  {/* MANUAL CATALOG PUBLISHING CARD */}
+                  <div className="card">
+                    <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Check size={18} style={{ color: 'var(--color-primary)' }} />
+                        <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>Publicación Manual de Productos</h3>
+                      </div>
+                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                        Seleccioná qué productos del inventario general querés publicar en tu tienda pública online usando los interruptores.
+                      </p>
+                    </div>
+
+                    <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '16px', paddingTop: '20px' }}>
+                      
+                      {loadingStoreProducts ? (
+                        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>Cargando catálogo de productos...</div>
+                      ) : storeProducts.length === 0 ? (
+                        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)' }}>
+                          No hay productos en tu inventario. Cargá algunos productos en la solapa de Inventario primero.
+                        </div>
+                      ) : (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', maxHeight: '400px', overflowY: 'auto', paddingRight: '6px' }}>
+                          {storeProducts.map(p => (
+                            <div key={p.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', background: 'rgba(255,255,255,0.02)', borderRadius: '8px', border: '1px solid var(--border-color)' }}>
+                              <div>
+                                <div style={{ fontWeight: 700, color: '#fff', fontSize: '0.875rem' }}>{p.name}</div>
+                                <div style={{ fontSize: '0.78rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                                  Precio: <strong>${p.sale_price.toLocaleString('es-AR')}</strong> · Stock: <strong>{p.stock_quantity ?? 0} u</strong>
+                                </div>
+                              </div>
+                              
+                              <label className="switch">
+                                <input 
+                                  type="checkbox"
+                                  checked={p.show_in_store || false}
+                                  onChange={() => toggleProductStoreVisibility(p.id, p.show_in_store)}
+                                />
+                                <span className="slider"></span>
+                              </label>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {/* Step Navigation Buttons */}
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '16px', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                        <button 
+                          type="button" 
+                          className="btn btn-secondary"
+                          onClick={() => setWizardStep(1)}
+                        >
+                          Volver al Paso 1
+                        </button>
+                        <button 
+                          type="button" 
+                          className="btn btn-primary"
+                          onClick={() => setWizardStep(3)}
+                          style={{ display: 'flex', alignItems: 'center', gap: '8px', fontWeight: 700 }}
+                        >
+                          Continuar <ArrowRight size={16} />
+                        </button>
+                      </div>
+
+                    </div>
+                  </div>
+
                 </div>
-              </div>
+              )}
+
+              {/* STEP 3: ENLACE Y REFERIDOS */}
+              {wizardStep === 3 && (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                  
+                  {/* STORE LINKS AND QR CARD */}
+                  <div className="card">
+                    <div className="card-header" style={{ borderBottom: '1px solid var(--border-color)', paddingBottom: '16px' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <Check size={18} style={{ color: 'var(--color-secondary)' }} />
+                        <h3 className="card-title" style={{ fontSize: '1.0625rem', fontWeight: 700 }}>¡Tu Tienda está Lista para Vender!</h3>
+                      </div>
+                    </div>
+
+                    <div className="card-body" style={{ display: 'flex', gap: '24px', flexWrap: 'wrap', paddingTop: '20px' }}>
+                      
+                      {/* Left: QR Display */}
+                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px', background: 'rgba(255,255,255,0.02)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)', width: '220px', margin: '0 auto' }}>
+                        <img 
+                          src={`https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=${encodeURIComponent(
+                            typeof window !== 'undefined'
+                              ? `${window.location.origin}/tienda/${tenant?.slug}`
+                              : `https://smartcaja.com/tienda/${tenant?.slug}`
+                          )}`} 
+                          alt="Código QR de la tienda"
+                          style={{ width: '160px', height: '160px', borderRadius: '6px', border: '6px solid #fff' }}
+                        />
+                        <a 
+                          href={`https://api.qrserver.com/v1/create-qr-code/?size=500x500&data=${encodeURIComponent(
+                            typeof window !== 'undefined'
+                              ? `${window.location.origin}/tienda/${tenant?.slug}`
+                              : `https://smartcaja.com/tienda/${tenant?.slug}`
+                          )}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-secondary"
+                          style={{ fontSize: '0.8125rem', width: '100%', textAlign: 'center', padding: '6px' }}
+                        >
+                          Descargar QR 📥
+                        </a>
+                      </div>
+
+                      {/* Right: Links and shares */}
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '16px', minWidth: '260px' }}>
+                        
+                        <div>
+                          <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Enlace de tu Catálogo Online</label>
+                          <div style={{ display: 'flex', gap: '8px', marginTop: '6px' }}>
+                            <input 
+                              className="form-input" 
+                              readOnly 
+                              value={
+                                typeof window !== 'undefined'
+                                  ? `${window.location.origin}/tienda/${tenant?.slug}`
+                                  : `https://smartcaja.com/tienda/${tenant?.slug}`
+                              }
+                              style={{ background: 'var(--bg-input)', cursor: 'text' }}
+                            />
+                            
+                            <button
+                              type="button"
+                              className="btn btn-secondary"
+                              onClick={() => {
+                                const url = typeof window !== 'undefined'
+                                  ? `${window.location.origin}/tienda/${tenant?.slug}`
+                                  : `https://smartcaja.com/tienda/${tenant?.slug}`
+                                navigator.clipboard.writeText(url)
+                                toast.success('¡Enlace copiado al portapapeles!')
+                              }}
+                              style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                            >
+                              Copiar
+                            </button>
+                          </div>
+                        </div>
+
+                        <div style={{ display: 'flex', gap: '12px' }}>
+                          {tenant?.slug && (
+                            <a 
+                              href={`/tienda/${tenant.slug}`} 
+                              target="_blank" 
+                              rel="noopener noreferrer"
+                              className="btn btn-secondary"
+                              style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none', fontSize: '0.9rem' }}
+                            >
+                              <ExternalLink size={16} /> Ver mi tienda pública
+                            </a>
+                          )}
+
+                          <a 
+                            href={`https://wa.me/?text=${encodeURIComponent(
+                              `¡Hola! Te invito a ver nuestro catálogo online y realizar tu pedido acá: ` +
+                              (typeof window !== 'undefined'
+                                ? `${window.location.origin}/tienda/${tenant?.slug}`
+                                : `https://smartcaja.com/tienda/${tenant?.slug}`)
+                            )}`}
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="btn btn-primary"
+                            style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', background: '#25D366', borderColor: '#25D366', color: '#fff', textDecoration: 'none', fontSize: '0.9rem', fontWeight: 700 }}
+                          >
+                            💬 Compartir en WhatsApp
+                          </a>
+                        </div>
+
+                      </div>
+
+                    </div>
+                  </div>
+
+                  {/* VIRAL REFERRAL GROWTH LOOP CARD */}
+                  <div className="card" style={{ border: '2px solid var(--color-primary)', background: 'linear-gradient(135deg, rgba(124, 58, 237, 0.08), transparent)' }}>
+                    <div className="card-body" style={{ display: 'flex', gap: '20px', alignItems: 'center', flexWrap: 'wrap', padding: '24px' }}>
+                      <div style={{ fontSize: '3.5rem' }}>🎁</div>
+                      <div style={{ flex: 1, minWidth: '240px' }}>
+                        <div style={{
+                          background: 'var(--color-primary)',
+                          color: '#000',
+                          fontSize: '0.75rem',
+                          fontWeight: 900,
+                          padding: '3px 8px',
+                          borderRadius: '4px',
+                          display: 'inline-block',
+                          marginBottom: '8px',
+                          textTransform: 'uppercase'
+                        }}>
+                          Ganá 1 Mes Gratis
+                        </div>
+                        <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0 }}>¡Recomendá Smart Caja a tus colegas!</h4>
+                        <p style={{ fontSize: '0.875rem', color: 'var(--text-secondary)', marginTop: '6px', lineHeight: 1.5 }}>
+                          Compartí tu enlace de recomendación. Si otro comercio se registra utilizando tu código, <strong>ambos recibirán 1 mes gratis de Plan Profesional</strong> de forma automática.
+                        </p>
+
+                        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '16px', flexWrap: 'wrap' }}>
+                          <div style={{
+                            background: 'rgba(255,255,255,0.04)',
+                            border: '1px dashed rgba(255,255,255,0.2)',
+                            borderRadius: '8px',
+                            padding: '10px 16px',
+                            fontWeight: 800,
+                            color: 'var(--color-primary)',
+                            fontSize: '1.0625rem',
+                            letterSpacing: '0.05em'
+                          }}>
+                            {tenant?.referral_code || 'Cargando...'}
+                          </div>
+
+                          <button
+                            type="button"
+                            className="btn btn-secondary"
+                            onClick={() => {
+                              const refUrl = `https://smartcaja.com/register?ref=${tenant?.referral_code || ''}`
+                              navigator.clipboard.writeText(refUrl)
+                              toast.success('¡Enlace de referidos copiado!')
+                            }}
+                            style={{ fontSize: '0.875rem' }}
+                          >
+                            Copiar Enlace
+                          </button>
+
+                          <a
+                            href={`https://wa.me/?text=${encodeURIComponent(
+                              `¡Hola! Te recomiendo Smart Caja para gestionar tu negocio (ventas, stock, turnos y catálogo online gratis). ` +
+                              `Registrate usando mi enlace y nos regalan 1 mes gratis a los dos: https://smartcaja.com/register?ref=${tenant?.referral_code || ''}`
+                            )}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="btn btn-primary"
+                            style={{
+                              background: 'linear-gradient(135deg, var(--color-primary-hover), var(--color-primary))',
+                              color: '#000',
+                              fontWeight: 800,
+                              textDecoration: 'none',
+                              fontSize: '0.875rem'
+                            }}
+                          >
+                            Compartir invitación
+                          </a>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Step Navigation Buttons */}
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px solid var(--border-color)', paddingTop: '16px' }}>
+                    <button 
+                      type="button" 
+                      className="btn btn-secondary"
+                      onClick={() => setWizardStep(2)}
+                    >
+                      Volver al Paso 2
+                    </button>
+                    <button 
+                      type="button" 
+                      className="btn btn-primary"
+                      onClick={() => setWizardStep(1)}
+                      style={{ fontWeight: 700 }}
+                    >
+                      Finalizar Configuración
+                    </button>
+                  </div>
+
+                </div>
+              )}
+
             </div>
           )}
 

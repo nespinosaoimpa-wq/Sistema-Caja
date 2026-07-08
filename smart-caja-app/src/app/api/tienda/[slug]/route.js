@@ -28,7 +28,7 @@ export async function GET(request, { params }) {
     // Get tenant by slug (no auth required — public endpoint)
     const { data: tenant, error: tenantError } = await supabase
       .from('tenants')
-      .select('id, name, slug, business_type, logo_url, ecommerce_enabled, ecommerce_description, ecommerce_banner, ecommerce_delivery_modes, theme_config')
+      .select('id, name, slug, business_type, logo_url, ecommerce_enabled, ecommerce_description, ecommerce_banner, ecommerce_delivery_modes, theme_config, ecommerce_hours, ecommerce_show_out_of_stock')
       .eq('slug', slug)
       .single()
 
@@ -41,7 +41,7 @@ export async function GET(request, { params }) {
     }
 
     // Get public products
-    const { data: products, error: productsError } = await supabase
+    let query = supabase
       .from('products')
       .select(`
         id, name, description, sale_price, image_url, category_id,
@@ -52,8 +52,12 @@ export async function GET(request, { params }) {
       .eq('tenant_id', tenant.id)
       .eq('is_active', true)
       .eq('show_in_store', true)
-      .gt('stock_quantity', 0)
-      .order('name')
+
+    if (tenant.ecommerce_show_out_of_stock === false) {
+      query = query.gt('stock_quantity', 0)
+    }
+
+    const { data: products, error: productsError } = await query.order('name')
 
     if (productsError) throw productsError
 
@@ -68,6 +72,8 @@ export async function GET(request, { params }) {
         ecommerce_banner: tenant.ecommerce_banner,
         ecommerce_delivery_modes: tenant.ecommerce_delivery_modes || ['pickup'],
         primary_color: tenant.theme_config?.primary_color || '#7C3AED',
+        ecommerce_hours: tenant.ecommerce_hours,
+        ecommerce_show_out_of_stock: tenant.ecommerce_show_out_of_stock,
       },
       products: products || [],
     })

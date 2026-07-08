@@ -3,6 +3,47 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useParams } from 'next/navigation'
 
+const getStoreOpenStatus = (hours) => {
+  if (!hours || !hours.enabled || !hours.days) return { open: true, label: 'Abierto' }
+  
+  try {
+    const now = new Date()
+    // Map to day names matching our settings config (lowercase English weekday)
+    const weekdays = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday']
+    const dayOfWeek = weekdays[now.getDay()]
+    const currentDayConfig = hours.days[dayOfWeek]
+    
+    if (!currentDayConfig || currentDayConfig.closed) {
+      return { open: false, label: 'Cerrado actualmente' }
+    }
+    
+    const { from, to } = currentDayConfig
+    if (!from || !to) return { open: true, label: 'Abierto' }
+    
+    const padZero = (n) => String(n).padStart(2, '0')
+    const currentTimeStr = `${padZero(now.getHours())}:${padZero(now.getMinutes())}`
+    
+    if (currentTimeStr >= from && currentTimeStr <= to) {
+      const format12 = (timeStr) => {
+        const [h, m] = timeStr.split(':')
+        const hour = parseInt(h)
+        const ampm = hour >= 12 ? 'p.m.' : 'a.m.'
+        const hour12 = hour % 12 || 12
+        return `${hour12}:${m} ${ampm}`
+      }
+      return { 
+        open: true, 
+        label: `Abierto · ${format12(from)} - ${format12(to)}` 
+      }
+    }
+    
+    return { open: false, label: 'Cerrado actualmente' }
+  } catch (e) {
+    console.error(e)
+    return { open: true, label: 'Abierto' }
+  }
+}
+
 export default function TiendaPage() {
   const { slug } = useParams()
   const [storeData, setStoreData] = useState(null)
@@ -238,20 +279,40 @@ export default function TiendaPage() {
       </header>
 
       {/* Banner / Hero */}
-      {(tenant.ecommerce_banner || tenant.ecommerce_description) && (
-        <div style={{
-          background: `linear-gradient(135deg, ${primaryColor}22, transparent)`,
-          borderBottom: `1px solid ${primaryColor}22`,
-          padding: '24px 16px',
-          textAlign: 'center',
-        }}>
-          <div style={{ maxWidth: '900px', margin: '0 auto' }}>
-            {tenant.ecommerce_description && (
-              <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9375rem', lineHeight: 1.6 }}>{tenant.ecommerce_description}</p>
-            )}
-          </div>
+      <div style={{
+        background: `linear-gradient(135deg, ${primaryColor}22, transparent)`,
+        borderBottom: `1px solid ${primaryColor}22`,
+        padding: '24px 16px',
+        textAlign: 'center',
+      }}>
+        <div style={{ maxWidth: '900px', margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
+          {/* Status Hours Badge */}
+          {(() => {
+            const status = getStoreOpenStatus(tenant.ecommerce_hours)
+            return (
+              <div style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '6px',
+                background: status.open ? 'rgba(78, 222, 163, 0.15)' : 'rgba(239, 68, 68, 0.15)',
+                color: status.open ? '#4edea3' : '#ef4444',
+                padding: '6px 12px',
+                borderRadius: '20px',
+                fontSize: '0.8125rem',
+                fontWeight: 700,
+                border: status.open ? '1px solid rgba(78, 222, 163, 0.3)' : '1px solid rgba(239, 68, 68, 0.3)'
+              }}>
+                <span>{status.open ? '🟢' : '🔴'}</span>
+                <span>{status.label}</span>
+              </div>
+            )
+          })()}
+
+          {tenant.ecommerce_description && (
+            <p style={{ color: 'rgba(255,255,255,0.7)', fontSize: '0.9375rem', lineHeight: 1.6, margin: 0 }}>{tenant.ecommerce_description}</p>
+          )}
         </div>
-      )}
+      </div>
 
       <div style={{ maxWidth: '900px', margin: '0 auto', padding: '24px 16px' }}>
 
@@ -324,12 +385,33 @@ export default function TiendaPage() {
                 onMouseOut={e => { e.currentTarget.style.transform = 'none'; e.currentTarget.style.boxShadow = 'none' }}
               >
                 {/* Product image */}
-                <div style={{ aspectRatio: '1/1', background: 'rgba(255,255,255,0.04)', overflow: 'hidden' }}>
+                <div style={{ aspectRatio: '1/1', background: 'rgba(255,255,255,0.04)', overflow: 'hidden', position: 'relative' }}>
                   {product.image_url ? (
-                    <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    <img src={product.image_url} alt={product.name} style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: product.stock_quantity <= 0 ? 0.4 : 1 }} />
                   ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', opacity: 0.3 }}>
+                    <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', opacity: product.stock_quantity <= 0 ? 0.15 : 0.3 }}>
                       {product.categories?.icon || '📦'}
+                    </div>
+                  )}
+                  {product.stock_quantity <= 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      inset: 0,
+                      background: 'rgba(0,0,0,0.6)',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}>
+                      <span style={{
+                        background: 'rgba(239, 68, 68, 0.95)',
+                        color: '#fff',
+                        fontSize: '0.75rem',
+                        fontWeight: 800,
+                        padding: '6px 12px',
+                        borderRadius: '20px',
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>Sin Stock</span>
                     </div>
                   )}
                 </div>
@@ -349,15 +431,16 @@ export default function TiendaPage() {
                     </span>
                     <button
                       onClick={() => addToCart(product)}
+                      disabled={product.stock_quantity <= 0}
                       style={{
                         width: '36px', height: '36px', borderRadius: '10px',
-                        background: primaryColor, border: 'none',
-                        color: '#fff', fontSize: '1.25rem', fontWeight: 700,
-                        cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: product.stock_quantity <= 0 ? 'rgba(255,255,255,0.05)' : primaryColor, border: 'none',
+                        color: product.stock_quantity <= 0 ? 'rgba(255,255,255,0.2)' : '#fff', fontSize: '1.25rem', fontWeight: 700,
+                        cursor: product.stock_quantity <= 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
                         flexShrink: 0, transition: 'opacity 0.15s',
                       }}
-                      onMouseOver={e => e.currentTarget.style.opacity = '0.85'}
-                      onMouseOut={e => e.currentTarget.style.opacity = '1'}
+                      onMouseOver={e => { if (product.stock_quantity > 0) e.currentTarget.style.opacity = '0.85' }}
+                      onMouseOut={e => { e.currentTarget.style.opacity = '1' }}
                     >+</button>
                   </div>
                 </div>
