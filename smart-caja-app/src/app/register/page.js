@@ -17,6 +17,7 @@ function RegisterContent() {
   const inviteName = searchParams.get('invite_name') || ''
   const refCode = searchParams.get('ref') || ''
   const planParam = searchParams.get('plan') || searchParams.get('planId') || ''
+  const isStoreMode = searchParams.get('mode') === 'store'
 
   const [step, setStep] = useState(1)
   const [verificationEmail, setVerificationEmail] = useState('')
@@ -72,6 +73,13 @@ function RegisterContent() {
       setForm(prev => ({ ...prev, subscription_plan: planParam.toLowerCase() }))
     }
   }, [planParam])
+
+  useEffect(() => {
+    if (isStoreMode) {
+      setStep(2)
+      setForm(prev => ({ ...prev, subscription_plan: 'basic' }))
+    }
+  }, [isStoreMode])
 
   // Si está invitado, saltamos al paso 2 y precargamos datos
   useEffect(() => {
@@ -302,7 +310,7 @@ function RegisterContent() {
           ) : (
             <>
               {/* Indicador de pasos - Solo si no está invitado */}
-              {!inviteTenant && (
+              {!inviteTenant && !isStoreMode && (
                 <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-6)' }}>
                   {[1, 2, 3].map(s => (
                     <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -323,13 +331,34 @@ function RegisterContent() {
                 </div>
               )}
 
+              {!inviteTenant && isStoreMode && (
+                <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-6)' }}>
+                  {[2, 3].map(s => (
+                    <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{
+                        width: '28px', height: '28px', borderRadius: '50%',
+                        background: s <= step ? 'var(--gradient-primary)' : 'var(--bg-input)',
+                        border: s <= step ? 'none' : '1px solid var(--border-color)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: '0.8125rem', fontWeight: 700,
+                        color: s <= step ? 'white' : 'var(--text-muted)',
+                        transition: 'all 0.3s',
+                      }}>
+                        {s < step ? '✓' : s === 2 ? '1' : '2'}
+                      </div>
+                      {s < 3 && <div style={{ width: '40px', height: '2px', background: step > s ? 'var(--color-primary)' : 'var(--border-color)', transition: 'all 0.3s', borderRadius: '2px' }} />}
+                    </div>
+                  ))}
+                </div>
+              )}
+
               {step === 1 && !inviteTenant ? (
                 <>
                   <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.4rem', fontWeight: 800, marginBottom: '6px', textAlign: 'center', color: '#fff' }}>
                     Elegí el plan que querés probar
                   </h1>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 'var(--space-6)', textAlign: 'center' }}>
-                    Comenzarás con <strong>5 días gratis</strong> de prueba completa. Sin tarjetas ni compromisos.
+                    Comenzarás con <strong>30 días gratis (1 mes completo)</strong> de prueba. Sin tarjetas ni compromisos.
                   </p>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
@@ -432,7 +461,7 @@ function RegisterContent() {
                             alignItems: 'center',
                             gap: '4px'
                           }}>
-                            ✨ Probás este plan 5 días gratis
+                            ✨ Probás este plan 1 mes gratis (30 días)
                           </div>
                         </div>
                       )
@@ -444,16 +473,16 @@ function RegisterContent() {
                     style={{ width: '100%', justifyContent: 'center' }}
                     onClick={() => setStep(2)}
                   >
-                    Probar gratis por 5 días →
+                    Probar gratis por 1 mes →
                   </button>
                 </>
               ) : step === 2 && !inviteTenant ? (
                 <>
                   <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '6px', color: '#fff' }}>
-                    ¿Qué tipo de negocio tenés?
+                    {isStoreMode ? 'Creá tu Tienda Online Gratis' : '¿Qué tipo de negocio tenés?'}
                   </h1>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 'var(--space-6)' }}>
-                    Esto nos ayuda a personalizar Smart Caja para vos.
+                    {isStoreMode ? 'Configurá los datos básicos para activar tu catálogo web.' : 'Esto nos ayuda a personalizar Smart Caja para vos.'}
                   </p>
 
                   <div className="form-group" style={{ marginBottom: 'var(--space-5)' }}>
@@ -492,13 +521,19 @@ function RegisterContent() {
                   </div>
 
                   <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-                    <button
-                      className="btn btn-ghost"
-                      style={{ flex: '0 0 auto' }}
-                      onClick={() => setStep(1)}
-                    >
-                      ← Atrás
-                    </button>
+                    {!isStoreMode ? (
+                      <button
+                        className="btn btn-ghost"
+                        style={{ flex: '0 0 auto' }}
+                        onClick={() => setStep(1)}
+                      >
+                        ← Atrás
+                      </button>
+                    ) : (
+                      <Link href="/catalogo-gratis" className="btn btn-ghost" style={{ flex: '0 0 auto', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        ← Atrás
+                      </Link>
+                    )}
                     <button
                       className="btn btn-primary btn-lg"
                       style={{ flex: 1, justifyContent: 'center' }}
@@ -610,7 +645,7 @@ function RegisterContent() {
                   </div>
 
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 'var(--space-4)' }}>
-                    {inviteTenant ? 'Al registrarte te unís al comercio respectivo.' : 'Al registrarte aceptás nuestros términos de uso. 5 días gratis, sin tarjeta.'}
+                    {inviteTenant ? 'Al registrarte te unís al comercio respectivo.' : isStoreMode ? 'Al registrarte aceptás nuestros términos de uso. Tienda virtual 100% gratis, sin tarjeta.' : 'Al registrarte aceptás nuestros términos de uso. 1 mes de prueba completa gratis, sin tarjeta.'}
                   </p>
                 </>
               )}

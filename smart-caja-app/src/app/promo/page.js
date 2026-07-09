@@ -88,7 +88,7 @@ export default function PromoPage() {
         </h1>
         
         <p className={styles.heroDesc} style={{ maxWidth: '650px' }}>
-          Dejá los cuadernos y las planillas manuales. Smart Caja te da control de inventario, arqueos auditados, fiados y cuotas en una sola pantalla. ¡Probá 5 días gratis hoy!
+          Dejá los cuadernos y las planillas manuales. Smart Caja te da control de inventario, arqueos auditados, fiados y cuotas en una sola pantalla. ¡Probá 30 días gratis hoy!
         </p>
 
         {/* Countdown */}
@@ -128,7 +128,7 @@ export default function PromoPage() {
             Registrarme con 50% OFF (Código: LANZAMIENTO50)
           </Link>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
-            Cupón pre-aplicado en el checkout · 5 días de prueba completa gratis · Sin tarjetas
+            Cupón pre-aplicado en el checkout · 30 días de prueba completa gratis (1 mes) · Sin tarjetas
           </span>
         </div>
       </section>

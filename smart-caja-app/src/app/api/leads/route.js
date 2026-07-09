@@ -77,7 +77,7 @@ export async function POST(req) {
                   Smart Caja es la plataforma definitiva para kioscos, almacenes y comercios minoristas. Carga tus productos con código de barras, controla turnos de cajeros, elimina los cuadernos de fiados y mira tus estadísticas en tiempo real.
                 </p>
                 <a href="${registerUrl}" target="_blank" style="display: inline-block; background: #10b981; color: #ffffff; padding: 10px 20px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 14px;">
-                  Empezar Prueba Gratis de 5 Días →
+                  Empezar Prueba Gratis de 1 Mes →
                 </a>
               </div>
 

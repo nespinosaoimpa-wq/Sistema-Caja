@@ -19,7 +19,7 @@ export const metadata = {
   },
   openGraph: {
     title: 'Smart Caja — Sistema POS Inteligente',
-    description: 'Gestioná tu stock, turnos, ventas y tienda online en tiempo real. ¡Probá 5 días gratis!',
+    description: 'Gestioná tu stock, turnos, ventas y tienda online en tiempo real. ¡Probá 30 días gratis!',
     url: 'https://smartcaja.vercel.app',
     siteName: 'Smart Caja',
     images: [
@@ -36,7 +36,7 @@ export const metadata = {
   twitter: {
     card: 'summary_large_image',
     title: 'Smart Caja — Sistema POS Inteligente',
-    description: 'Gestioná tu stock, turnos, ventas y tienda online en tiempo real. ¡Probá 5 días gratis!',
+    description: 'Gestioná tu stock, turnos, ventas y tienda online en tiempo real. ¡Probá 30 días gratis!',
     images: ['/og-image.png'],
   },
 }

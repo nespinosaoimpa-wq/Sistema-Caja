@@ -54,7 +54,7 @@ export default function ReferralsPage() {
     }
   }, [data.referrals])
 
-  const shareText = `Hola! Te paso el sistema que uso para llevar las ventas y el stock del negocio, se llama Smart Caja. Te da 5 días gratis de prueba y un 30% de descuento en el primer mes si te registrás con este enlace amigo: ${referralLink} - Si tenés alguna duda preguntame y te cuento cómo lo uso.`
+  const shareText = `Hola! Te paso el sistema que uso para llevar las ventas y el stock del negocio, se llama Smart Caja. Te da 30 días gratis de prueba completa (1 mes gratis) y un 30% de descuento en el primer mes si te registrás con este enlace amigo: ${referralLink} - Si tenés alguna duda preguntame y te cuento cómo lo uso.`
 
   const shareOnWhatsApp = () => {
     const url = `https://wa.me/?text=${encodeURIComponent(shareText)}`

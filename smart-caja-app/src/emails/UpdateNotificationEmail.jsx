@@ -38,7 +38,7 @@ export const UpdateNotificationEmail = ({ userName }) => {
             <Section style={featureSection}>
               <Text style={featureTitle}>⏰ Período de Prueba Gratis</Text>
               <Text style={featureText}>
-                Tu prueba gratuita es de <strong>5 días</strong>. Además, si cargás más de 10 productos y realizás al menos 5 ventas, el sistema te regalará <strong>7 días adicionales</strong> automáticamente.
+                Tu prueba gratuita es de <strong>30 días (1 mes completo)</strong>. Además, si cargás más de 10 productos y realizás al menos 5 ventas, el sistema te regalará <strong>7 días adicionales</strong> automáticamente.
               </Text>
             </Section>
 

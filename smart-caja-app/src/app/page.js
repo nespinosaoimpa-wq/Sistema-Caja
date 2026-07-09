@@ -175,9 +175,9 @@ export default function LandingPage() {
       }}>
         {isWeekend ? (
           <>
-            <span>⚡ <strong>PROMO FIN DE SEMANA:</strong> Registrate hoy y obtené <strong>Migración de Stock Gratis</strong> + <strong>15 días de prueba completa</strong> sin cargo.</span>
+            <span>⚡ <strong>PROMO FIN DE SEMANA:</strong> Registrate hoy y obtené <strong>Migración de Stock Gratis</strong> + <strong>30 días de prueba completa (1 mes gratis)</strong> sin cargo.</span>
             <a 
-              href={`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '543425162372'}?text=Hola!%20Quiero%20aprovechar%20la%20promo%20del%20fin%20de%20semana%20de%20Migración%20Gratuita%20de%20Excel%20y%2015%20días%20gratis.`}
+              href={`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '543425162372'}?text=Hola!%20Quiero%20aprovechar%20la%20promo%20del%20fin%20de%20semana%20de%20Migración%20Gratuita%20de%20Excel%20y%2030%20días%20gratis.`}
               target="_blank"
               rel="noopener noreferrer"
               style={{
@@ -301,10 +301,10 @@ export default function LandingPage() {
         </p>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
           <Link href="/register?coupon=LANZAMIENTO50" className={styles.heroButton}>
-            Empezar prueba gratis (5 días) →
+            Empezar prueba gratis (30 días) →
           </Link>
           <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 500 }}>
-            5 días gratis con acceso completo (Plan Empresa) · Sin tarjeta · Listo en 2 minutos
+            1 mes gratis con acceso completo (30 días de prueba) · Sin tarjeta · Listo en 2 minutos
           </span>
         </div>
       </section>
@@ -343,7 +343,7 @@ export default function LandingPage() {
             {
               num: '01',
               title: 'Creá tu cuenta',
-              desc: 'Registrarte tarda 2 minutos. Sin tarjeta de crédito. Accedés de inmediato con 5 días de prueba completa de todas las funciones.',
+              desc: 'Registrarte tarda 2 minutos. Sin tarjeta de crédito. Accedés de inmediato con 30 días de prueba completa de todas las funciones.',
               icon: '🧑‍💼',
             },
             {
@@ -1052,8 +1052,8 @@ export default function LandingPage() {
               a: "No. Smart Caja funciona 100% desde el navegador de cualquier celular, tablet o computadora, sin descargas ni instalaciones."
             },
             {
-              q: "¿Cómo funciona la prueba gratis de 5 días?",
-              a: "Te registrás en 2 minutos sin tarjeta de crédito y accedés de inmediato a todas las funciones de todos los planes (incluyendo funciones del plan Profesional y Empresa) para que evalúes el potencial completo de Smart Caja en tu negocio."
+              q: "¿Cómo funciona la prueba gratis de 30 días?",
+              a: "Te registrás en 2 minutos sin tarjeta de crédito y accedés de inmediato a todas las funciones de todos los planes (incluyendo funciones del plan Profesional y Empresa) para que evalúes el potencial completo de Smart Caja en tu negocio por 30 días (1 mes completo)."
             },
             {
               q: "¿Cómo me ayudan con la carga inicial de stock?",
@@ -1084,7 +1084,7 @@ export default function LandingPage() {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '12px' }}>
             <Link href="/register?coupon=LANZAMIENTO50" className={styles.heroButton}>Crear cuenta gratis →</Link>
             <span style={{ fontSize: '0.85rem', color: 'rgba(255,255,255,0.6)', fontWeight: 500 }}>
-              Setup en 2 minutos · 5 días de prueba completa de todas las funciones · Sin tarjetas
+              Setup en 2 minutos · 30 días de prueba completa de todas las funciones · Sin tarjetas
             </span>
           </div>
         </div>
