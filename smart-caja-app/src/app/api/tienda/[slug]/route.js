@@ -44,10 +44,10 @@ export async function GET(request, { params }) {
     let query = supabase
       .from('products')
       .select(`
-        id, name, description, sale_price, image_url, category_id,
+        id, name, description, sale_price, offer_price, image_url, category_id,
         unit_type, unit_label, stock_quantity, barcode, has_variants,
         categories!products_category_id_fkey(name, icon, color),
-        product_variants(id, size, color, color_hex, stock_quantity, extra_price)
+        product_variants(id, size, color, color_hex, stock_quantity, extra_price, offer_price)
       `)
       .eq('tenant_id', tenant.id)
       .eq('is_active', true)

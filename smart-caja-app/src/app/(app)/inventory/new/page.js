@@ -31,6 +31,7 @@ export default function NewProductPage() {
     category_id: '',
     cost_price: '',
     sale_price: '',
+    offer_price: '',
     unit_type: 'unit',
     unit_label: 'un',
     stock_quantity: '0',
@@ -163,6 +164,7 @@ export default function NewProductPage() {
           category_id: form.category_id || null,
           cost_price: parseFloat(form.cost_price),
           sale_price: parseFloat(form.sale_price),
+          offer_price: form.offer_price ? parseFloat(form.offer_price) : null,
           unit_type: form.unit_type,
           unit_label: form.unit_label,
           stock_quantity: parseFloat(form.stock_quantity || 0),
@@ -510,6 +512,25 @@ export default function NewProductPage() {
                   />
                 </div>
                 {errors.sale_price && <span className="form-error">{errors.sale_price}</span>}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Precio de Oferta (Opcional)</label>
+                <div className="form-input-icon">
+                  <span className="input-icon" style={{ color: '#10B981' }}>$</span>
+                  <input 
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Precio promocional para la tienda online"
+                    value={form.offer_price}
+                    onChange={e => updateForm('offer_price', e.target.value)}
+                  />
+                </div>
+                <span className="form-hint" style={{ marginTop: '6px', fontSize: '0.75rem', display: 'block', color: 'var(--text-muted)' }}>
+                  Si ingresás un valor, se mostrará como el precio activo (en oferta) tachando el precio de venta regular.
+                </span>
               </div>
 
               <div className="form-group">

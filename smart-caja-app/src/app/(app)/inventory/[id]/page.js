@@ -47,6 +47,7 @@ export default function EditProductPage() {
     category_id: '',
     cost_price: '',
     sale_price: '',
+    offer_price: '',
     stock_quantity: '0',
     min_stock_alert: '5',
     unit_type: 'unit',
@@ -100,6 +101,7 @@ export default function EditProductPage() {
         category_id: data.category_id || '',
         cost_price: data.cost_price?.toString() || '',
         sale_price: data.sale_price?.toString() || '',
+        offer_price: data.offer_price?.toString() || '',
         stock_quantity: data.stock_quantity?.toString() || '0',
         min_stock_alert: data.min_stock_alert?.toString() || '5',
         unit_type: data.unit_type || 'unit',
@@ -232,6 +234,7 @@ export default function EditProductPage() {
         category_id: form.category_id || null,
         cost_price: parseFloat(form.cost_price),
         sale_price: parseFloat(form.sale_price),
+        offer_price: form.offer_price ? parseFloat(form.offer_price) : null,
         stock_quantity: isDecimalStock ? parseFloat(form.stock_quantity || 0) : parseInt(form.stock_quantity || 0),
         min_stock_alert: isDecimalStock ? parseFloat(form.min_stock_alert || 5) : parseInt(form.min_stock_alert || 5),
         unit_type: form.unit_type,
@@ -685,6 +688,25 @@ export default function EditProductPage() {
                   />
                 </div>
                 {errors.sale_price && <span className="form-error">{errors.sale_price}</span>}
+              </div>
+
+              <div className="form-group">
+                <label className="form-label">Precio de Oferta (Opcional)</label>
+                <div className="form-input-icon">
+                  <span className="input-icon" style={{ color: '#10B981' }}>$</span>
+                  <input 
+                    className="form-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="Precio promocional para la tienda online"
+                    value={form.offer_price}
+                    onChange={e => updateForm('offer_price', e.target.value)}
+                  />
+                </div>
+                <span className="form-hint" style={{ marginTop: '6px', fontSize: '0.75rem', display: 'block', color: 'var(--text-muted)' }}>
+                  Si ingresás un valor, se mostrará como el precio activo (en oferta) tachando el precio de venta regular.
+                </span>
               </div>
 
               <div className="form-group">

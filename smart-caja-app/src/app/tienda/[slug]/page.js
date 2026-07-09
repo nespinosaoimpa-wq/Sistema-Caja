@@ -117,7 +117,7 @@ export default function TiendaPage() {
         variant_id: variant?.id || null,
         variant_label: variant ? `${variant.size || ''} ${variant.color || ''}`.trim() : null,
         name: product.name,
-        unit_price: product.sale_price + (variant?.extra_price || 0),
+        unit_price: (product.offer_price ? product.offer_price : product.sale_price) + (variant?.extra_price || 0),
         qty: 1,
         image_url: product.image_url,
       }]
@@ -393,6 +393,23 @@ export default function TiendaPage() {
                       {product.categories?.icon || '📦'}
                     </div>
                   )}
+                  {product.offer_price && product.stock_quantity > 0 && (
+                    <div style={{
+                      position: 'absolute',
+                      top: '10px',
+                      right: '10px',
+                      background: '#10B981',
+                      color: '#000',
+                      fontSize: '0.6875rem',
+                      fontWeight: 900,
+                      padding: '4px 8px',
+                      borderRadius: '4px',
+                      textTransform: 'uppercase',
+                      zIndex: 2
+                    }}>
+                      OFERTA
+                    </div>
+                  )}
                   {product.stock_quantity <= 0 && (
                     <div style={{
                       position: 'absolute',
@@ -424,24 +441,48 @@ export default function TiendaPage() {
                       {product.description}
                     </div>
                   )}
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
-                    <span style={{ fontWeight: 800, fontSize: '1.0625rem', color: primaryColor }}>
-                      ${product.sale_price.toLocaleString('es-AR')}
-                      {product.unit_type === 'weight' && <span style={{ fontSize: '0.75rem', fontWeight: 500, opacity: 0.7 }}>/{product.unit_label || 'kg'}</span>}
-                    </span>
-                    <button
-                      onClick={() => addToCart(product)}
-                      disabled={product.stock_quantity <= 0}
-                      style={{
-                        width: '36px', height: '36px', borderRadius: '10px',
-                        background: product.stock_quantity <= 0 ? 'rgba(255,255,255,0.05)' : primaryColor, border: 'none',
-                        color: product.stock_quantity <= 0 ? 'rgba(255,255,255,0.2)' : '#fff', fontSize: '1.25rem', fontWeight: 700,
-                        cursor: product.stock_quantity <= 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        flexShrink: 0, transition: 'opacity 0.15s',
-                      }}
-                      onMouseOver={e => { if (product.stock_quantity > 0) e.currentTarget.style.opacity = '0.85' }}
-                      onMouseOut={e => { e.currentTarget.style.opacity = '1' }}
-                    >+</button>
+                  
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                      <div style={{ display: 'flex', flexDirection: 'column' }}>
+                        {product.offer_price ? (
+                          <>
+                            <span style={{ fontSize: '0.75rem', textDecoration: 'line-through', color: 'rgba(255,255,255,0.4)', fontWeight: 500 }}>
+                              ${product.sale_price.toLocaleString('es-AR')}
+                            </span>
+                            <span style={{ fontWeight: 800, fontSize: '1.125rem', color: '#10B981' }}>
+                              ${product.offer_price.toLocaleString('es-AR')}
+                              {product.unit_type === 'weight' && <span style={{ fontSize: '0.75rem', fontWeight: 500, opacity: 0.7 }}>/{product.unit_label || 'kg'}</span>}
+                            </span>
+                          </>
+                        ) : (
+                          <span style={{ fontWeight: 800, fontSize: '1.0625rem', color: primaryColor }}>
+                            ${product.sale_price.toLocaleString('es-AR')}
+                            {product.unit_type === 'weight' && <span style={{ fontSize: '0.75rem', fontWeight: 500, opacity: 0.7 }}>/{product.unit_label || 'kg'}</span>}
+                          </span>
+                        )}
+                      </div>
+                      
+                      <button
+                        onClick={() => addToCart(product)}
+                        disabled={product.stock_quantity <= 0}
+                        style={{
+                          width: '36px', height: '36px', borderRadius: '10px',
+                          background: product.stock_quantity <= 0 ? 'rgba(255,255,255,0.05)' : primaryColor, border: 'none',
+                          color: product.stock_quantity <= 0 ? 'rgba(255,255,255,0.2)' : '#fff', fontSize: '1.25rem', fontWeight: 700,
+                          cursor: product.stock_quantity <= 0 ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0, transition: 'opacity 0.15s',
+                        }}
+                        onMouseOver={e => { if (product.stock_quantity > 0) e.currentTarget.style.opacity = '0.85' }}
+                        onMouseOut={e => { e.currentTarget.style.opacity = '1' }}
+                      >+</button>
+                    </div>
+                    
+                    {product.stock_quantity > 0 && (
+                      <div style={{ fontSize: '0.75rem', color: '#818CF8', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', marginTop: '2px' }}>
+                        💳 3 cuotas sin interés de ${((product.offer_price || product.sale_price) / 3).toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
