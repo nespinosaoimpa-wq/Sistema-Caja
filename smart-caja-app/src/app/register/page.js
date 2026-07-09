@@ -357,9 +357,25 @@ function RegisterContent() {
                   <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.4rem', fontWeight: 800, marginBottom: '6px', textAlign: 'center', color: '#fff' }}>
                     Elegí el plan que querés probar
                   </h1>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 'var(--space-6)', textAlign: 'center' }}>
+                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 'var(--space-5)', textAlign: 'center' }}>
                     Comenzarás con <strong>30 días gratis (1 mes completo)</strong> de prueba. Sin tarjetas ni compromisos.
                   </p>
+
+                  <div style={{
+                    background: 'linear-gradient(135deg, rgba(78, 222, 163, 0.08) 0%, rgba(124, 58, 237, 0.08) 100%)',
+                    border: '1px solid rgba(78, 222, 163, 0.25)',
+                    borderRadius: '16px',
+                    padding: '16px',
+                    marginBottom: '24px',
+                    textAlign: 'center',
+                    fontSize: '0.875rem',
+                    lineHeight: 1.4
+                  }}>
+                    ✨ <strong>¿Buscás tu Catálogo Online / Tienda Gratis?</strong><br />
+                    <Link href="/register?mode=store" style={{ color: '#4edea3', fontWeight: 800, textDecoration: 'underline', marginTop: '6px', display: 'inline-block' }}>
+                      Creá tu tienda gratis en 10 segundos sin elegir planes ➔
+                    </Link>
+                  </div>
 
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
                     {[

@@ -887,7 +887,7 @@ export default function LandingPage() {
               </div>
               
               <div style={{ textAlign: 'center' }}>
-                <Link href="/register" className={styles.registerButton} style={{
+                <Link href="/register?mode=store" className={styles.registerButton} style={{
                   padding: '16px 32px',
                   fontSize: '1rem',
                   fontWeight: 800,
