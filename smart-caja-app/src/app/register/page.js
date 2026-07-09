@@ -19,7 +19,7 @@ function RegisterContent() {
   const planParam = searchParams.get('plan') || searchParams.get('planId') || ''
   const isStoreMode = searchParams.get('mode') === 'store'
 
-  const [step, setStep] = useState(1)
+  const [step, setStep] = useState(2)
   const [verificationEmail, setVerificationEmail] = useState('')
   const [resendLoading, setResendLoading] = useState(false)
   const [cooldown, setCooldown] = useState(0)
@@ -310,28 +310,7 @@ function RegisterContent() {
           ) : (
             <>
               {/* Indicador de pasos - Solo si no está invitado */}
-              {!inviteTenant && !isStoreMode && (
-                <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-6)' }}>
-                  {[1, 2, 3].map(s => (
-                    <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{
-                        width: '28px', height: '28px', borderRadius: '50%',
-                        background: s <= step ? 'var(--gradient-primary)' : 'var(--bg-input)',
-                        border: s <= step ? 'none' : '1px solid var(--border-color)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.8125rem', fontWeight: 700,
-                        color: s <= step ? 'white' : 'var(--text-muted)',
-                        transition: 'all 0.3s',
-                      }}>
-                        {s < step ? '✓' : s}
-                      </div>
-                      {s < 3 && <div style={{ width: '40px', height: '2px', background: step > s ? 'var(--color-primary)' : 'var(--border-color)', transition: 'all 0.3s', borderRadius: '2px' }} />}
-                    </div>
-                  ))}
-                </div>
-              )}
-
-              {!inviteTenant && isStoreMode && (
+              {!inviteTenant && (
                 <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-6)' }}>
                   {[2, 3].map(s => (
                     <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -352,131 +331,7 @@ function RegisterContent() {
                 </div>
               )}
 
-              {step === 1 && !inviteTenant ? (
-                <>
-                  <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.4rem', fontWeight: 800, marginBottom: '6px', textAlign: 'center', color: '#fff' }}>
-                    Elegí el plan que querés probar
-                  </h1>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 'var(--space-6)', textAlign: 'center' }}>
-                    Comenzarás con <strong>30 días gratis (1 mes completo)</strong> de prueba. Sin tarjetas ni compromisos.
-                  </p>
-
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
-                    {[
-                      {
-                        value: 'basic',
-                        name: 'Plan Básico',
-                        price: '$20.000',
-                        desc: 'Ideal si cobrás solo vos en tu local y querés ordenar tu negocio.',
-                        features: [
-                          'Controlar mercadería (saber qué tenés y qué te falta)',
-                          'Caja rápida para cobrar y dar vuelto sin errores',
-                          'Ver historial de ventas y tus ganancias del día'
-                        ]
-                      },
-                      {
-                        value: 'professional',
-                        name: 'Plan Profesional',
-                        price: '$35.000',
-                        badge: 'Recomendado',
-                        desc: 'Para locales con empleados, que quieren vender por WhatsApp y fiar.',
-                        features: [
-                          'Varios empleados cobrando al mismo tiempo',
-                          'Catálogo web (tus clientes te piden por WhatsApp)',
-                          'Cuentas corrientes para fiar a tus clientes',
-                          'Soporte humano por WhatsApp para ayudarte en todo'
-                        ]
-                      },
-                      {
-                        value: 'enterprise',
-                        name: 'Plan Empresa',
-                        price: '$60.000',
-                        desc: 'Para comercios grandes con varios locales o que facturan con AFIP.',
-                        features: [
-                          'Controlar 2 o más locales desde el mismo lugar',
-                          'Facturación oficial AFIP (ARCA) en 1 clic',
-                          'Inventario compartido y reportes automáticos'
-                        ]
-                      }
-                    ].map(p => {
-                      const isSelected = form.subscription_plan === p.value
-                      return (
-                        <div
-                          key={p.value}
-                          onClick={() => updateForm('subscription_plan', p.value)}
-                          style={{
-                            padding: 'var(--space-4)',
-                            background: isSelected ? 'rgba(124, 58, 237, 0.05)' : 'var(--bg-card)',
-                            border: `2px solid ${isSelected ? 'var(--color-primary)' : 'var(--border-color)'}`,
-                            borderRadius: 'var(--radius-xl)',
-                            cursor: 'pointer',
-                            transition: 'all 0.2s',
-                            position: 'relative'
-                          }}
-                        >
-                          {p.badge && (
-                            <span style={{
-                              position: 'absolute',
-                              top: '-10px',
-                              right: '16px',
-                              background: 'var(--gradient-primary)',
-                              color: '#fff',
-                              fontSize: '0.6875rem',
-                              fontWeight: 700,
-                              padding: '2px 8px',
-                              borderRadius: 'var(--radius-full)',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.05em'
-                            }}>
-                              {p.badge}
-                            </span>
-                          )}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: isSelected ? '#fff' : 'var(--text-primary)' }}>{p.name}</span>
-                            <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-secondary)' }}>{p.price}<span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>/mes</span></span>
-                          </div>
-                          <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: 1.4 }}>
-                            {p.desc}
-                          </p>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px' }}>
-                            {p.features.map((f, fi) => (
-                              <div key={fi} style={{
-                                fontSize: '0.8125rem',
-                                display: 'flex',
-                                alignItems: 'center',
-                                gap: '8px',
-                                color: isSelected ? '#fff' : 'var(--text-secondary)'
-                              }}>
-                                <span style={{ color: 'var(--color-secondary)', fontWeight: 'bold' }}>✓</span>
-                                <span>{f}</span>
-                              </div>
-                            ))}
-                          </div>
-                          <div style={{
-                            marginTop: '10px',
-                            fontSize: '0.75rem',
-                            fontWeight: 700,
-                            color: 'var(--color-secondary)',
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '4px'
-                          }}>
-                            ✨ Probás este plan 1 mes gratis (30 días)
-                          </div>
-                        </div>
-                      )
-                    })}
-                  </div>
-
-                  <button
-                    className="btn btn-primary btn-lg"
-                    style={{ width: '100%', justifyContent: 'center' }}
-                    onClick={() => setStep(2)}
-                  >
-                    Probar gratis por 1 mes →
-                  </button>
-                </>
-              ) : step === 2 && !inviteTenant ? (
+              {step === 2 && !inviteTenant ? (
                 <>
                   <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '6px', color: '#fff' }}>
                     {isStoreMode ? 'Creá tu Tienda Online Gratis' : '¿Qué tipo de negocio tenés?'}
@@ -521,16 +376,12 @@ function RegisterContent() {
                   </div>
 
                   <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
-                    {!isStoreMode ? (
-                      <button
-                        className="btn btn-ghost"
-                        style={{ flex: '0 0 auto' }}
-                        onClick={() => setStep(1)}
-                      >
-                        ← Atrás
-                      </button>
-                    ) : (
+                    {isStoreMode ? (
                       <Link href="/catalogo-gratis" className="btn btn-ghost" style={{ flex: '0 0 auto', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        ← Atrás
+                      </Link>
+                    ) : (
+                      <Link href="/login" className="btn btn-ghost" style={{ flex: '0 0 auto', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                         ← Atrás
                       </Link>
                     )}
