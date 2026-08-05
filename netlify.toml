@@ -1,0 +1,10 @@
+[build]
+  base = "smart-caja-app"
+  command = "npm run build"
+  publish = "smart-caja-app/.next"
+
+[build.environment]
+  NODE_VERSION = "20"
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
