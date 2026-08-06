@@ -153,55 +153,114 @@ function RegisterContent() {
     setLoading(true)
 
     const emailNormalized = form.email.trim().toLowerCase()
+    const supabase = createClient()
 
     try {
-      // 1. Llamar a la API del servidor para crear usuario y onboarding
-      const regRes = await fetch('/api/auth/register', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: emailNormalized,
-          password: form.password,
-          full_name: form.full_name,
-          phone: form.phone,
-          business_name: form.business_name,
-          business_type: form.business_type,
-          subscription_plan: form.subscription_plan,
-          refCode,
-          inviteTenant,
-          inviteRole
+      // Intento 1: Servidor API Route (/api/auth/register)
+      let isServerSuccess = false
+      let serverErrorMsg = ''
+
+      try {
+        const regRes = await fetch('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: emailNormalized,
+            password: form.password,
+            full_name: form.full_name,
+            phone: form.phone,
+            business_name: form.business_name,
+            business_type: form.business_type,
+            subscription_plan: form.subscription_plan,
+            refCode,
+            inviteTenant,
+            inviteRole
+          })
         })
+
+        const regData = await regRes.json().catch(() => ({}))
+        if (regRes.ok && regData.success) {
+          isServerSuccess = true
+        } else {
+          serverErrorMsg = regData.error || ''
+        }
+      } catch (serverFetchErr) {
+        console.warn('Server registration endpoint error:', serverFetchErr)
+      }
+
+      // Si el servidor tuvo éxito:
+      if (isServerSuccess) {
+        toast.success('¡Cuenta creada con éxito! 🎉')
+        try {
+          const { error: loginErr } = await supabase.auth.signInWithPassword({
+            email: emailNormalized,
+            password: form.password,
+          })
+          if (!loginErr) {
+            router.replace('/dashboard')
+            return
+          }
+        } catch (loginEx) {
+          console.warn('Auto login after server register failed:', loginEx)
+        }
+        router.push(`/login?registered=1&email=${encodeURIComponent(emailNormalized)}`)
+        return
+      }
+
+      // Si el correo ya está registrado en el servidor, mostrar error
+      if (serverErrorMsg.includes('ya está registrado')) {
+        throw new Error(serverErrorMsg)
+      }
+
+      // Intento 2 (Fallback): Autenticación cliente Supabase + Onboarding API
+      const { data: authData, error: authError } = await supabase.auth.signUp({
+        email: emailNormalized,
+        password: form.password,
+        options: {
+          emailRedirectTo: `${window.location.origin}/dashboard`,
+          data: { full_name: form.full_name }
+        }
       })
 
-      const regData = await regRes.json().catch(() => ({}))
-
-      if (!regRes.ok || !regData.success) {
-        let msg = regData.error || 'Error al procesar el registro.'
-        if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
-          msg = 'No se pudo conectar con el servidor. Verificá tu conexión e intentá de nuevo.'
+      if (authError) {
+        if (authError.message.includes('already registered')) {
+          throw new Error('Este email ya está registrado. Por favor, iniciá sesión.')
         }
-        throw new Error(msg)
+        throw authError
       }
 
-      toast.success('¡Cuenta creada con éxito! 🎉')
-
-      // 2. Intentar iniciar sesión automáticamente
-      const supabase = createClient()
-      try {
-        const { error: loginErr } = await supabase.auth.signInWithPassword({
-          email: emailNormalized,
-          password: form.password,
+      const userId = authData.user?.id
+      if (userId) {
+        const onboardRes = await fetch('/api/auth/onboard', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            userId,
+            email: emailNormalized,
+            business_name: form.business_name,
+            business_type: form.business_type,
+            full_name: form.full_name,
+            phone: form.phone,
+            refCode,
+            inviteTenant,
+            inviteRole,
+            subscription_plan: form.subscription_plan
+          })
         })
-        if (!loginErr) {
-          router.replace('/dashboard')
-          return
+
+        if (!onboardRes.ok) {
+          const onboardErr = await onboardRes.json().catch(() => ({}))
+          console.warn('Onboard API warning:', onboardErr)
         }
-      } catch (loginException) {
-        console.warn('Auto-login exception:', loginException)
       }
 
-      // Si auto-login cliente falla o requiere redirección manual
-      router.push(`/login?registered=1&email=${encodeURIComponent(emailNormalized)}`)
+      if (!authData.session) {
+        setVerificationEmail(emailNormalized)
+        toast.success('¡Cuenta creada! Por favor, verificá tu correo electrónico.')
+      } else {
+        toast.success('¡Cuenta creada con éxito! 🎉')
+        router.replace('/dashboard')
+      }
     } catch (err) {
       let errMsg = err.message || 'Error al registrarse'
       if (errMsg.includes('Failed to fetch') || errMsg.includes('NetworkError')) {
