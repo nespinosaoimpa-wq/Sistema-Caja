@@ -1,3 +1,7 @@
+if (typeof globalThis.WebSocket === 'undefined') {
+  globalThis.WebSocket = class DummyWebSocket {}
+}
+
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { generateSlug } from '@/lib/utils/formatters'
 import { getInitialCategories } from '@/lib/config/rubroConfig'
