@@ -55,8 +55,12 @@ export default function ForgotPasswordPage() {
       toast.success('¡Enlace de recuperación enviado con éxito!')
     } catch (err) {
       console.error('[Forgot Password] Error requesting reset:', err)
-      setError(err.message || 'Ocurrió un error al enviar el correo de recuperación.')
-      toast.error(err.message || 'Error al solicitar recuperación')
+      let msg = err.message || 'Ocurrió un error al enviar el correo de recuperación.'
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+        msg = 'No se pudo conectar con el servidor. Por favor, verificá tu conexión a internet.'
+      }
+      setError(msg)
+      toast.error(msg)
     } finally {
       setLoading(false)
     }

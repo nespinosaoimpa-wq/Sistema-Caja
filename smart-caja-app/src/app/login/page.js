@@ -71,10 +71,15 @@ export default function LoginPage() {
       toast.success('¡Bienvenido de vuelta! 👋')
       router.push('/dashboard')
     } catch (err) {
-      if (err.message?.toLowerCase().includes('confirm') || err.message === 'Email not confirmed') {
+      let msg = err.message || 'Error al iniciar sesión'
+      if (msg.includes('Failed to fetch') || msg.includes('NetworkError')) {
+        msg = 'No se pudo conectar con el servidor de autenticación. Verificá tu conexión a internet.'
+      }
+
+      if (msg.toLowerCase().includes('confirm') || msg === 'Email not confirmed') {
         setUnconfirmedEmail(form.email)
         toast.error('Debés confirmar tu correo electrónico antes de ingresar.')
-      } else if (err.message === 'Invalid login credentials') {
+      } else if (msg === 'Invalid login credentials') {
         try {
           const checkRes = await fetch('/api/auth/check-email', {
             method: 'POST',
@@ -95,7 +100,7 @@ export default function LoginPage() {
           toast.error('Email o contraseña incorrectos')
         }
       } else {
-        toast.error(err.message)
+        toast.error(msg)
       }
     } finally {
       setLoading(false)
