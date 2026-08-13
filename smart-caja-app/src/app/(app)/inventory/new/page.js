@@ -162,7 +162,6 @@ export default function NewProductPage() {
         category_id: form.category_id || null,
         cost_price: parseFloat(form.cost_price),
         sale_price: parseFloat(form.sale_price),
-        offer_price: form.offer_price ? parseFloat(form.offer_price) : null,
         unit_type: form.unit_type,
         unit_label: form.unit_label,
         stock_quantity: parseFloat(form.stock_quantity || 0),
@@ -174,12 +173,16 @@ export default function NewProductPage() {
         control_stock: form.control_stock
       }
 
+      if (form.offer_price && parseFloat(form.offer_price) > 0) {
+        productData.offer_price = parseFloat(form.offer_price)
+      }
+
       let { error } = await supabase
         .from('products')
         .insert(productData)
 
-      // Fallback: If offer_price column does not exist in schema, retry without it
-      if (error && (error.message?.includes('offer_price') || error.details?.includes('offer_price'))) {
+      // Fallback: If insert failed and offer_price was present, retry without offer_price
+      if (error && productData.offer_price !== undefined) {
         delete productData.offer_price
         const retryResult = await supabase
           .from('products')

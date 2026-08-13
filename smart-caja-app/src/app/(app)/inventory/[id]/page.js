@@ -234,7 +234,6 @@ export default function EditProductPage() {
         category_id: form.category_id || null,
         cost_price: parseFloat(form.cost_price),
         sale_price: parseFloat(form.sale_price),
-        offer_price: form.offer_price ? parseFloat(form.offer_price) : null,
         stock_quantity: isDecimalStock ? parseFloat(form.stock_quantity || 0) : parseInt(form.stock_quantity || 0),
         min_stock_alert: isDecimalStock ? parseFloat(form.min_stock_alert || 5) : parseInt(form.min_stock_alert || 5),
         unit_type: form.unit_type,
@@ -242,6 +241,9 @@ export default function EditProductPage() {
         show_in_store: form.show_in_store,
         has_variants: form.has_variants,
         control_stock: form.control_stock,
+      }
+      if (form.offer_price && parseFloat(form.offer_price) > 0) {
+        updatePayload.offer_price = parseFloat(form.offer_price)
       }
       if (newImageUrl !== undefined) updatePayload.image_url = newImageUrl
 
@@ -251,8 +253,8 @@ export default function EditProductPage() {
         .eq('id', id)
         .eq('tenant_id', tenant.id)
 
-      // Fallback: If offer_price column does not exist in schema, retry without it
-      if (error && (error.message?.includes('offer_price') || error.details?.includes('offer_price'))) {
+      // Fallback: If update failed and offer_price was present, retry without offer_price
+      if (error && updatePayload.offer_price !== undefined) {
         delete updatePayload.offer_price
         const retryResult = await supabase
           .from('products')
