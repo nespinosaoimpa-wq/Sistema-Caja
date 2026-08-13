@@ -57,7 +57,29 @@ export async function GET(request, { params }) {
       query = query.gt('stock_quantity', 0)
     }
 
-    const { data: products, error: productsError } = await query.order('name')
+    let { data: products, error: productsError } = await query.order('name')
+
+    if (productsError && productsError.message?.includes('offer_price')) {
+      let fallbackQuery = supabase
+        .from('products')
+        .select(`
+          id, name, description, sale_price, image_url, category_id,
+          unit_type, unit_label, stock_quantity, barcode, has_variants,
+          categories!products_category_id_fkey(name, icon, color),
+          product_variants(id, size, color, color_hex, stock_quantity, extra_price)
+        `)
+        .eq('tenant_id', tenant.id)
+        .eq('is_active', true)
+        .eq('show_in_store', true)
+
+      if (tenant.ecommerce_show_out_of_stock === false) {
+        fallbackQuery = fallbackQuery.gt('stock_quantity', 0)
+      }
+
+      const res = await fallbackQuery.order('name')
+      products = res.data
+      productsError = res.error
+    }
 
     if (productsError) throw productsError
 

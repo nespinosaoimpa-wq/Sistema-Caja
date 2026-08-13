@@ -245,11 +245,22 @@ export default function EditProductPage() {
       }
       if (newImageUrl !== undefined) updatePayload.image_url = newImageUrl
 
-      const { error } = await supabase
+      let { error } = await supabase
         .from('products')
         .update(updatePayload)
         .eq('id', id)
         .eq('tenant_id', tenant.id)
+
+      // Fallback: If offer_price column does not exist in schema, retry without it
+      if (error && (error.message?.includes('offer_price') || error.details?.includes('offer_price'))) {
+        delete updatePayload.offer_price
+        const retryResult = await supabase
+          .from('products')
+          .update(updatePayload)
+          .eq('id', id)
+          .eq('tenant_id', tenant.id)
+        error = retryResult.error
+      }
 
       if (error) {
         if (error.code === '23505') {
