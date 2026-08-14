@@ -1,6 +1,6 @@
 'use client'
 
-import { createContext, useContext, useState, useEffect, useCallback } from 'react'
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 const AuthContext = createContext({})
@@ -159,7 +159,7 @@ export function AuthProvider({ children }) {
     }
   }, [supabase, loadProfile])
 
-  const signOut = async () => {
+  const signOut = useCallback(async () => {
     try {
       await supabase.auth.signOut()
     } catch (err) {
@@ -171,30 +171,34 @@ export function AuthProvider({ children }) {
       setProfileLoaded(false)
       setProfileError(null)
     }
-  }
+  }, [supabase])
+
+  const reloadProfile = useCallback(async () => {
+    if (user) {
+      setLoading(true)
+      try {
+        await loadProfile(user.id)
+      } catch (err) {
+        console.error('Exception in reloadProfile:', err)
+      } finally {
+        setLoading(false)
+      }
+    }
+  }, [user, loadProfile])
+
+  const contextValue = useMemo(() => ({
+    user,
+    profile,
+    tenant,
+    loading,
+    profileLoaded,
+    profileError,
+    signOut,
+    reloadProfile,
+  }), [user, profile, tenant, loading, profileLoaded, profileError, signOut, reloadProfile])
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      profile,
-      tenant,
-      loading,
-      profileLoaded,
-      profileError,
-      signOut,
-      reloadProfile: async () => {
-        if (user) {
-          setLoading(true)
-          try {
-            await loadProfile(user.id)
-          } catch (err) {
-            console.error('Exception in reloadProfile:', err)
-          } finally {
-            setLoading(false)
-          }
-        }
-      },
-    }}>
+    <AuthContext.Provider value={contextValue}>
       {children}
     </AuthContext.Provider>
   )

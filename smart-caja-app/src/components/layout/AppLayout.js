@@ -5,7 +5,12 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { createClient } from '@/lib/supabase/client'
-import Screensaver from '@/components/ui/Screensaver'
+import dynamic from 'next/dynamic'
+
+const Screensaver = dynamic(() => import('@/components/ui/Screensaver'), {
+  ssr: false,
+  loading: () => null,
+})
 import { 
   LayoutDashboard, 
   ShoppingCart, 
@@ -200,6 +205,7 @@ export default function AppLayout({ children }) {
     if (!screensaverEnabled || isScreensaverOpen) return
 
     let timerId = null
+    let lastActivityTs = 0
 
     const resetTimer = () => {
       if (timerId) clearTimeout(timerId)
@@ -211,10 +217,13 @@ export default function AppLayout({ children }) {
     // Initialize timer
     resetTimer()
 
-    // Activity event listeners
+    // Activity event listeners — throttled to max once per 200ms
     const activityEvents = ['mousemove', 'mousedown', 'keydown', 'scroll', 'touchstart']
     
     const handleActivity = () => {
+      const now = Date.now()
+      if (now - lastActivityTs < 200) return // throttle: ignore if <200ms since last
+      lastActivityTs = now
       resetTimer()
     }
 

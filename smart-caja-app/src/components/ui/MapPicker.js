@@ -7,11 +7,14 @@ export default function MapPicker({ latitude, longitude, onChange, addressText, 
   const mapInstanceRef = useRef(null)
   const markerInstanceRef = useRef(null)
   const onChangeRef = useRef(onChange)
-  const initAttemptedRef = useRef(false)
   const [loading, setLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
   const [searching, setSearching] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
+  const [suggestions, setSuggestions] = useState([])
+  const [showSuggestions, setShowSuggestions] = useState(false)
+  const debounceTimerRef = useRef(null)
+  const suggestionsRef = useRef(null)
 
   // Keep onChange ref up to date without triggering re-initialization
   useEffect(() => {
@@ -23,8 +26,10 @@ export default function MapPicker({ latitude, longitude, onChange, addressText, 
     if (addressText && !searchQuery) {
       setSearchQuery(addressText)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [addressText])
 
+  // ====== LEAFLET MAP INITIALIZATION ======
   useEffect(() => {
     let active = true
 
@@ -53,7 +58,6 @@ export default function MapPicker({ latitude, longitude, onChange, addressText, 
       const zoomLevel = latitude && longitude ? 16 : 13
 
       // CRITICAL: Remove any leftover Leaflet internal ID from the DOM container
-      // This prevents "Map container is already initialized" when React re-mounts
       if (container._leaflet_id) {
         delete container._leaflet_id
       }
@@ -190,7 +194,6 @@ export default function MapPicker({ latitude, longitude, onChange, addressText, 
         setLoading(false)
       } catch (err) {
         console.error('Error initializing Leaflet map:', err)
-        // If initialization fails, clean up
         if (container._leaflet_id) {
           delete container._leaflet_id
         }
@@ -231,7 +234,6 @@ export default function MapPicker({ latitude, longitude, onChange, addressText, 
         }
         document.body.appendChild(leafletScript)
       } else {
-        // Script tag exists but might still be loading
         const existingScript = document.getElementById('leaflet-js')
         if (window.L) {
           initMap()
@@ -247,7 +249,6 @@ export default function MapPicker({ latitude, longitude, onChange, addressText, 
 
     return () => {
       active = false
-      // Clean up map instance
       if (mapInstanceRef.current) {
         try {
           mapInstanceRef.current.off()
@@ -258,49 +259,233 @@ export default function MapPicker({ latitude, longitude, onChange, addressText, 
         mapInstanceRef.current = null
       }
       markerInstanceRef.current = null
-      // Clean up the container's leaflet ID
-      if (mapContainerRef.current) {
-        if (mapContainerRef.current._leaflet_id) {
-          delete mapContainerRef.current._leaflet_id
-        }
+      // Use the captured container reference for cleanup (React ref may change)
+      const cleanupContainer = mapContainerRef.current
+      if (cleanupContainer && cleanupContainer._leaflet_id) {
+        delete cleanupContainer._leaflet_id
       }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [logoUrl])
 
-  // Geolocalize based on search query using Nominatim OpenStreetMap
+  // ====== SYNC MARKER WITH EXTERNAL PROP CHANGES ======
+  // When latitude/longitude change from outside (e.g. manual input, or parent state update),
+  // move the marker and center the map accordingly.
+  useEffect(() => {
+    if (!mapInstanceRef.current || !markerInstanceRef.current) return
+    const lat = parseFloat(latitude)
+    const lng = parseFloat(longitude)
+    if (isNaN(lat) || isNaN(lng)) return
+
+    const currentPos = markerInstanceRef.current.getLatLng()
+    // Only update if actually different (avoid loops with onChange callback)
+    if (Math.abs(currentPos.lat - lat) > 0.000001 || Math.abs(currentPos.lng - lng) > 0.000001) {
+      markerInstanceRef.current.setLatLng([lat, lng])
+      mapInstanceRef.current.setView([lat, lng], Math.max(mapInstanceRef.current.getZoom(), 15), { animate: true })
+    }
+  }, [latitude, longitude])
+
+  // ====== RESIZE / VISIBILITY OBSERVER ======
+  // Handles the case where the map is inside a hidden tab (Settings) and tiles render as grey.
+  useEffect(() => {
+    const container = mapContainerRef.current
+    if (!container) return
+
+    let resizeObserver = null
+    let intersectionObserver = null
+
+    const invalidateWhenReady = () => {
+      if (mapInstanceRef.current) {
+        mapInstanceRef.current.invalidateSize({ animate: false })
+      }
+    }
+
+    // ResizeObserver: triggers when container dimensions change (e.g. tab becomes visible)
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        // Slight delay to let the browser finish layout calculations
+        requestAnimationFrame(invalidateWhenReady)
+      })
+      resizeObserver.observe(container)
+    }
+
+    // IntersectionObserver: triggers when container becomes visible in viewport
+    if (typeof IntersectionObserver !== 'undefined') {
+      intersectionObserver = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+          if (entry.isIntersecting) {
+            setTimeout(invalidateWhenReady, 100)
+          }
+        })
+      }, { threshold: 0.1 })
+      intersectionObserver.observe(container)
+    }
+
+    return () => {
+      if (resizeObserver) resizeObserver.disconnect()
+      if (intersectionObserver) intersectionObserver.disconnect()
+    }
+  }, [loading]) // re-attach after loading finishes
+
+  // ====== GEOCODING: GEOREF ARGENTINA + NOMINATIM FALLBACK ======
+
+  // Tier 1: Georef Argentina (official INDEC/IGN API) — exact cadastral height resolution
+  const searchGeorefArgentina = async (query) => {
+    try {
+      const url = `https://apis.datos.gob.ar/georef/api/direcciones?direccion=${encodeURIComponent(query)}&max=5&campos=nomenclatura,ubicacion`
+      const response = await fetch(url)
+      if (!response.ok) return null
+      const data = await response.json()
+      if (data?.direcciones?.length > 0) {
+        return data.direcciones.map(d => ({
+          display_name: d.nomenclatura,
+          lat: d.ubicacion?.lat,
+          lon: d.ubicacion?.lon,
+          source: 'georef'
+        })).filter(d => d.lat && d.lon)
+      }
+    } catch (err) {
+      console.error('[MapPicker] Georef Argentina error:', err)
+    }
+    return null
+  }
+
+  // Tier 2: Nominatim (OpenStreetMap) — improved with Argentina-specific params
+  const searchNominatim = async (query) => {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=5&countrycodes=ar&addressdetails=1`
+      const response = await fetch(url)
+      if (!response.ok) return null
+      const data = await response.json()
+      if (data?.length > 0) {
+        return data.map(d => ({
+          display_name: d.display_name,
+          lat: parseFloat(d.lat),
+          lon: parseFloat(d.lon),
+          source: 'nominatim'
+        }))
+      }
+    } catch (err) {
+      console.error('[MapPicker] Nominatim error:', err)
+    }
+    return null
+  }
+
+  // ====== AUTOCOMPLETE WITH DEBOUNCE ======
+  const handleSearchInputChange = useCallback((value) => {
+    setSearchQuery(value)
+    setShowSuggestions(false)
+    
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current)
+    }
+
+    if (!value.trim() || value.trim().length < 4) {
+      setSuggestions([])
+      return
+    }
+
+    debounceTimerRef.current = setTimeout(async () => {
+      // Try Georef Argentina first (best for Argentine addresses with alturas)
+      const georefResults = await searchGeorefArgentina(value)
+      if (georefResults && georefResults.length > 0) {
+        setSuggestions(georefResults)
+        setShowSuggestions(true)
+        return
+      }
+      // Fallback to Nominatim
+      const nominatimResults = await searchNominatim(value)
+      if (nominatimResults && nominatimResults.length > 0) {
+        setSuggestions(nominatimResults)
+        setShowSuggestions(true)
+      } else {
+        setSuggestions([])
+        setShowSuggestions(false)
+      }
+    }, 400)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Select a suggestion
+  const handleSelectSuggestion = (suggestion) => {
+    const lat = parseFloat(suggestion.lat)
+    const lng = parseFloat(suggestion.lon)
+
+    setSearchQuery(suggestion.display_name)
+    setSuggestions([])
+    setShowSuggestions(false)
+    setErrorMessage('')
+
+    if (mapInstanceRef.current && markerInstanceRef.current) {
+      mapInstanceRef.current.setView([lat, lng], 17, { animate: true })
+      markerInstanceRef.current.setLatLng([lat, lng])
+    }
+
+    if (onChangeRef.current) {
+      onChangeRef.current(lat.toFixed(6), lng.toFixed(6))
+    }
+  }
+
+  // Close suggestions when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (suggestionsRef.current && !suggestionsRef.current.contains(e.target)) {
+        setShowSuggestions(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  // ====== MANUAL SEARCH (BUTTON / ENTER) ======
   const handleSearch = async (e) => {
     if (e) e.preventDefault()
     if (!searchQuery.trim()) return
 
     setSearching(true)
     setErrorMessage('')
+    setShowSuggestions(false)
+
     try {
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
-          searchQuery
-        )}&limit=1`
-      )
-      const data = await response.json()
+      // Tier 1: Georef Argentina — professional cadastral precision
+      const georefResults = await searchGeorefArgentina(searchQuery)
+      if (georefResults && georefResults.length > 0) {
+        const best = georefResults[0]
+        const lat = parseFloat(best.lat)
+        const lng = parseFloat(best.lon)
 
-      if (data && data.length > 0) {
-        const { lat, lon } = data[0]
-        const latitudeVal = parseFloat(lat)
-        const longitudeVal = parseFloat(lon)
-
-        // Center map and move marker
         if (mapInstanceRef.current && markerInstanceRef.current) {
-          mapInstanceRef.current.setView([latitudeVal, longitudeVal], 16)
-          markerInstanceRef.current.setLatLng([latitudeVal, longitudeVal])
+          mapInstanceRef.current.setView([lat, lng], 17, { animate: true })
+          markerInstanceRef.current.setLatLng([lat, lng])
         }
-
-        // Notify parent
         if (onChangeRef.current) {
-          onChangeRef.current(latitudeVal.toFixed(6), longitudeVal.toFixed(6))
+          onChangeRef.current(lat.toFixed(6), lng.toFixed(6))
         }
-      } else {
-        setErrorMessage('No se encontró la dirección en el mapa. Intenta buscar con más detalles (ej: Calle, Altura, Ciudad).')
+        setSearchQuery(best.display_name)
+        setSearching(false)
+        return
       }
+
+      // Tier 2: Nominatim with Argentina-specific params
+      const nominatimResults = await searchNominatim(searchQuery)
+      if (nominatimResults && nominatimResults.length > 0) {
+        const best = nominatimResults[0]
+        const lat = parseFloat(best.lat)
+        const lng = parseFloat(best.lon)
+
+        if (mapInstanceRef.current && markerInstanceRef.current) {
+          mapInstanceRef.current.setView([lat, lng], 17, { animate: true })
+          markerInstanceRef.current.setLatLng([lat, lng])
+        }
+        if (onChangeRef.current) {
+          onChangeRef.current(lat.toFixed(6), lng.toFixed(6))
+        }
+        setSearching(false)
+        return
+      }
+
+      // Neither API returned results
+      setErrorMessage('No se encontró la dirección. Probá con formato: "Calle Altura, Ciudad" (ej: San Martín 1234, Rosario)')
     } catch (err) {
       console.error('Search location error:', err)
       setErrorMessage('Error de conexión al buscar la dirección.')
@@ -342,40 +527,121 @@ export default function MapPicker({ latitude, longitude, onChange, addressText, 
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-      {/* Search Input Bar */}
-      <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-        <input
-          type="text"
-          className="form-input"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          placeholder="Ej: Av. San Martín 1234, Rosario, Santa Fe, Argentina"
-          style={{ flex: 1, minWidth: '200px' }}
-          onKeyDown={(e) => {
-            if (e.key === 'Enter') {
-              e.preventDefault()
-              handleSearch()
-            }
-          }}
-        />
-        <button
-          type="button"
-          onClick={handleSearch}
-          className="btn btn-secondary"
-          disabled={searching || loading}
-          style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}
-        >
-          {searching ? 'Buscando...' : '🔍 Buscar'}
-        </button>
-        <button
-          type="button"
-          onClick={handleDetectLocation}
-          className="btn btn-secondary"
-          disabled={searching || loading}
-          style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px', borderColor: 'var(--color-primary)' }}
-        >
-          📍 Mi Ubicación
-        </button>
+      {/* Search Input Bar with Autocomplete */}
+      <div style={{ position: 'relative' }} ref={suggestionsRef}>
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+          <input
+            type="text"
+            className="form-input"
+            value={searchQuery}
+            onChange={(e) => handleSearchInputChange(e.target.value)}
+            placeholder="Ej: San Martín 1234, Rosario, Santa Fe"
+            style={{ flex: 1, minWidth: '200px' }}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                setShowSuggestions(false)
+                handleSearch()
+              }
+            }}
+            onFocus={() => {
+              if (suggestions.length > 0) setShowSuggestions(true)
+            }}
+          />
+          <button
+            type="button"
+            onClick={handleSearch}
+            className="btn btn-secondary"
+            disabled={searching || loading}
+            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px' }}
+          >
+            {searching ? 'Buscando...' : '🔍 Buscar'}
+          </button>
+          <button
+            type="button"
+            onClick={handleDetectLocation}
+            className="btn btn-secondary"
+            disabled={searching || loading}
+            style={{ padding: '8px 16px', display: 'flex', alignItems: 'center', gap: '6px', borderColor: 'var(--color-primary)' }}
+          >
+            📍 Mi Ubicación
+          </button>
+        </div>
+
+        {/* Autocomplete Suggestions Dropdown */}
+        {showSuggestions && suggestions.length > 0 && (
+          <div style={{
+            position: 'absolute',
+            top: '100%',
+            left: 0,
+            right: 0,
+            zIndex: 1000,
+            marginTop: '4px',
+            background: 'var(--bg-card, #1a1625)',
+            border: '1px solid var(--border-color, #2d2640)',
+            borderRadius: 'var(--radius-md, 8px)',
+            boxShadow: '0 12px 32px rgba(0,0,0,0.5)',
+            maxHeight: '220px',
+            overflowY: 'auto',
+          }}>
+            {suggestions.map((s, i) => (
+              <button
+                key={`${s.lat}-${s.lon}-${i}`}
+                type="button"
+                onClick={() => handleSelectSuggestion(s)}
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  width: '100%',
+                  padding: '10px 14px',
+                  background: 'transparent',
+                  border: 'none',
+                  borderBottom: i < suggestions.length - 1 ? '1px solid rgba(255,255,255,0.05)' : 'none',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  textAlign: 'left',
+                  fontSize: '0.8125rem',
+                  lineHeight: 1.4,
+                  transition: 'background 0.1s',
+                }}
+                onMouseEnter={(e) => { e.currentTarget.style.background = 'rgba(124,58,237,0.1)' }}
+                onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent' }}
+              >
+                <span style={{
+                  flexShrink: 0,
+                  width: '22px',
+                  height: '22px',
+                  borderRadius: '50%',
+                  background: s.source === 'georef' ? 'rgba(16,185,129,0.15)' : 'rgba(124,58,237,0.15)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontSize: '0.7rem',
+                }}>
+                  📍
+                </span>
+                <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {s.display_name}
+                </span>
+                {s.source === 'georef' && (
+                  <span style={{
+                    flexShrink: 0,
+                    fontSize: '0.6rem',
+                    fontWeight: 700,
+                    padding: '1px 6px',
+                    borderRadius: '4px',
+                    background: 'rgba(16,185,129,0.1)',
+                    color: '#10B981',
+                    textTransform: 'uppercase',
+                  }}>
+                    Catastral
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {errorMessage && (
@@ -456,7 +722,7 @@ export default function MapPicker({ latitude, longitude, onChange, addressText, 
         </div>
       </div>
       <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', margin: 0 }}>
-        * Haz clic en cualquier lugar del mapa o arrastra el marcador para fijar las coordenadas precisas del comercio.
+        * Buscá tu dirección con calle y altura catastral para máxima precisión. También podés hacer clic en el mapa o arrastrar el marcador.
       </p>
     </div>
   )

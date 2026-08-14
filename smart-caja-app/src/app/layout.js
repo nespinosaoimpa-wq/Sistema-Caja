@@ -57,7 +57,7 @@ export default function RootLayout({ children }) {
         <link rel="apple-touch-icon" href="/icons/icon-192.png" />
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
-      <body className={inter.className}>
+      <body className={`${inter.className} ${jakarta.variable} ${outfit.variable}`}>
         <AuthProvider>
           <ToastProvider>
             {children}

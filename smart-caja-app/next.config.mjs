@@ -1,5 +1,15 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // Tree-shake large icon/chart libraries — only bundle what's actually imported
+  experimental: {
+    optimizePackageImports: ['lucide-react', 'recharts'],
+  },
+  // Strip console.log/warn from production bundles (keep console.error for debugging)
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production'
+      ? { exclude: ['error'] }
+      : false,
+  },
   images: {
     remotePatterns: [
       {
