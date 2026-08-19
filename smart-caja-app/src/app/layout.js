@@ -54,8 +54,19 @@ export default function RootLayout({ children }) {
     <html lang="es">
       <head>
         <link rel="icon" href="/favicon.ico" />
-        <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+        <link rel="apple-touch-icon" href="/icon-192.png" />
         <meta name="mobile-web-app-capable" content="yes" />
+        <script dangerouslySetInnerHTML={{ __html: `
+          if ('serviceWorker' in navigator) {
+            window.addEventListener('load', function() {
+              navigator.serviceWorker.register('/sw.js').then(function(reg) {
+                console.log('SW registered:', reg.scope);
+              }).catch(function(err) {
+                console.log('SW registration failed:', err);
+              });
+            });
+          }
+        ` }} />
       </head>
       <body className={`${inter.className} ${jakarta.variable} ${outfit.variable}`}>
         <AuthProvider>
