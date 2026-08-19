@@ -26,6 +26,23 @@ export function AuthProvider({ children }) {
   const [profileError, setProfileError] = useState(null)
   const [supabase] = useState(() => createClient())
 
+  useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      const registerSW = () => {
+        navigator.serviceWorker.register('/sw.js')
+          .then((reg) => console.log('SW registered successfully:', reg.scope))
+          .catch((err) => console.error('SW registration failed:', err));
+      };
+
+      if (document.readyState === 'complete') {
+        registerSW();
+      } else {
+        window.addEventListener('load', registerSW);
+        return () => window.removeEventListener('load', registerSW);
+      }
+    }
+  }, [])
+
   const loadProfile = useCallback(async (userId) => {
     setProfileLoaded(false)
     setProfileError(null)
