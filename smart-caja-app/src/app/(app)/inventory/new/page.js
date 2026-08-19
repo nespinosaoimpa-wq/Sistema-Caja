@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
-import { Save, Camera, Plus, ImagePlus, X } from 'lucide-react'
+import { Save, Camera, Plus, ImagePlus, X, Trash2, Calculator, Percent } from 'lucide-react'
 import dynamic from 'next/dynamic'
 
 const BarcodeScanner = dynamic(() => import('@/components/ui/BarcodeScanner'), { ssr: false })
@@ -22,6 +22,10 @@ export default function NewProductPage() {
   const [showCameraScanner, setShowCameraScanner] = useState(false)
 
   const [categories, setCategories] = useState([])
+  const [availableProducts, setAvailableProducts] = useState([])
+  const [showRecipeCalculator, setShowRecipeCalculator] = useState(false)
+  const [recipeIngredients, setRecipeIngredients] = useState([])
+  const [markupPercent, setMarkupPercent] = useState('50')
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     name: '',
@@ -64,10 +68,22 @@ export default function NewProductPage() {
     }
   }
 
+  async function loadAvailableProducts() {
+    if (!tenant?.id) return
+    const { data } = await supabase
+      .from('products')
+      .select('id, name, cost_price, unit_label')
+      .eq('tenant_id', tenant.id)
+      .eq('is_active', true)
+      .order('name')
+    setAvailableProducts(data || [])
+  }
+
   useEffect(() => {
     if (tenant?.id) {
       const timer = setTimeout(() => {
         loadCategories()
+        loadAvailableProducts()
       }, 0)
       return () => clearTimeout(timer)
     }
@@ -84,6 +100,83 @@ export default function NewProductPage() {
     const sale = parseFloat(form.sale_price || 0)
     if (cost === 0) return 100
     return (((sale - cost) / sale) * 100).toFixed(1)
+  }
+
+  const handleAddIngredient = () => {
+    setRecipeIngredients(prev => [
+      ...prev,
+      {
+        id: Date.now() + Math.random(),
+        product_id: '',
+        custom_name: '',
+        quantity: '1',
+        cost_price: '0',
+        unit_label: 'un'
+      }
+    ])
+  }
+
+  const handleRemoveIngredient = (id) => {
+    const updated = recipeIngredients.filter(ing => ing.id !== id)
+    setRecipeIngredients(updated)
+    recalculateCostFromRecipe(updated)
+  }
+
+  const handleUpdateIngredient = (id, key, value) => {
+    const updated = recipeIngredients.map(ing => {
+      if (ing.id === id) {
+        const newIng = { ...ing, [key]: value }
+        
+        // If they selected an existing product, auto-fill unit details
+        if (key === 'product_id' && value) {
+          const found = availableProducts.find(p => p.id === value)
+          if (found) {
+            newIng.cost_price = found.cost_price.toString()
+            newIng.unit_label = found.unit_label || 'un'
+            newIng.custom_name = found.name
+          }
+        }
+        return newIng
+      }
+      return ing
+    })
+    setRecipeIngredients(updated)
+    recalculateCostFromRecipe(updated)
+  }
+
+  const recalculateCostFromRecipe = (ingredientsList) => {
+    const totalCost = ingredientsList.reduce((sum, ing) => {
+      const qty = parseFloat(ing.quantity || 0)
+      const price = parseFloat(ing.cost_price || 0)
+      return sum + (qty * price)
+    }, 0)
+    
+    // Update cost_price in form
+    setForm(prev => {
+      const newCost = totalCost.toFixed(2)
+      // Also calculate sale price automatically if markup is configured
+      let newSale = prev.sale_price
+      if (markupPercent) {
+        const markup = parseFloat(markupPercent || 0)
+        newSale = (totalCost * (1 + markup / 100)).toFixed(2)
+      }
+      return {
+        ...prev,
+        cost_price: newCost,
+        sale_price: newSale
+      }
+    })
+  }
+
+  // Recalculate cost when markup percent changes
+  const handleMarkupChange = (newMarkup) => {
+    setMarkupPercent(newMarkup)
+    const totalCost = parseFloat(form.cost_price || 0)
+    if (totalCost > 0) {
+      const markup = parseFloat(newMarkup || 0)
+      const newSale = (totalCost * (1 + markup / 100)).toFixed(2)
+      setForm(prev => ({ ...prev, sale_price: newSale }))
+    }
   }
 
   const handleImageSelect = (e) => {
@@ -175,6 +268,10 @@ export default function NewProductPage() {
 
       if (form.offer_price && parseFloat(form.offer_price) > 0) {
         productData.offer_price = parseFloat(form.offer_price)
+      }
+
+      if (recipeIngredients.length > 0) {
+        productData.recipe_config = recipeIngredients
       }
 
       let { error } = await supabase
@@ -490,89 +587,249 @@ export default function NewProductPage() {
 
           {/* Pricing */}
           <div className="card">
-            <div className="card-header">
-              <span className="card-title">Precios</span>
+            <div className="card-header" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <span className="card-title">Precios y Costos</span>
+              <button
+                type="button"
+                className="btn btn-ghost btn-sm"
+                onClick={() => setShowRecipeCalculator(!showRecipeCalculator)}
+                style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.8rem', color: showRecipeCalculator ? 'var(--color-primary)' : 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+              >
+                <Calculator size={15} />
+                {showRecipeCalculator ? 'Ocultar Receta' : 'Calcular por Receta'}
+              </button>
             </div>
-            <div className="card-body" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)', alignItems: 'start' }}>
-              <div className="form-group">
-                <label className="form-label required">Precio de Costo</label>
-                <div className="form-input-icon">
-                  <span className="input-icon" style={{ color: 'var(--text-secondary)' }}>$</span>
-                  <input 
-                    className={`form-input ${errors.cost_price ? 'error' : ''}`}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={form.cost_price}
-                    onChange={e => updateForm('cost_price', e.target.value)}
-                  />
+            <div className="card-body" style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              
+              {/* Main pricing inputs */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-4)', alignItems: 'start' }}>
+                <div className="form-group">
+                  <label className="form-label required">Precio de Costo</label>
+                  <div className="form-input-icon">
+                    <span className="input-icon" style={{ color: 'var(--text-secondary)' }}>$</span>
+                    <input 
+                      className={`form-input ${errors.cost_price ? 'error' : ''}`}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={form.cost_price}
+                      onChange={e => updateForm('cost_price', e.target.value)}
+                      disabled={showRecipeCalculator}
+                      title={showRecipeCalculator ? "El costo se calcula sumando las materias primas" : ""}
+                    />
+                  </div>
+                  {showRecipeCalculator && <span className="form-hint" style={{ color: 'var(--color-secondary)' }}>Calculado de la receta.</span>}
+                  {errors.cost_price && <span className="form-error">{errors.cost_price}</span>}
                 </div>
-                {errors.cost_price && <span className="form-error">{errors.cost_price}</span>}
-              </div>
 
-              <div className="form-group">
-                <label className="form-label required">Precio de Venta</label>
-                <div className="form-input-icon">
-                  <span className="input-icon" style={{ color: 'var(--color-secondary)' }}>$</span>
-                  <input 
-                    className={`form-input ${errors.sale_price ? 'error' : ''}`}
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="0.00"
-                    value={form.sale_price}
-                    onChange={e => updateForm('sale_price', e.target.value)}
-                  />
+                <div className="form-group">
+                  <label className="form-label required">Precio de Venta</label>
+                  <div className="form-input-icon">
+                    <span className="input-icon" style={{ color: 'var(--color-secondary)' }}>$</span>
+                    <input 
+                      className={`form-input ${errors.sale_price ? 'error' : ''}`}
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={form.sale_price}
+                      onChange={e => updateForm('sale_price', e.target.value)}
+                    />
+                  </div>
+                  {errors.sale_price && <span className="form-error">{errors.sale_price}</span>}
                 </div>
-                {errors.sale_price && <span className="form-error">{errors.sale_price}</span>}
-              </div>
 
-              <div className="form-group">
-                <label className="form-label">Precio de Oferta (Opcional)</label>
-                <div className="form-input-icon">
-                  <span className="input-icon" style={{ color: '#10B981' }}>$</span>
-                  <input 
-                    className="form-input"
-                    type="number"
-                    min="0"
-                    step="0.01"
-                    placeholder="Precio promocional para la tienda online"
-                    value={form.offer_price}
-                    onChange={e => updateForm('offer_price', e.target.value)}
-                  />
+                <div className="form-group">
+                  <label className="form-label">Precio de Oferta (Opcional)</label>
+                  <div className="form-input-icon">
+                    <span className="input-icon" style={{ color: '#10B981' }}>$</span>
+                    <input 
+                      className="form-input"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      placeholder="0.00"
+                      value={form.offer_price}
+                      onChange={e => updateForm('offer_price', e.target.value)}
+                    />
+                  </div>
                 </div>
-                <span className="form-hint" style={{ marginTop: '6px', fontSize: '0.75rem', display: 'block', color: 'var(--text-muted)' }}>
-                  Si ingresás un valor, se mostrará como el precio activo (en oferta) tachando el precio de venta regular.
-                </span>
-              </div>
 
-              <div className="form-group">
-                <label className="form-label">Margen de Ganancia</label>
-                <div style={{ 
-                  padding: 'var(--space-3)', 
-                  background: 'var(--bg-input)', 
-                  border: '1px solid var(--border-color)', 
-                  borderRadius: 'var(--radius-lg)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 'var(--space-2)'
-                }}>
-                  <span style={{ 
-                    fontFamily: 'var(--font-headline)', 
-                    fontWeight: 700, 
-                    color: calculateMargin() > 0 ? 'var(--color-secondary)' : 'var(--text-muted)'
+                <div className="form-group">
+                  <label className="form-label">Margen de Ganancia</label>
+                  <div style={{ 
+                    padding: '10px 12px', 
+                    background: 'var(--bg-input)', 
+                    border: '1px solid var(--border-color)', 
+                    borderRadius: 'var(--radius-lg)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '8px',
+                    height: '42px'
                   }}>
-                    {calculateMargin()}%
-                  </span>
-                  {calculateMargin() < 20 && form.sale_price && (
-                    <span style={{ fontSize: '0.75rem', color: 'var(--color-warning)' }}>Bajo margen</span>
-                  )}
+                    <span style={{ 
+                      fontFamily: 'var(--font-headline)', 
+                      fontWeight: 700, 
+                      color: calculateMargin() > 0 ? 'var(--color-secondary)' : 'var(--text-muted)'
+                    }}>
+                      {calculateMargin()}%
+                    </span>
+                    {calculateMargin() < 20 && form.sale_price && (
+                      <span style={{ fontSize: '0.7rem', color: 'var(--color-warning)' }}>Bajo</span>
+                    )}
+                  </div>
                 </div>
-                <span className="form-hint" style={{ marginTop: '6px', fontSize: '0.75rem', display: 'block', color: 'var(--text-muted)', lineHeight: '1.3' }}>
-                  Margen sobre venta: representa qué % del precio final es ganancia neta. Fórmula: ((Venta - Costo) / Venta) * 100
-                </span>
               </div>
+
+              {/* Recipe Calculator panel */}
+              {showRecipeCalculator && (
+                <div style={{
+                  background: 'rgba(255,255,255,0.02)',
+                  border: '1px solid var(--border-color)',
+                  borderRadius: '12px',
+                  padding: '16px',
+                  marginTop: '4px'
+                }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                    <h3 style={{ fontSize: '0.875rem', fontWeight: 700, color: '#fff', display: 'flex', alignItems: 'center', gap: '6px', margin: 0 }}>
+                      🌾 Ingredientes y Materia Prima de la Receta
+                    </h3>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>% Recargo:</span>
+                      <div className="form-input-icon" style={{ width: '85px' }}>
+                        <span className="input-icon" style={{ right: '8px', left: 'auto', fontSize: '0.75rem', color: 'var(--text-muted)' }}>%</span>
+                        <input
+                          type="number"
+                          className="form-input"
+                          style={{ padding: '4px 20px 4px 8px', fontSize: '0.75rem', height: '28px' }}
+                          value={markupPercent}
+                          onChange={e => handleMarkupChange(e.target.value)}
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {recipeIngredients.length === 0 ? (
+                    <div style={{ textAlign: 'center', padding: '24px 0', border: '1px dashed var(--border-color)', borderRadius: '8px', marginBottom: '16px' }}>
+                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '8px' }}>No hay ingredientes cargados todavía.</p>
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ border: '1px solid var(--border-color)' }}
+                        onClick={handleAddIngredient}
+                      >
+                        + Agregar Primer Insumo
+                      </button>
+                    </div>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '16px' }}>
+                      {recipeIngredients.map((ing) => {
+                        const subtotal = parseFloat(ing.quantity || 0) * parseFloat(ing.cost_price || 0)
+                        return (
+                          <div key={ing.id} style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                            
+                            {/* Ingredient selection */}
+                            <select
+                              className="form-select"
+                              style={{ flex: 2, height: '36px', fontSize: '0.8125rem' }}
+                              value={ing.product_id || ''}
+                              onChange={e => handleUpdateIngredient(ing.id, 'product_id', e.target.value)}
+                            >
+                              <option value="">-- Cargar manualmente --</option>
+                              {availableProducts.map(p => (
+                                <option key={p.id} value={p.id}>{p.name}</option>
+                              ))}
+                            </select>
+
+                            {/* Manual custom name (only if product_id is empty) */}
+                            {!ing.product_id && (
+                              <input
+                                type="text"
+                                className="form-input"
+                                style={{ flex: 2, height: '36px', fontSize: '0.8125rem' }}
+                                placeholder="Nombre del insumo"
+                                value={ing.custom_name}
+                                onChange={e => handleUpdateIngredient(ing.id, 'custom_name', e.target.value)}
+                              />
+                            )}
+
+                            {/* Quantity */}
+                            <input
+                              type="number"
+                              step="0.001"
+                              className="form-input"
+                              style={{ width: '80px', height: '36px', fontSize: '0.8125rem', textAlign: 'center' }}
+                              placeholder="Cant."
+                              value={ing.quantity}
+                              onChange={e => handleUpdateIngredient(ing.id, 'quantity', e.target.value)}
+                            />
+
+                            {/* Unit label */}
+                            <input
+                              type="text"
+                              className="form-input"
+                              style={{ width: '50px', height: '36px', fontSize: '0.8125rem', textAlign: 'center', padding: '0 4px' }}
+                              placeholder="un/kg"
+                              value={ing.unit_label}
+                              onChange={e => handleUpdateIngredient(ing.id, 'unit_label', e.target.value)}
+                              disabled={!!ing.product_id}
+                            />
+
+                            {/* Cost Price per unit */}
+                            <div className="form-input-icon" style={{ width: '90px' }}>
+                              <span className="input-icon" style={{ fontSize: '0.75rem' }}>$</span>
+                              <input
+                                type="number"
+                                step="0.01"
+                                className="form-input"
+                                style={{ height: '36px', paddingLeft: '18px', fontSize: '0.8125rem' }}
+                                placeholder="Costo"
+                                value={ing.cost_price}
+                                onChange={e => handleUpdateIngredient(ing.id, 'cost_price', e.target.value)}
+                                disabled={!!ing.product_id}
+                              />
+                            </div>
+
+                            {/* Subtotal */}
+                            <div style={{ minWidth: '70px', textAlign: 'right', fontSize: '0.8125rem', fontWeight: 700, color: 'var(--color-secondary)' }}>
+                              ${subtotal.toFixed(2)}
+                            </div>
+
+                            {/* Delete button */}
+                            <button
+                              type="button"
+                              className="btn btn-ghost btn-sm"
+                              style={{ padding: '0 8px', color: 'var(--color-error)', border: 'none', background: 'transparent' }}
+                              onClick={() => handleRemoveIngredient(ing.id)}
+                            >
+                              <Trash2 size={16} />
+                            </button>
+                          </div>
+                        )
+                      })}
+
+                      <button
+                        type="button"
+                        className="btn btn-ghost btn-sm"
+                        style={{ border: '1px solid var(--border-color)', alignSelf: 'flex-start' }}
+                        onClick={handleAddIngredient}
+                      >
+                        + Agregar Insumo
+                      </button>
+                    </div>
+                  )}
+
+                  <div style={{ display: 'flex', justifyContent: 'space-between', borderTop: '1px dashed var(--border-color)', paddingTop: '12px', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                    <span>Costo Receta Total:</span>
+                    <strong style={{ color: '#fff' }}>${parseFloat(form.cost_price || 0).toFixed(2)}</strong>
+                  </div>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: '6px', fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
+                    <span>Sugerido (+{markupPercent}% Recargo):</span>
+                    <strong style={{ color: 'var(--color-secondary)' }}>${parseFloat(form.sale_price || 0).toFixed(2)}</strong>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
 

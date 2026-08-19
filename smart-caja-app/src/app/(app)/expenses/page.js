@@ -11,6 +11,7 @@ const EXPENSE_CATEGORIES = [
   { value: 'combustible', label: '⛽ Combustible / Fletes' },
   { value: 'servicios', label: '🔌 Servicios (Luz, Internet, etc.)' },
   { value: 'mercaderia', label: '📦 Proveedores / Mercadería' },
+  { value: 'materia_prima', label: '🌾 Materias Primas / Insumos' },
   { value: 'sueldos', label: '👥 Sueldos / Jornales' },
   { value: 'mantenimiento', label: '🔧 Mantenimiento / Reparación' },
   { value: 'general', label: '📝 Gastos Generales / Varios' }
