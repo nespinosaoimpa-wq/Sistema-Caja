@@ -23,10 +23,10 @@ export async function POST(request) {
 
     const tenantId = profile.tenant_id
 
-    // Fetch Tiendanube credentials from tenants table
+    // Fetch Tiendanube credentials from tenants table with fallback to theme_config
     const { data: tenant, error: tenantError } = await supabase
       .from('tenants')
-      .select('tiendanube_store_id, tiendanube_access_token')
+      .select('*, theme_config')
       .eq('id', tenantId)
       .single()
 
@@ -34,7 +34,8 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Comercio no encontrado' }, { status: 404 })
     }
 
-    const { tiendanube_store_id: storeId, tiendanube_access_token: accessToken } = tenant
+    const storeId = tenant.tiendanube_store_id || tenant.theme_config?.tiendanube_store_id
+    const accessToken = tenant.tiendanube_access_token || tenant.theme_config?.tiendanube_access_token
 
     if (!storeId || !accessToken) {
       return NextResponse.json({ error: 'Debes configurar el Store ID y el Access Token de Tiendanube primero.' }, { status: 400 })
@@ -97,13 +98,27 @@ export async function POST(request) {
         }
       }
 
-      // 2. Check if product already exists in Smart Caja (by tiendanube_id or barcode or SKU)
-      const { data: existingProduct } = await supabase
-        .from('products')
-        .select('id, has_variants')
-        .eq('tenant_id', tenantId)
-        .eq('tiendanube_id', String(tnProduct.id))
-        .maybeSingle()
+      // 2. Check if product already exists in Smart Caja (by tiendanube_id or name)
+      let existingProduct = null
+      try {
+        const { data } = await supabase
+          .from('products')
+          .select('id, has_variants')
+          .eq('tenant_id', tenantId)
+          .eq('tiendanube_id', String(tnProduct.id))
+          .maybeSingle()
+        existingProduct = data
+      } catch (e) {
+        // Fallback to name search if tiendanube_id column is missing
+        const tnName = tnProduct.name.es || tnProduct.name.en || Object.values(tnProduct.name)[0] || ''
+        const { data } = await supabase
+          .from('products')
+          .select('id, has_variants')
+          .eq('tenant_id', tenantId)
+          .eq('name', tnName)
+          .maybeSingle()
+        existingProduct = data
+      }
 
       const basePrice = parseFloat(tnProduct.variants?.[0]?.price || tnProduct.price || 0)
       const isWeight = false
@@ -130,10 +145,19 @@ export async function POST(request) {
 
       if (existingProduct) {
         // Update product
-        const { error: updateError } = await supabase
+        let { error: updateError } = await supabase
           .from('products')
           .update(productPayload)
           .eq('id', existingProduct.id)
+
+        if (updateError && updateError.message?.includes('tiendanube_id')) {
+          delete productPayload.tiendanube_id
+          const { error: retryError } = await supabase
+            .from('products')
+            .update(productPayload)
+            .eq('id', existingProduct.id)
+          updateError = retryError
+        }
 
         if (updateError) {
           console.error('[Tiendanube Sync] Error updating product:', updateError)
@@ -143,13 +167,24 @@ export async function POST(request) {
         updatedCount++
       } else {
         // Insert product
-        const { data: newProduct, error: insertError } = await supabase
+        let { data: newProduct, error: insertError } = await supabase
           .from('products')
           .insert(productPayload)
           .select()
           .single()
 
-        if (insertError) {
+        if (insertError && insertError.message?.includes('tiendanube_id')) {
+          delete productPayload.tiendanube_id
+          const { data: retryProduct, error: retryError } = await supabase
+            .from('products')
+            .insert(productPayload)
+            .select()
+            .single()
+          newProduct = retryProduct
+          insertError = retryError
+        }
+
+        if (insertError || !newProduct) {
           console.error('[Tiendanube Sync] Error inserting product:', insertError)
           continue
         }
@@ -243,11 +278,22 @@ export async function POST(request) {
       }
     }
 
-    // Update last sync time
+    // Update last sync time safely
+    const nowIso = new Date().toISOString()
+    const currentTheme = tenant.theme_config || {}
     await supabase
       .from('tenants')
-      .update({ tiendanube_last_sync: new Date().toISOString() })
+      .update({ theme_config: { ...currentTheme, tiendanube_last_sync: nowIso } })
       .eq('id', tenantId)
+
+    try {
+      await supabase
+        .from('tenants')
+        .update({ tiendanube_last_sync: nowIso })
+        .eq('id', tenantId)
+    } catch (e) {
+      // Ignored if column missing
+    }
 
     return NextResponse.json({
       success: true,

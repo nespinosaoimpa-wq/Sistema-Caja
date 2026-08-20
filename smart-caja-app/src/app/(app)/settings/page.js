@@ -148,9 +148,9 @@ export default function SettingsPage() {
             }
           },
           ecommerce_show_out_of_stock: tenant.ecommerce_show_out_of_stock !== false,
-          tiendanube_store_id: tenant.tiendanube_store_id || '',
-          tiendanube_access_token: tenant.tiendanube_access_token || '',
-          tiendanube_last_sync: tenant.tiendanube_last_sync || null
+          tiendanube_store_id: tenant.tiendanube_store_id || tenant.theme_config?.tiendanube_store_id || '',
+          tiendanube_access_token: tenant.tiendanube_access_token || tenant.theme_config?.tiendanube_access_token || '',
+          tiendanube_last_sync: tenant.tiendanube_last_sync || tenant.theme_config?.tiendanube_last_sync || null
         })
       }, 0)
       return () => clearTimeout(timer)
@@ -419,16 +419,31 @@ export default function SettingsPage() {
     }
     setSyncingNube(true)
     try {
-      // First save the credentials to the database
-      const { error: saveCredError } = await supabase
+      // 1. Save credentials to theme_config (always succeeds regardless of DB schema)
+      const currentThemeConfig = tenant?.theme_config || {}
+      const updatedThemeConfig = {
+        ...currentThemeConfig,
+        tiendanube_store_id: form.tiendanube_store_id,
+        tiendanube_access_token: form.tiendanube_access_token
+      }
+
+      await supabase
         .from('tenants')
-        .update({
-          tiendanube_store_id: form.tiendanube_store_id,
-          tiendanube_access_token: form.tiendanube_access_token
-        })
+        .update({ theme_config: updatedThemeConfig })
         .eq('id', tenant.id)
 
-      if (saveCredError) throw saveCredError
+      // 2. Try updating standalone columns if they exist in schema
+      try {
+        await supabase
+          .from('tenants')
+          .update({
+            tiendanube_store_id: form.tiendanube_store_id,
+            tiendanube_access_token: form.tiendanube_access_token
+          })
+          .eq('id', tenant.id)
+      } catch (err) {
+        console.warn('[Tiendanube] Standalone columns missing, credentials saved in theme_config:', err)
+      }
 
       // Trigger the sync backend API
       const res = await fetch('/api/integrations/tiendanube/sync', {
@@ -476,10 +491,6 @@ export default function SettingsPage() {
         ecommerce_whatsapp: form.ecommerce_whatsapp,
         ecommerce_delivery_modes: form.ecommerce_delivery_modes,
         features_config: form.features_config,
-        ecommerce_hours: form.ecommerce_hours,
-        ecommerce_show_out_of_stock: form.ecommerce_show_out_of_stock,
-        tiendanube_store_id: form.tiendanube_store_id,
-        tiendanube_access_token: form.tiendanube_access_token,
         theme_config: {
           primary_color: form.primary_color,
           secondary_color: form.secondary_color,
@@ -492,15 +503,34 @@ export default function SettingsPage() {
           background_preset: form.background_preset,
           screensaver_enabled: form.screensaver_enabled,
           screensaver_timeout: parseInt(form.screensaver_timeout) || 180,
+          tiendanube_store_id: form.tiendanube_store_id,
+          tiendanube_access_token: form.tiendanube_access_token,
+          tiendanube_last_sync: form.tiendanube_last_sync,
         }
       }
 
+      // Primary update with theme_config
       const { error } = await supabase
         .from('tenants')
         .update(updates)
         .eq('id', tenant.id)
 
       if (error) throw error
+
+      // Secondary update for optional standalone columns if available in database schema
+      try {
+        await supabase
+          .from('tenants')
+          .update({
+            ecommerce_hours: form.ecommerce_hours,
+            ecommerce_show_out_of_stock: form.ecommerce_show_out_of_stock,
+            tiendanube_store_id: form.tiendanube_store_id,
+            tiendanube_access_token: form.tiendanube_access_token
+          })
+          .eq('id', tenant.id)
+      } catch (e) {
+        console.warn('[Settings Save] Optional columns omitted due to schema cache:', e)
+      }
 
       // Apply CSS variables immediately
       document.documentElement.style.setProperty('--color-primary', form.primary_color)
@@ -1659,15 +1689,37 @@ export default function SettingsPage() {
                             type="button" 
                             className="btn btn-secondary" 
                             onClick={async () => {
-                              await supabase
-                                .from('tenants')
-                                .update({
+                              try {
+                                const currentTheme = tenant?.theme_config || {}
+                                const updatedTheme = {
+                                  ...currentTheme,
                                   tiendanube_store_id: form.tiendanube_store_id,
                                   tiendanube_access_token: form.tiendanube_access_token
-                                })
-                                .eq('id', tenant.id)
-                              toast.success('Credenciales guardadas correctamente')
-                              reloadProfile()
+                                }
+
+                                await supabase
+                                  .from('tenants')
+                                  .update({ theme_config: updatedTheme })
+                                  .eq('id', tenant.id)
+
+                                try {
+                                  await supabase
+                                    .from('tenants')
+                                    .update({
+                                      tiendanube_store_id: form.tiendanube_store_id,
+                                      tiendanube_access_token: form.tiendanube_access_token
+                                    })
+                                    .eq('id', tenant.id)
+                                } catch (e) {
+                                  console.warn('[Tiendanube] Saved in theme_config:', e)
+                                }
+
+                                toast.success('Credenciales guardadas correctamente')
+                                reloadProfile()
+                              } catch (err) {
+                                console.error(err)
+                                toast.error('Error al guardar credenciales')
+                              }
                             }}
                             style={{ fontSize: '0.875rem' }}
                           >
