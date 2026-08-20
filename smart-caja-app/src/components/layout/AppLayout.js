@@ -36,6 +36,7 @@ import {
   Wrench,
   Zap,
   Car,
+  Download,
 } from 'lucide-react'
 
 
@@ -191,6 +192,58 @@ export default function AppLayout({ children }) {
     document.addEventListener('visibilitychange', handleVisibilityChange)
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange)
   }, [loading, user, profileLoaded, profileError, reloadProfile])
+
+  // PWA Install prompt and Service Worker registration
+  const [deferredPrompt, setDeferredPrompt] = useState(null)
+  const [showInstallModal, setShowInstallModal] = useState(false)
+  const [isAppInstalled, setIsAppInstalled] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').catch(err => {
+        console.log('SW registration skipped:', err)
+      })
+    }
+
+    // Check if already installed in standalone mode
+    if (window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true) {
+      setIsAppInstalled(true)
+    }
+
+    const handleBeforeInstallPrompt = (e) => {
+      e.preventDefault()
+      setDeferredPrompt(e)
+    }
+
+    const handleAppInstalled = () => {
+      setIsAppInstalled(true)
+      setDeferredPrompt(null)
+    }
+
+    window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+    window.addEventListener('appinstalled', handleAppInstalled)
+
+    return () => {
+      window.removeEventListener('beforeinstallprompt', handleBeforeInstallPrompt)
+      window.removeEventListener('appinstalled', handleAppInstalled)
+    }
+  }, [])
+
+  const handleInstallApp = async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt()
+      const { outcome } = await deferredPrompt.userChoice
+      if (outcome === 'accepted') {
+        setIsAppInstalled(true)
+      }
+      setDeferredPrompt(null)
+    } else {
+      setShowInstallModal(true)
+    }
+  }
 
   // Idle Timer for Screensaver
   const [isScreensaverOpen, setIsScreensaverOpen] = useState(false)
@@ -681,19 +734,29 @@ export default function AppLayout({ children }) {
              </span>
              Configuración
           </Link>
+          <button 
+            onClick={handleInstallApp}
+            className="sidebar-nav-item"
+            style={{ width: '100%', textAlign: 'left', marginTop: '4px', color: 'var(--color-primary)' }}
+          >
+             <span className="icon" style={{ opacity: 0.9, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+               <Download size={18} />
+             </span>
+             {isAppInstalled ? 'App Instalada ✓' : 'Instalar App'}
+          </button>
           <a 
             href={`https://wa.me/${process.env.NEXT_PUBLIC_SUPPORT_WHATSAPP || '543425162372'}?text=Hola%20Smart%20Caja!%20Necesito%20asistencia%20en%20mi%20cuenta%20de%20negocio%20${encodeURIComponent(tenant?.name || '')}`}
             target="_blank"
             rel="noopener noreferrer"
             className="sidebar-nav-item"
-            style={{ width: '100%', textAlign: 'left', marginTop: '8px', color: '#25D366' }}
+            style={{ width: '100%', textAlign: 'left', marginTop: '4px', color: '#25D366' }}
           >
              <span className="icon" style={{ opacity: 0.8, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                <MessageSquare size={18} />
              </span>
              Soporte WhatsApp
           </a>
-          <button onClick={() => { signOut(); router.push('/login'); }} className="sidebar-nav-item" style={{ width: '100%', textAlign: 'left', marginTop: '8px' }}>
+          <button onClick={() => { signOut(); router.push('/login'); }} className="sidebar-nav-item" style={{ width: '100%', textAlign: 'left', marginTop: '4px' }}>
              <span className="icon" style={{ opacity: 0.6, width: '24px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                <LogOut size={18} />
              </span>
@@ -783,6 +846,74 @@ export default function AppLayout({ children }) {
           )}
         </div>
       </main>
+
+      {/* ===== MODAL INSTRUCCIONES INSTALACIÓN APP ===== */}
+      {showInstallModal && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+          zIndex: 99999, display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px'
+        }} onClick={() => setShowInstallModal(false)}>
+          <div 
+            onClick={e => e.stopPropagation()}
+            style={{
+              background: 'var(--bg-card, #131b2e)',
+              border: '1px solid var(--border-color, #2d2640)',
+              borderRadius: 'var(--radius-xl, 16px)',
+              padding: '24px',
+              maxWidth: '460px',
+              width: '100%',
+              boxShadow: '0 25px 50px rgba(0,0,0,0.6)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '16px'
+            }}
+          >
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <div style={{
+                  width: '40px', height: '40px', borderRadius: '10px',
+                  background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', color: '#fff'
+                }}>📱</div>
+                <div>
+                  <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', margin: 0 }}>Instalar Smart Caja</h3>
+                  <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>App rápida para Android, iPhone y PC</span>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowInstallModal(false)}
+                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', fontSize: '1.25rem', cursor: 'pointer', padding: '4px' }}
+              >✕</button>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>📲 En Android / Chrome / Edge:</strong>
+                Toca el menú de tres puntos <strong style={{ color: '#fff' }}>⋮</strong> en tu navegador y selecciona <strong style={{ color: 'var(--color-primary)' }}>"Instalar aplicación"</strong> o <strong style={{ color: 'var(--color-primary)' }}>"Agregar a la pantalla principal"</strong>.
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>🍏 En iPhone / iPad (Safari):</strong>
+                Toca el botón <strong style={{ color: '#fff' }}>Compartir ⎋</strong> en la parte inferior de Safari y presiona <strong style={{ color: 'var(--color-primary)' }}>"Agregar al inicio ➕"</strong>.
+              </div>
+
+              <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
+                <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>💻 En Computadora (Windows / Mac):</strong>
+                En la barra de direcciones de tu navegador, haz clic en el ícono de pantalla <strong style={{ color: 'var(--color-primary)' }}>⊕ Instalar</strong>.
+              </div>
+            </div>
+
+            <button
+              onClick={() => setShowInstallModal(false)}
+              className="btn btn-primary"
+              style={{ width: '100%', padding: '12px', fontWeight: 700, marginTop: '4px' }}
+            >
+              Entendido
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
