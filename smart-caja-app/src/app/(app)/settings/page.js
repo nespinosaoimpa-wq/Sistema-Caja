@@ -417,6 +417,13 @@ export default function SettingsPage() {
       toast.error('Por favor, ingresa el Store ID y el Access Token de Tiendanube.')
       return
     }
+
+    const cleanStoreId = form.tiendanube_store_id.trim()
+    if (cleanStoreId.includes('@') || isNaN(Number(cleanStoreId))) {
+      toast.error('⚠️ El Store ID debe ser el NÚMERO de tu tienda (ej: 1234567), no una dirección de email.')
+      return
+    }
+
     setSyncingNube(true)
     try {
       // 1. Save credentials to theme_config (always succeeds regardless of DB schema)
@@ -1652,10 +1659,15 @@ export default function SettingsPage() {
                           <input 
                             className="form-input"
                             value={form.tiendanube_store_id}
-                            onChange={e => updateForm('tiendanube_store_id', e.target.value)}
-                            placeholder="Ej: 123456"
+                            onChange={e => updateForm('tiendanube_store_id', e.target.value.trim())}
+                            placeholder="Ej: 1234567 (Número de tienda)"
                             style={{ marginTop: '6px' }}
                           />
+                          {form.tiendanube_store_id?.includes('@') && (
+                            <div style={{ fontSize: '0.75rem', color: '#EF4444', marginTop: '4px', fontWeight: 600 }}>
+                              ⚠️ El Store ID es un NÚMERO (ej: 1234567), no tu email.
+                            </div>
+                          )}
                         </div>
                         <div className="form-group">
                           <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Access Token (Token de acceso)</label>
@@ -1663,7 +1675,7 @@ export default function SettingsPage() {
                             className="form-input"
                             type="password"
                             value={form.tiendanube_access_token}
-                            onChange={e => updateForm('tiendanube_access_token', e.target.value)}
+                            onChange={e => updateForm('tiendanube_access_token', e.target.value.trim())}
                             placeholder="Ej: a97405e324efb..."
                             style={{ marginTop: '6px' }}
                           />
@@ -1671,8 +1683,12 @@ export default function SettingsPage() {
                       </div>
 
                       {/* Credentials Guide Info */}
-                      <div style={{ background: 'rgba(255,255,255,0.02)', padding: '12px 16px', borderRadius: '8px', border: '1px solid var(--border-color)', fontSize: '0.78rem', color: 'var(--text-secondary)', lineHeight: 1.4 }}>
-                        💡 <strong>¿Cómo obtengo estas credenciales?</strong> Ingresá al panel administrador de tu Tiendanube ➔ <strong>Configuraciones ➔ Canales de Venta / API</strong>, creá una aplicación privada y copiá tu ID de tienda y Token de Acceso.
+                      <div style={{ background: 'rgba(0, 169, 224, 0.05)', padding: '14px 18px', borderRadius: '10px', border: '1px solid rgba(0, 169, 224, 0.2)', fontSize: '0.8rem', color: 'var(--text-secondary)', lineHeight: 1.5 }}>
+                        💡 <strong>¿Dónde encuentro el Store ID y Access Token?</strong>
+                        <ul style={{ margin: '8px 0 0 16px', padding: 0 }}>
+                          <li><strong>Store ID (Número de Tienda):</strong> Es el número que figura en la URL del navegador al entrar a tu panel de Tiendanube (ejemplo: <code>admin.tiendanube.com/<strong>1234567</strong>/dashboard</code>). <span style={{ color: '#EF4444', fontWeight: 700 }}>¡No ingreses tu email!</span></li>
+                          <li><strong>Access Token:</strong> En tu panel de Tiendanube ➔ <strong>Configuraciones ➔ Canales de Venta / API</strong>, creá una aplicación privada y copiá el Token de Acceso generado.</li>
+                        </ul>
                       </div>
 
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '12px' }}>

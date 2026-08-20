@@ -26,11 +26,21 @@ export async function GET(request, { params }) {
     }
 
     // Get tenant by slug (no auth required — public endpoint)
-    const { data: tenant, error: tenantError } = await supabase
+    let { data: tenant, error: tenantError } = await supabase
       .from('tenants')
       .select('id, name, slug, business_type, logo_url, ecommerce_enabled, ecommerce_description, ecommerce_banner, ecommerce_delivery_modes, theme_config, ecommerce_hours, ecommerce_show_out_of_stock')
       .eq('slug', slug)
-      .single()
+      .maybeSingle()
+
+    if (tenantError && (tenantError.message?.includes('ecommerce_hours') || tenantError.code === '42703')) {
+      const fallbackRes = await supabase
+        .from('tenants')
+        .select('id, name, slug, business_type, logo_url, ecommerce_enabled, ecommerce_description, ecommerce_banner, ecommerce_delivery_modes, theme_config')
+        .eq('slug', slug)
+        .maybeSingle()
+      tenant = fallbackRes.data
+      tenantError = fallbackRes.error
+    }
 
     if (tenantError || !tenant) {
       return NextResponse.json({ error: 'Tienda no encontrada' }, { status: 404 })

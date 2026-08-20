@@ -34,11 +34,15 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Comercio no encontrado' }, { status: 404 })
     }
 
-    const storeId = tenant.tiendanube_store_id || tenant.theme_config?.tiendanube_store_id
-    const accessToken = tenant.tiendanube_access_token || tenant.theme_config?.tiendanube_access_token
+    const storeId = (tenant.tiendanube_store_id || tenant.theme_config?.tiendanube_store_id || '').trim()
+    const accessToken = (tenant.tiendanube_access_token || tenant.theme_config?.tiendanube_access_token || '').trim()
 
     if (!storeId || !accessToken) {
       return NextResponse.json({ error: 'Debes configurar el Store ID y el Access Token de Tiendanube primero.' }, { status: 400 })
+    }
+
+    if (storeId.includes('@') || isNaN(Number(storeId))) {
+      return NextResponse.json({ error: 'El Store ID de Tiendanube debe ser el NÚMERO de tu tienda (ej: 1234567), no tu email.' }, { status: 400 })
     }
 
     // Fetch products from Tiendanube API
@@ -51,7 +55,13 @@ export async function POST(request) {
 
     if (!response.ok) {
       const errText = await response.text()
-      console.error('[Tiendanube Sync] API Error:', errText)
+      console.error('[Tiendanube Sync] API Error:', response.status, errText)
+      if (response.status === 404) {
+        return NextResponse.json({ error: `No se encontró la tienda con ID "${storeId}". Verifica que ingresaste el NÚMERO de tu tienda (ej: 1234567), no tu email.` }, { status: 404 })
+      }
+      if (response.status === 401 || response.status === 403) {
+        return NextResponse.json({ error: 'Access Token de Tiendanube no autorizado. Verifica el token generado en tu aplicación privada de Tiendanube.' }, { status: 401 })
+      }
       return NextResponse.json({ error: 'Error al conectar con la API de Tiendanube. Verifica tus credenciales.' }, { status: response.status })
     }
 
