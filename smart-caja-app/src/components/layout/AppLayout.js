@@ -830,26 +830,33 @@ export default function AppLayout({ children }) {
       </aside>
 
       {/* ===== BOTTOM TAB BAR (mobile) ===== */}
-      <nav className="bottom-tab-bar">
-        {BOTTOM_TABS.map(tab => {
-          const isActive = pathname?.startsWith(tab.href)
-          return (
-            <Link
-              key={tab.href}
-              href={isSuspended ? '/settings' : tab.href}
-              className={`bottom-tab-item ${isActive ? 'active' : ''}`}
-            >
-              <tab.icon size={18} style={{ marginBottom: '2px' }} />
-              {tab.label}
-            </Link>
-          )
-        })}
-      </nav>
+      {!pathname?.startsWith('/preventista') && (
+        <nav className="bottom-tab-bar">
+          {BOTTOM_TABS.map(tab => {
+            const isActive = pathname?.startsWith(tab.href)
+            return (
+              <Link
+                key={tab.href}
+                href={isSuspended ? '/settings' : tab.href}
+                className={`bottom-tab-item ${isActive ? 'active' : ''}`}
+              >
+                <tab.icon size={18} style={{ marginBottom: '2px' }} />
+                {tab.label}
+              </Link>
+            )
+          })}
+        </nav>
+      )}
 
       {/* Main Content */}
       <main className="app-main">
         {/* We don't render a top header bar anymore, to match the clean layout of the screenshot */}
-        <div className="app-content" style={{ paddingTop: 'var(--space-10)' }}>
+        <div className="app-content" style={{ 
+          paddingTop: pathname?.startsWith('/preventista') ? '0' : 'var(--space-10)',
+          paddingLeft: pathname?.startsWith('/preventista') ? '0' : undefined,
+          paddingRight: pathname?.startsWith('/preventista') ? '0' : undefined,
+          paddingBottom: pathname?.startsWith('/preventista') ? '0' : undefined
+        }}>
           {showBlocker ? (
             <div style={{
               display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
