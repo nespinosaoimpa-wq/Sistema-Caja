@@ -599,7 +599,41 @@ export default function DashboardPage() {
   const prevPeriodLabel = period === 'today' ? 'ayer' : (period === 'week' ? 'semana anterior' : 'mes anterior')
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-6)', padding: 'var(--space-8)' }}>
+    <div className="dashboard-container">
+      <style>{`
+        .dashboard-container {
+          display: flex;
+          flex-direction: column;
+          gap: var(--space-6);
+          padding: 0;
+        }
+        .dashboard-kpi-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+          gap: var(--space-6);
+        }
+        .dashboard-split-row {
+          display: grid;
+          grid-template-columns: 2fr 1fr;
+          gap: var(--space-6);
+        }
+        @media (max-width: 900px) {
+          .dashboard-split-row {
+            grid-template-columns: 1fr !important;
+          }
+        }
+        @media (max-width: 640px) {
+          .dashboard-kpi-grid {
+            grid-template-columns: repeat(2, 1fr) !important;
+            gap: 10px !important;
+          }
+        }
+        @media (max-width: 420px) {
+          .dashboard-kpi-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
       
       {/* ================= HEADER WITH CLEAN STYLING & ARGENTINA ACCENT ================= */}
       <div style={{
@@ -818,7 +852,7 @@ export default function DashboardPage() {
           )}
 
           {/* ================= 4 MAIN KPI CARDS (PERIOD BALANCE) ================= */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: 'var(--space-6)' }}>
+          <div className="dashboard-kpi-grid">
             
             {/* 1. Total Sales Balance */}
             <div className="kpi-card" style={{ borderColor: 'rgba(139, 92, 246, 0.35)', position: 'relative', overflow: 'hidden' }}>
@@ -1206,7 +1240,7 @@ export default function DashboardPage() {
           )}
 
           {/* ================= CHART & ACTIVITY ROW ================= */}
-          <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-6)' }}>
+          <div className="dashboard-split-row">
             
             {/* Sales Evolution Chart */}
             <div className="card">

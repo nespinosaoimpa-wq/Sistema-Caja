@@ -304,6 +304,18 @@ export default function ShiftsPage() {
         </div>
       </div>
 
+      <style>{`
+        .shifts-split-grid {
+          display: grid;
+          grid-template-columns: 3fr 2fr;
+          gap: var(--space-6);
+        }
+        @media (max-width: 900px) {
+          .shifts-split-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
       <div className="app-content">
         {/* Active Shift Area */}
         <div className="card" style={{ marginBottom: 'var(--space-6)', border: activeShift ? '2px solid var(--color-secondary)' : '1px solid var(--border-color)' }}>
@@ -356,7 +368,7 @@ export default function ShiftsPage() {
                 </div>
 
                 {/* Middle block: columns for Card Reconciliation and Closing Input */}
-                <div style={{ display: 'grid', gridTemplateColumns: '3fr 2fr', gap: 'var(--space-6)' }}>
+                <div className="shifts-split-grid">
                   
                   {/* Left Column: POSnet voucher list */}
                   <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', padding: '20px' }}>

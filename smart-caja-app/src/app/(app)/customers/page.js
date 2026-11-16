@@ -217,30 +217,30 @@ export default function CustomersPage() {
       </div>
 
       {/* KPI Row */}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 'var(--space-4)' }}>
-        <div className="card" style={{ padding: 'var(--space-5)' }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '8px' }}>Total Clientes</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: 'var(--space-4)' }}>
+        <div className="card" style={{ padding: 'var(--space-4)' }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px' }}>Total Clientes</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: '#fff' }}>
             {loading ? '...' : customers.length}
           </div>
         </div>
-        <div className="card" style={{ padding: 'var(--space-5)' }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '8px' }}>Clientes con Deuda</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-tertiary)' }}>
+        <div className="card" style={{ padding: 'var(--space-4)' }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px' }}>Clientes con Deuda</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-tertiary)' }}>
             {loading ? '...' : customers.filter(c => (parseFloat(c.balance) || 0) > 0).length}
           </div>
         </div>
-        <div className="card" style={{ padding: 'var(--space-5)' }}>
-          <div style={{ color: 'var(--text-muted)', fontSize: '0.8125rem', fontWeight: 600, textTransform: 'uppercase', marginBottom: '8px' }}>Saldo Total Deudor</div>
-          <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-secondary)' }}>
+        <div className="card" style={{ padding: 'var(--space-4)' }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: '0.75rem', fontWeight: 700, textTransform: 'uppercase', marginBottom: '6px' }}>Saldo Deudor</div>
+          <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-secondary)' }}>
             {loading ? '...' : formatCurrency(customers.reduce((acc, c) => acc + (parseFloat(c.balance) || 0), 0))}
           </div>
         </div>
       </div>
 
       {/* Filter and Table */}
-      <div className="card" style={{ padding: 'var(--space-6)' }}>
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 'var(--space-4)', marginBottom: 'var(--space-4)' }}>
+      <div className="card" style={{ padding: 'var(--space-4)' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))', gap: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
           <input 
             className="form-input" 
             placeholder="🔎 Buscar por nombre, DNI, email o teléfono..." 

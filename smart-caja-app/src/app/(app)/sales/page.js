@@ -376,6 +376,74 @@ export default function SalesPage() {
 
         {/* Data List */}
         <div className="card">
+          <style>{`
+            .sales-table-header {
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr 1fr 80px 100px;
+              padding: 12px 16px;
+              font-size: 0.75rem;
+              font-weight: 700;
+              color: var(--text-muted);
+              text-transform: uppercase;
+              border-bottom: 1px solid var(--border-color);
+              letter-spacing: 0.04em;
+            }
+            .sales-table-row {
+              display: grid;
+              grid-template-columns: 1fr 1fr 1fr 1fr 80px 100px;
+              align-items: center;
+              padding: var(--space-4);
+              border-bottom: 1px solid var(--border-color);
+              background: var(--bg-input);
+              transition: background 0.2s;
+              cursor: pointer;
+            }
+            .sales-table-row:hover {
+              background: var(--bg-card);
+            }
+            @media (max-width: 768px) {
+              .sales-table-header {
+                display: none !important;
+              }
+              .sales-table-row {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: stretch !important;
+                gap: 10px !important;
+                padding: 14px !important;
+                border-radius: var(--radius-md) !important;
+                margin-bottom: 8px !important;
+                border: 1px solid var(--border-color) !important;
+                background: var(--bg-card) !important;
+              }
+              .sales-mobile-top {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+              }
+              .sales-mobile-middle {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                flex-wrap: wrap !important;
+                gap: 6px !important;
+              }
+              .sales-mobile-bottom {
+                display: flex !important;
+                justify-content: space-between !important;
+                align-items: center !important;
+                border-top: 1px dashed rgba(255, 255, 255, 0.08) !important;
+                padding-top: 8px !important;
+                font-size: 0.75rem !important;
+                color: var(--text-muted) !important;
+              }
+            }
+            @media (min-width: 769px) {
+              .sales-mobile-top, .sales-mobile-middle, .sales-mobile-bottom {
+                display: contents !important;
+              }
+            }
+          `}</style>
           {loading ? (
             <div style={{ padding: 'var(--space-8)', textAlign: 'center', color: 'var(--text-muted)' }}>
               Cargando historial...
@@ -401,59 +469,59 @@ export default function SalesPage() {
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {filteredSales.map((sale, i) => (
-                <div key={sale.id} style={{ 
-                  display: 'grid', 
-                  gridTemplateColumns: '1fr 1fr 1fr 1fr 80px 100px',
-                  alignItems: 'center',
-                  padding: 'var(--space-4)',
-                  borderBottom: i < filteredSales.length - 1 ? '1px solid var(--border-color)' : 'none',
-                  background: 'var(--bg-input)',
-                  transition: 'background 0.2s',
-                  cursor: 'pointer'
-                }}
-                onMouseEnter={(e) => e.currentTarget.style.background = 'var(--bg-card)'}
-                onMouseLeave={(e) => e.currentTarget.style.background = 'var(--bg-input)'}
-                onClick={() => printTicket(sale)}
+              <div className="sales-table-header">
+                <div>Fecha</div>
+                <div>Ticket / Canal</div>
+                <div>Medio Pago</div>
+                <div>Estado</div>
+                <div style={{ textAlign: 'center' }}>Items</div>
+                <div style={{ textAlign: 'right' }}>Total</div>
+              </div>
+              {filteredSales.map((sale) => (
+                <div 
+                  key={sale.id} 
+                  className="sales-table-row"
+                  onClick={() => printTicket(sale)}
                 >
-                  <div>
-                    <div style={{ fontWeight: 600 }}>{formatDateTime(sale.created_at).split(', ')[0]}</div>
-                    <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>{formatDateTime(sale.created_at).split(', ')[1]}</div>
-                  </div>
-                  <div>
-                    <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                  <div className="sales-mobile-top">
+                    <div style={{ fontFamily: 'monospace', fontSize: '0.9rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
                       #{sale.ticket_number}
                       {sale.exchange_items && sale.exchange_items.length > 0 && (
-                        <span title={`${sale.exchange_items.length} cambio(s) registrado(s)`} style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--color-error)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 700, padding: '1px 5px', letterSpacing: '0.02em' }}>CAMBIO</span>
+                        <span style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--color-error)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 700, padding: '1px 5px' }}>CAMBIO</span>
                       )}
                     </div>
-                    <div style={{ fontSize: '0.75rem', color: sale.online_orders ? 'var(--color-secondary)' : 'var(--text-secondary)', marginTop: '2px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                      <span>{sale.online_orders ? `Pedido #${sale.online_orders.order_number}` : 'Caja'}</span>
+                    <div style={{ textAlign: 'right', fontWeight: 800, fontSize: '1rem', color: 'var(--color-secondary)' }}>
+                      {formatCurrency(sale.total)}
+                    </div>
+                  </div>
+
+                  <div className="sales-mobile-middle">
+                    <div>
+                      <span style={{ fontWeight: 600, fontSize: '0.8125rem' }}>{formatDateTime(sale.created_at).split(', ')[0]}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginLeft: '6px' }}>{formatDateTime(sale.created_at).split(', ')[1]}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '6px', alignItems: 'center' }}>
+                      <span className="badge badge-neutral" style={{ background: 'rgba(255,255,255,0.06)', fontSize: '0.7rem' }}>
+                        {getPaymentMethodLabel(sale)}
+                      </span>
+                      <span className={`badge ${sale.status === 'completed' ? 'badge-success' : 'badge-error'}`} style={{ fontSize: '0.7rem' }}>
+                        {sale.status === 'completed' ? 'Completado' : 'Anulado'}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="sales-mobile-bottom">
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      <span style={{ color: sale.online_orders ? 'var(--color-secondary)' : 'var(--text-secondary)', fontWeight: 600 }}>
+                        {sale.online_orders ? `Pedido #${sale.online_orders.order_number}` : 'Caja'}
+                      </span>
                       {sale.profiles?.full_name && (
-                        <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>• {sale.profiles.full_name}</span>
-                      )}
-                      {tenant?.subscription_plan === 'enterprise' && (
-                        <span style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', padding: '1px 4px', borderRadius: '3px', fontSize: '0.65rem' }}>
-                          {sale.branches?.name || 'Casa Central'}
-                        </span>
+                        <span>• {sale.profiles.full_name}</span>
                       )}
                     </div>
-                  </div>
-                  <div>
-                    <span className="badge badge-neutral" style={{ background: 'rgba(255,255,255,0.05)' }}>
-                      {getPaymentMethodLabel(sale)}
-                    </span>
-                  </div>
-                  <div>
-                    <span className={`badge ${sale.status === 'completed' ? 'badge-success' : 'badge-error'}`}>
-                      {sale.status === 'completed' ? 'Completado' : 'Anulado'}
-                    </span>
-                  </div>
-                  <div style={{ textAlign: 'center', color: 'var(--text-muted)', fontSize: '0.875rem' }}>
-                    {sale.sale_items?.length || 0} arts.
-                  </div>
-                  <div style={{ textAlign: 'right', fontWeight: 700, color: 'var(--color-secondary)' }}>
-                    {formatCurrency(sale.total)}
+                    <div>
+                      {sale.sale_items?.length || 0} arts. →
+                    </div>
                   </div>
                 </div>
               ))}

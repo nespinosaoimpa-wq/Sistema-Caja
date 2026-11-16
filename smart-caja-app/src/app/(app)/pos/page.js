@@ -7,7 +7,8 @@ import { useToast } from '@/lib/hooks/useToast'
 import { formatCurrency, formatDateTime, formatDatabaseError } from '@/lib/utils/formatters'
 import { 
   Maximize, Minimize, Search, Zap, Edit, Banknote, CreditCard, Landmark, Split, Calendar, 
-  ShoppingCart, User, Clock, Trash2, Printer, Package, ArrowLeftRight, CheckCircle
+  ShoppingCart, User, Clock, Trash2, Printer, Package, ArrowLeftRight, CheckCircle,
+  ChevronRight, ArrowLeft, Camera, Smartphone, Grid
 } from 'lucide-react'
 import QuickProductModal from '@/components/ui/QuickProductModal'
 import useScale from '@/lib/hooks/useScale'
@@ -86,6 +87,7 @@ export default function POSPage() {
   const [mobileSessionId, setMobileSessionId] = useState('')
   const [isMobileConnected, setIsMobileConnected] = useState(false)
   const [showMobileScannerModal, setShowMobileScannerModal] = useState(false)
+  const [mobileTab, setMobileTab] = useState('catalog') // 'catalog' | 'ticket'
   const addToCartRef = useRef(null)
 
   // Loaded order states
@@ -1364,7 +1366,7 @@ export default function POSPage() {
           align-items: start;
           padding-bottom: var(--space-8);
         }
-        @media (max-width: 1200px) {
+        @media (max-width: 1200px) and (min-width: 1025px) {
           .pos-container {
             grid-template-columns: 1fr;
           }
@@ -1448,14 +1450,125 @@ export default function POSPage() {
         .cart-table tr:last-child td {
           border-bottom: none;
         }
+
+        /* Mobile Responsive Enhancements */
+        .pos-mobile-tabs { display: none; }
+        .pos-mobile-floating-bar { display: none; }
+        .pos-mobile-back-btn { display: none; }
+
+        @media (max-width: 1024px) {
+          .pos-container {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 12px !important;
+            padding-bottom: 84px !important;
+          }
+          .pos-left {
+            padding: 12px !important;
+            border-radius: var(--radius-lg) !important;
+            gap: 12px !important;
+          }
+          .pos-right {
+            padding: 12px !important;
+            border-radius: var(--radius-lg) !important;
+            box-shadow: none !important;
+            position: relative !important;
+            top: 0 !important;
+          }
+          .pos-desktop-controls {
+            display: none !important;
+          }
+          .pos-mobile-tabs {
+            display: flex !important;
+            gap: 6px;
+            padding: 4px;
+            background: rgba(255, 255, 255, 0.04);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            margin-bottom: 4px;
+          }
+          .pos-mobile-tab-btn {
+            flex: 1;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            padding: 10px;
+            border-radius: var(--radius-md);
+            font-size: 0.8125rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            border: none;
+            background: transparent;
+            cursor: pointer;
+            transition: all 0.2s;
+          }
+          .pos-mobile-tab-btn.active {
+            background: rgba(45, 212, 191, 0.14);
+            color: var(--color-secondary, #2DD4BF);
+            border: 1px solid rgba(45, 212, 191, 0.35);
+          }
+          .pos-mobile-floating-bar {
+            display: flex !important;
+            align-items: center;
+            justify-content: space-between;
+            position: fixed;
+            bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 8px);
+            left: 10px;
+            right: 10px;
+            padding: 10px 14px;
+            background: rgba(10, 17, 32, 0.96);
+            border: 1px solid rgba(45, 212, 191, 0.4);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border-radius: var(--radius-xl);
+            z-index: 145;
+          }
+          .pos-mobile-back-btn {
+            display: inline-flex !important;
+          }
+
+          /* Mode visibility on mobile */
+          .pos-container[data-mobile-tab="catalog"] .pos-cart-section {
+            display: none !important;
+          }
+          .pos-container[data-mobile-tab="catalog"] .pos-right {
+            display: none !important;
+          }
+          .pos-container[data-mobile-tab="ticket"] .pos-search-section {
+            display: none !important;
+          }
+          .pos-container[data-mobile-tab="ticket"] .pos-catalog-section {
+            display: none !important;
+          }
+        }
       `}</style>
-      <div ref={posContainerRef} className="pos-container">
+      <div ref={posContainerRef} className="pos-container" data-mobile-tab={mobileTab}>
         
         {/* LEFT SIDE - Search, Cart Table, & Optional Catalog */}
         <div className="pos-left">
+
+          {/* Mobile Segments Tab */}
+          <div className="pos-mobile-tabs">
+            <button
+              type="button"
+              className={`pos-mobile-tab-btn ${mobileTab === 'catalog' ? 'active' : ''}`}
+              onClick={() => setMobileTab('catalog')}
+            >
+              <Grid size={16} /> Catálogo
+            </button>
+            <button
+              type="button"
+              className={`pos-mobile-tab-btn ${mobileTab === 'ticket' ? 'active' : ''}`}
+              onClick={() => setMobileTab('ticket')}
+            >
+              <ShoppingCart size={16} /> Ticket ({cart.length})
+            </button>
+          </div>
           
-          {/* Header Controls (Lector, Fullscreen, Catalog Toggle) */}
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
+          {/* Header Controls (Desktop Only) */}
+          <div className="pos-desktop-controls" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
             <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
               <button 
                 type="button"
@@ -1471,7 +1584,8 @@ export default function POSPage() {
                   fontSize: '0.875rem' 
                 }}
               >
-                {showCatalog ? '👁️ Ocultar Catálogo' : '👁️ Mostrar Catálogo'}
+                <Grid size={16} />
+                {showCatalog ? 'Ocultar Catálogo' : 'Mostrar Catálogo'}
               </button>
 
               <button 
@@ -1489,7 +1603,7 @@ export default function POSPage() {
                   color: isMobileConnected ? '#10B981' : 'var(--text-secondary)'
                 }}
               >
-                <span>{isMobileConnected ? '🟢' : '📱'}</span>
+                <Smartphone size={16} />
                 {isMobileConnected ? 'Celular Vinculado' : 'Escanear con Celular'}
               </button>
 
@@ -1555,7 +1669,7 @@ export default function POSPage() {
           </div>
 
           {/* Search bar with Camera Scan button and Autocomplete Dropdown */}
-          <div className="search-wrapper">
+          <div className="search-wrapper pos-search-section">
             <div style={{ display: 'flex', gap: '8px', alignItems: 'stretch' }}>
               <form onSubmit={handleBarcodeSubmit} style={{ flex: 1 }}>
                 <div className="form-input-icon">
@@ -1635,7 +1749,7 @@ export default function POSPage() {
           </div>
 
           {/* Cart Table */}
-          <div style={{ overflowX: 'auto', flex: 1, minHeight: '200px' }}>
+          <div className="pos-cart-section" style={{ overflowX: 'auto', flex: 1, minHeight: '180px' }}>
             {cart.length === 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', color: 'var(--text-muted)', height: '200px', gap: '8px' }}>
                 <ShoppingCart size={32} />
@@ -1761,9 +1875,9 @@ export default function POSPage() {
 
           {/* Optional Visual Catalog Grid */}
           {showCatalog && (
-            <div style={{ borderTop: '1px solid var(--border-color)', paddingTop: 'var(--space-6)', marginTop: 'var(--space-4)' }}>
+            <div className="pos-catalog-section" style={{ borderTop: '1px solid var(--border-color)', paddingTop: 'var(--space-6)', marginTop: 'var(--space-4)' }}>
               {/* Category Buttons */}
-              <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '12px', marginBottom: 'var(--space-4)' }}>
+              <div className="scroll-pills" style={{ paddingBottom: '12px', marginBottom: 'var(--space-4)' }}>
                 {uniqueCategories.map(cat => (
                   <button
                     key={cat}
@@ -1789,7 +1903,7 @@ export default function POSPage() {
               {loading ? (
                 <div style={{ color: 'var(--text-muted)' }}>Cargando catálogo...</div>
               ) : (
-                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 'var(--space-4)' }}>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(140px, 1fr))', gap: 'var(--space-3)' }}>
                   {filteredProductsByCategory.map(product => (
                     <div 
                       key={product.id} 
@@ -1865,6 +1979,31 @@ export default function POSPage() {
 
         {/* RIGHT SIDE - Checkout Panel */}
         <div className="pos-right">
+          {/* Mobile Back Button */}
+          <div className="pos-mobile-back-btn" style={{ padding: '12px 14px 0 14px' }}>
+            <button
+              type="button"
+              onClick={() => setMobileTab('catalog')}
+              className="btn btn-ghost"
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                color: 'var(--color-secondary, #2DD4BF)',
+                fontWeight: 700,
+                fontSize: '0.85rem',
+                padding: '6px 12px',
+                background: 'rgba(45, 212, 191, 0.08)',
+                border: '1px solid rgba(45, 212, 191, 0.25)',
+                borderRadius: 'var(--radius-md)',
+                width: '100%',
+                justifyContent: 'center'
+              }}
+            >
+              <ArrowLeft size={16} /> Volver al Catálogo (+ productos)
+            </button>
+          </div>
+
           {/* Panel Header */}
           <div style={{ padding: 'var(--space-6)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <div>
@@ -2373,6 +2512,53 @@ export default function POSPage() {
           </div>
         </div>
       </div>
+
+      {/* Mobile Sticky Floating Cart Bar */}
+      {cart.length > 0 && mobileTab === 'catalog' && (
+        <div className="pos-mobile-floating-bar">
+          <div 
+            onClick={() => setMobileTab('ticket')} 
+            style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer', flex: 1 }}
+          >
+            <div style={{ position: 'relative', width: '38px', height: '38px', borderRadius: '10px', background: 'rgba(45, 212, 191, 0.15)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <ShoppingCart size={20} style={{ color: 'var(--color-secondary)' }} />
+              <span style={{ 
+                position: 'absolute', top: '-6px', right: '-6px', 
+                background: 'var(--color-secondary)', color: '#000', 
+                fontWeight: 800, fontSize: '0.7rem', 
+                width: '18px', height: '18px', borderRadius: '50%', 
+                display: 'flex', alignItems: 'center', justifyContent: 'center' 
+              }}>
+                {cartItemsCount}
+              </span>
+            </div>
+            <div>
+              <div style={{ fontSize: '0.7rem', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.04em', fontWeight: 600 }}>Total Ticket</div>
+              <div style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff' }}>{formatCurrency(cartTotal)}</div>
+            </div>
+          </div>
+          <button 
+            type="button" 
+            onClick={() => setMobileTab('ticket')}
+            style={{
+              padding: '10px 18px',
+              borderRadius: 'var(--radius-lg)',
+              background: 'linear-gradient(135deg, var(--color-primary), var(--color-secondary))',
+              color: '#000',
+              fontWeight: 800,
+              fontSize: '0.875rem',
+              border: 'none',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 15px rgba(45, 212, 191, 0.4)'
+            }}
+          >
+            Cobrar <ChevronRight size={16} />
+          </button>
+        </div>
+      )}
 
       {/* Receipt Modal (Unchanged structurally, kept dark theme compatible) */}
       {showReceipt && receiptData && (

@@ -852,10 +852,7 @@ export default function AppLayout({ children }) {
       <main className="app-main">
         {/* We don't render a top header bar anymore, to match the clean layout of the screenshot */}
         <div className="app-content" style={{ 
-          paddingTop: pathname?.startsWith('/preventista') ? '0' : 'var(--space-10)',
-          paddingLeft: pathname?.startsWith('/preventista') ? '0' : undefined,
-          paddingRight: pathname?.startsWith('/preventista') ? '0' : undefined,
-          paddingBottom: pathname?.startsWith('/preventista') ? '0' : undefined
+          padding: pathname?.startsWith('/preventista') ? '0' : undefined
         }}>
           {showBlocker ? (
             <div style={{
