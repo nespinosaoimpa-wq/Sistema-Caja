@@ -2,7 +2,7 @@ if (typeof globalThis.WebSocket === 'undefined') {
   globalThis.WebSocket = class DummyWebSocket {}
 }
 
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { generateSlug } from '@/lib/utils/formatters'
 import { getInitialCategories } from '@/lib/config/rubroConfig'
 import { randomUUID } from 'crypto'
@@ -26,22 +26,7 @@ export async function POST(request) {
       return Response.json({ error: 'Faltan parámetros obligatorios (userId o email)' }, { status: 400 })
     }
 
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!serviceKey) {
-      console.error('[API Onboard] SUPABASE_SERVICE_ROLE_KEY is not defined in environment.')
-      return Response.json({ error: 'Falta configurar la clave de servicio en el servidor' }, { status: 500 })
-    }
-
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      serviceKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    const supabaseAdmin = createAdminClient()
 
     const emailNormalized = email.trim().toLowerCase()
 

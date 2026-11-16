@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(request) {
   try {
@@ -18,22 +18,7 @@ export async function GET(request) {
     }
 
     // 3. Initialize Admin Client to bypass normal tenant RLS restrictions
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!serviceKey) {
-      console.error('[API Superadmin] SUPABASE_SERVICE_ROLE_KEY is not defined in environment.')
-      return Response.json({ error: 'Falta configurar la clave de servicio en el servidor' }, { status: 500 })
-    }
-
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      serviceKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    const supabaseAdmin = createAdminClient()
 
     // 4. Fetch all tenants data and metrics
     const { data: tenants, error: tenantsError } = await supabaseAdmin

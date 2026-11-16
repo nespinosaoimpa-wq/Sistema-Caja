@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(request) {
   try {
@@ -16,24 +16,14 @@ export async function POST(request) {
       return Response.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    const hasAdminKey = serviceKey && serviceKey !== 'YOUR_SERVICE_ROLE_KEY_HERE' && serviceKey.trim() !== ''
+    const supabaseAdmin = createAdminClient()
+    const hasAdminKey = true
 
     // 2. Obtener el perfil del usuario que invita
     let inviterProfile = null
     let profileError = null
 
     if (hasAdminKey) {
-      const supabaseAdmin = createSupabaseClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        serviceKey,
-        {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false
-          }
-        }
-      )
       const { data, error } = await supabaseAdmin
         .from('profiles')
         .select('tenant_id, role')
@@ -74,17 +64,6 @@ export async function POST(request) {
     }
 
     // 3. Invitar usando cliente admin de Supabase (esquivando RLS)
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      serviceKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
-
     const emailNormalized = email.trim().toLowerCase()
 
     // A. Check if the user already exists in the profiles table

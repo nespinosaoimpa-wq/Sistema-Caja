@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(request) {
   try {
@@ -7,23 +7,7 @@ export async function POST(request) {
       return Response.json({ error: 'Falta email' }, { status: 400 })
     }
 
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!serviceKey) {
-      // Fallback safety
-      console.warn('[Check Email API] SUPABASE_SERVICE_ROLE_KEY is not defined.')
-      return Response.json({ registered: true })
-    }
-
-    const supabaseAdmin = createClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      serviceKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    const supabaseAdmin = createAdminClient()
 
     const { data, error } = await supabaseAdmin
       .from('profiles')

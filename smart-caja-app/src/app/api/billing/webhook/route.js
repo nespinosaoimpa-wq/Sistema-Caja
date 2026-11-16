@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { createHmac } from 'crypto'
 import * as React from 'react'
 import { Resend } from 'resend'
@@ -8,12 +8,8 @@ import { PaymentFailedEmail } from '@/emails/PaymentFailedEmail'
 
 const resend = new Resend(process.env.RESEND_API_KEY || 're_placeholder_key_for_build')
 
-
 function getSupabaseAdmin() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !key) return null
-  return createClient(url, key, { auth: { persistSession: false } })
+  return createAdminClient()
 }
 
 function verifySignature(req, body) {

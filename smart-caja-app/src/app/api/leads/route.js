@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { Resend } from 'resend'
 
 const resendApiKey = process.env.RESEND_API_KEY || ''
@@ -13,16 +13,7 @@ export async function POST(req) {
       return NextResponse.json({ error: 'El email es obligatorio' }, { status: 400 })
     }
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-
-    if (!supabaseUrl || !supabaseServiceKey) {
-      return NextResponse.json({ error: 'Servicio no configurado' }, { status: 503 })
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false }
-    })
+    const supabaseAdmin = createAdminClient()
 
     const { data, error } = await supabaseAdmin
       .from('leads')

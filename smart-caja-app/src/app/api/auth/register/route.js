@@ -2,7 +2,7 @@ if (typeof globalThis.WebSocket === 'undefined') {
   globalThis.WebSocket = class DummyWebSocket {}
 }
 
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { generateSlug } from '@/lib/utils/formatters'
 import { getInitialCategories } from '@/lib/config/rubroConfig'
 import { randomUUID } from 'crypto'
@@ -26,20 +26,7 @@ export async function POST(request) {
       return Response.json({ error: 'Faltan parámetros obligatorios (email o contraseña)' }, { status: 400 })
     }
 
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-
-    if (!serviceKey || !supabaseUrl) {
-      console.error('[API Register] Missing SUPABASE_SERVICE_ROLE_KEY or NEXT_PUBLIC_SUPABASE_URL in server environment.')
-      return Response.json({ error: 'Falta configurar las claves de servicio en el servidor de producción.' }, { status: 500 })
-    }
-
-    const supabaseAdmin = createSupabaseClient(supabaseUrl, serviceKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false
-      }
-    })
+    const supabaseAdmin = createAdminClient()
 
     const emailNormalized = email.trim().toLowerCase()
 

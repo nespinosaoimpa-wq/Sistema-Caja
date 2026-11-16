@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(request) {
   try {
@@ -75,22 +75,7 @@ export async function POST(request) {
       return Response.json({ error: 'Faltan parámetros' }, { status: 400 })
     }
 
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!serviceKey) {
-      console.warn('[API Referrals POST] SUPABASE_SERVICE_ROLE_KEY not configured, bypassing.')
-      return Response.json({ success: true, message: 'Bypassed tracking (missing key)' })
-    }
-
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      serviceKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    const supabaseAdmin = createAdminClient()
 
     const { error } = await supabaseAdmin
       .from('referrals')
