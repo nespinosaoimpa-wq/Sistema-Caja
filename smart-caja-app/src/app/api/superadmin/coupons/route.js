@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const ADMIN_EMAIL = 'nespinosa.oimpa@gmail.com'
 
@@ -13,12 +13,7 @@ async function checkAdminAuth() {
 }
 
 function getSupabaseAdmin() {
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  if (!serviceKey || !url) return null
-  return createSupabaseClient(url, serviceKey, {
-    auth: { persistSession: false }
-  })
+  return createAdminClient()
 }
 
 export async function GET(req) {

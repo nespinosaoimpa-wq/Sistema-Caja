@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(req) {
   try {
@@ -10,17 +10,8 @@ export async function GET(req) {
       return NextResponse.json({ error: 'Tenant ID requerido' }, { status: 400 })
     }
 
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const mpAccessToken = process.env.MERCADOPAGO_ACCESS_TOKEN
-
-    if (!supabaseServiceKey || !mpAccessToken) {
-      return NextResponse.json({ error: 'Servicio no configurado' }, { status: 503 })
-    }
-
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false }
-    })
+    const supabaseAdmin = createAdminClient()
 
     const { data: tenant, error } = await supabaseAdmin
       .from('tenants')

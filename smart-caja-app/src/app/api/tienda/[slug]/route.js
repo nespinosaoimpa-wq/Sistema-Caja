@@ -1,29 +1,12 @@
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { NextResponse } from 'next/server'
 
 export async function GET(request, { params }) {
   try {
     const { slug } = await params
     
-    // Create admin/service client to bypass RLS for public storefront
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    let supabase
-    if (serviceKey) {
-      supabase = createClient(
-        process.env.NEXT_PUBLIC_SUPABASE_URL,
-        serviceKey,
-        {
-          auth: {
-            autoRefreshToken: false,
-            persistSession: false
-          }
-        }
-      )
-    } else {
-      console.warn('SUPABASE_SERVICE_ROLE_KEY not found. Falling back to default server client.')
-      const { createClient: createServerClient } = await import('@/lib/supabase/server')
-      supabase = await createServerClient()
-    }
+    // Create admin client to bypass RLS for public storefront
+    const supabase = createAdminClient()
 
     // Get tenant by slug (no auth required — public endpoint)
     let { data: tenant, error: tenantError } = await supabase

@@ -1,5 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { createClient as createSupabaseClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function GET(request) {
   try {
@@ -11,23 +11,8 @@ export async function GET(request) {
       return Response.json({ error: 'No autenticado' }, { status: 401 })
     }
 
-    // 2. Query the profile and tenant using the service role key to bypass RLS recursion
-    const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    if (!serviceKey) {
-      console.error('[API Profile] SUPABASE_SERVICE_ROLE_KEY is not defined in environment.')
-      return Response.json({ error: 'Falta configurar la clave de servicio en el servidor' }, { status: 500 })
-    }
-
-    const supabaseAdmin = createSupabaseClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      serviceKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+    // 2. Query the profile and tenant using the admin client to bypass RLS recursion
+    const supabaseAdmin = createAdminClient()
 
     const { data: profileData, error: profileError } = await supabaseAdmin
       .from('profiles')

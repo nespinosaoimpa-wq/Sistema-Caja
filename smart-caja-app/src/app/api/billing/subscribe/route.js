@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createAdminClient } from '@/lib/supabase/admin'
 
 const PLAN_PRICES = {
   basic: { name: 'Profesional', price: 60000 },
@@ -30,11 +30,7 @@ export async function POST(req) {
     let price = plan.price
     let appliedCoupon = null
 
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
-      auth: { persistSession: false }
-    })
+    const supabaseAdmin = createAdminClient()
 
     if (couponCode) {
       const { data: coupon, error: couponError } = await supabaseAdmin
