@@ -390,7 +390,7 @@ function RegisterContent() {
                     Elegí el plan que querés probar
                   </h1>
                   <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 'var(--space-5)', textAlign: 'center' }}>
-                    Comenzarás con <strong>30 días gratis (1 mes completo)</strong> de prueba. Sin tarjetas ni compromisos.
+                    Comenzarás con <strong>15 días gratis</strong> de prueba. Sin tarjetas ni compromisos.
                   </p>
 
                   <div style={{
@@ -501,7 +501,7 @@ function RegisterContent() {
                             alignItems: 'center',
                             gap: '4px'
                           }}>
-                            ✨ Probás este plan 1 mes gratis (30 días)
+                            ✨ Probás este plan 15 días gratis
                           </div>
                         </div>
                       )
@@ -513,7 +513,7 @@ function RegisterContent() {
                     style={{ width: '100%', justifyContent: 'center' }}
                     onClick={() => setStep(2)}
                   >
-                    Probar gratis por 1 mes →
+                    Probar gratis por 15 días →
                   </button>
                 </>
               ) : step === 2 && !inviteTenant ? (
@@ -685,7 +685,7 @@ function RegisterContent() {
                   </div>
 
                   <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 'var(--space-4)' }}>
-                    {inviteTenant ? 'Al registrarte te unís al comercio respectivo.' : isStoreMode ? 'Al registrarte aceptás nuestros términos de uso. Tienda virtual 100% gratis, sin tarjeta.' : 'Al registrarte aceptás nuestros términos de uso. 1 mes de prueba completa gratis, sin tarjeta.'}
+                    {inviteTenant ? 'Al registrarte te unís al comercio respectivo.' : isStoreMode ? 'Al registrarte aceptás nuestros términos de uso. Tienda virtual 100% gratis, sin tarjeta.' : 'Al registrarte aceptás nuestros términos de uso. 15 días de prueba completa gratis, sin tarjeta.'}
                   </p>
                 </>
               )}

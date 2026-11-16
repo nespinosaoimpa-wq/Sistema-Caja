@@ -127,6 +127,9 @@ export async function POST(request) {
           if (refTenant) referredById = refTenant.id
         }
 
+        const trialEndsAt = new Date()
+        trialEndsAt.setDate(trialEndsAt.getDate() + 15)
+
         const { error: tenantError } = await supabaseAdmin
           .from('tenants')
           .insert({
@@ -138,6 +141,7 @@ export async function POST(request) {
             phone: phone || '',
             subscription_plan: subscription_plan || 'professional',
             referred_by_id: referredById,
+            trial_ends_at: trialEndsAt.toISOString(),
           })
 
         if (tenantError) {

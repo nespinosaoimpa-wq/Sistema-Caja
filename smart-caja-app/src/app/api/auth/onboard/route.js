@@ -126,6 +126,9 @@ export async function POST(request) {
       // Generate slug and insert tenant
       const slug = generateSlug(business_name) + '-' + Math.random().toString(36).slice(2, 6)
 
+      const trialEndsAt = new Date()
+      trialEndsAt.setDate(trialEndsAt.getDate() + 15)
+
       const { error: tenantError } = await supabaseAdmin
         .from('tenants')
         .insert({
@@ -137,6 +140,7 @@ export async function POST(request) {
           phone: phone || '',
           subscription_plan: subscription_plan || 'enterprise',
           referred_by_id: referredById,
+          trial_ends_at: trialEndsAt.toISOString(),
         })
 
       if (tenantError) {
