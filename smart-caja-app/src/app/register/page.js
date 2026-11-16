@@ -222,7 +222,7 @@ function RegisterContent() {
         return
       }
 
-      if (serverErrorMsg.includes('ya está registrado')) {
+      if (serverErrorMsg) {
         throw new Error(serverErrorMsg)
       }
 

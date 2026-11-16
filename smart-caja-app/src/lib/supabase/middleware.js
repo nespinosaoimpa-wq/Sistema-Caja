@@ -1,6 +1,9 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
+const SUPABASE_URL = process.env.NEXT_PUBLIC_SUPABASE_URL || 'https://cdaqvqhcfuyxitnpsesq.supabase.co'
+const SUPABASE_ANON_KEY = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_IPq6vXe2V1VZ9dgk_WLgdw_d7eL_pwm'
+
 export async function updateSession(request) {
   let supabaseResponse = NextResponse.next({ request })
   const pathname = request.nextUrl.pathname
@@ -13,11 +16,13 @@ export async function updateSession(request) {
       '/forgot-password',
       '/reset-password',
       '/promo',
+      '/catalogo-gratis',
       '/terms',
       '/privacy',
       '/scan'
     ]
     const isPublicRoute = publicRoutes.some(route => pathname === route) ||
+      pathname.startsWith('/api/auth') ||
       pathname.startsWith('/api/webhooks') ||
       pathname.startsWith('/billing') ||
       pathname.startsWith('/api/billing') ||
@@ -25,13 +30,10 @@ export async function updateSession(request) {
       pathname.startsWith('/tienda') ||
       pathname.startsWith('/api/tienda') ||
       pathname.startsWith('/api/leads') ||
-      pathname.startsWith('/api/auth/check-email') ||
-      pathname.startsWith('/api/auth/onboard') ||
       pathname.startsWith('/api/referrals') ||
       pathname.startsWith('/api/emails')
 
     // 1. Optimize for Next.js Prefetches
-    // Prefetch requests (triggered on hover) do not need to query the database.
     const isPrefetch = request.headers.get('x-middleware-prefetch') === '1' ||
                        request.headers.get('purpose') === 'prefetch'
 
@@ -40,7 +42,6 @@ export async function updateSession(request) {
     }
 
     // 2. Optimize for cookie presence
-    // If there are no Supabase auth cookies, we don't need to invoke getUser() to know the user is logged out.
     const allCookies = request.cookies.getAll()
     const hasAuthCookie = allCookies.some(cookie =>
       cookie.name.includes('auth-token') || cookie.name.startsWith('sb-')
@@ -57,8 +58,8 @@ export async function updateSession(request) {
 
     // Only query Supabase Auth when we have a candidate auth cookie
     const supabase = createServerClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      SUPABASE_URL,
+      SUPABASE_ANON_KEY,
       {
         cookies: {
           getAll() { return request.cookies.getAll() },
@@ -99,11 +100,13 @@ export async function updateSession(request) {
       '/forgot-password',
       '/reset-password',
       '/promo',
+      '/catalogo-gratis',
       '/terms',
       '/privacy',
       '/scan'
     ]
     const isPublicRoute = publicRoutes.some(route => pathname === route) ||
+      pathname.startsWith('/api/auth') ||
       pathname.startsWith('/api/webhooks') ||
       pathname.startsWith('/billing') ||
       pathname.startsWith('/api/billing') ||
@@ -111,8 +114,6 @@ export async function updateSession(request) {
       pathname.startsWith('/tienda') ||
       pathname.startsWith('/api/tienda') ||
       pathname.startsWith('/api/leads') ||
-      pathname.startsWith('/api/auth/check-email') ||
-      pathname.startsWith('/api/auth/onboard') ||
       pathname.startsWith('/api/referrals') ||
       pathname.startsWith('/api/emails')
     if (!isPublicRoute) {
@@ -123,4 +124,3 @@ export async function updateSession(request) {
     return supabaseResponse
   }
 }
-
