@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { formatCurrency, formatDateTime } from '@/lib/utils/formatters'
 import { useToast } from '@/lib/hooks/useToast'
+import { Clock, Plus, Banknote, CheckCircle2, Lock, Unlock, Calculator, AlertCircle } from 'lucide-react'
 
 export default function ShiftsPage() {
   const { tenant, profile } = useAuth()
@@ -294,8 +295,8 @@ export default function ShiftsPage() {
     <div>
       <div className="app-header">
         <div>
-          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.25rem', fontWeight: 700 }}>
-            ⏱️ Turnos y Caja
+          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Clock size={20} style={{ color: 'var(--color-primary)' }} /> Turnos y Caja
           </h1>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
             Apertura y cierre de caja por empleado
@@ -313,7 +314,8 @@ export default function ShiftsPage() {
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '16px', flexWrap: 'wrap', gap: '16px' }}>
                   <div>
                     <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', color: 'var(--color-secondary)', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      🟢 Turno Abierto <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '100px', fontWeight: 400 }}>ID: #{activeShift.id.slice(-6)}</span>
+                      <span style={{ width: '10px', height: '10px', borderRadius: '50%', background: 'var(--color-secondary)', display: 'inline-block' }} />
+                      Turno Abierto <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '100px', fontWeight: 400 }}>ID: #{activeShift.id.slice(-6)}</span>
                     </h3>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem' }}>
                       Iniciado el {formatDateTime(activeShift.opened_at)} por {profile?.full_name || 'Cajero'}
@@ -359,7 +361,7 @@ export default function ShiftsPage() {
                   {/* Left Column: POSnet voucher list */}
                   <div style={{ background: 'var(--bg-surface)', borderRadius: 'var(--radius-lg)', border: '1px solid var(--border-color)', padding: '20px' }}>
                     <h4 style={{ fontSize: '1rem', fontWeight: 700, marginBottom: '12px', color: '#fff', display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      💳 Control de Cupones POSnet / Tarjeta ({shiftSales.filter(s => (s.payment_method === 'debit' || s.payment_method === 'credit') && !(s.payment_details?.is_transfer || s.payment_details?.card_brand === 'Transferencia')).length})
+                      Control de Cupones POSnet / Tarjeta ({shiftSales.filter(s => (s.payment_method === 'debit' || s.payment_method === 'credit') && !(s.payment_details?.is_transfer || s.payment_details?.card_brand === 'Transferencia')).length})
                     </h4>
                     
                     {shiftSales.filter(s => (s.payment_method === 'debit' || s.payment_method === 'credit') && !(s.payment_details?.is_transfer || s.payment_details?.card_brand === 'Transferencia')).length === 0 ? (
@@ -469,10 +471,10 @@ export default function ShiftsPage() {
                           <span>Efectivo real en caja</span>
                           <button 
                             className="btn btn-ghost btn-sm" 
-                            style={{ padding: '1px 6px', fontSize: '0.65rem' }}
+                            style={{ padding: '2px 8px', fontSize: '0.75rem', display: 'inline-flex', alignItems: 'center', gap: '4px' }}
                             onClick={() => setShowBillCounter(true)}
                           >
-                            💵 Contar billetes
+                            <Calculator size={13} /> Contar billetes
                           </button>
                         </label>
                         <input 
@@ -486,9 +488,9 @@ export default function ShiftsPage() {
                       <button 
                         className="btn btn-primary" 
                         onClick={handleCloseShift}
-                        style={{ height: '42px', padding: '0 20px', borderRadius: 'var(--radius-md)' }}
+                        style={{ height: '42px', padding: '0 20px', borderRadius: 'var(--radius-md)', display: 'inline-flex', alignItems: 'center', gap: '8px' }}
                       >
-                        🔒 Cerrar Turno
+                        <Lock size={15} /> Cerrar Turno
                       </button>
                     </div>
                   </div>
@@ -496,12 +498,25 @@ export default function ShiftsPage() {
                 </div>
               </div>
             ) : (
-              <div style={{ textAlign: 'center', padding: 'var(--space-4)' }}>
-                <div style={{ fontSize: '2.5rem', marginBottom: 'var(--space-3)' }}>😴</div>
+              <div style={{ textAlign: 'center', padding: 'var(--space-6)' }}>
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '20px',
+                  background: 'rgba(0, 229, 155, 0.08)',
+                  border: '1px solid rgba(0, 229, 155, 0.2)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--color-primary, #00e59b)',
+                  margin: '0 auto var(--space-4) auto'
+                }}>
+                  <Clock size={28} />
+                </div>
                 <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.25rem', marginBottom: 'var(--space-2)' }}>No tenés un turno activo</h3>
-                <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-4)' }}>Para empezar a registrar ventas en efectivo, abrí un nuevo turno de caja.</p>
-                <button className="btn btn-secondary btn-lg" onClick={() => setShowOpenModal(true)}>
-                  🔓 Abrir Caja Nueva
+                <p style={{ color: 'var(--text-muted)', marginBottom: 'var(--space-5)' }}>Para empezar a registrar ventas en efectivo, abrí un nuevo turno de caja.</p>
+                <button className="btn btn-secondary btn-lg" onClick={() => setShowOpenModal(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: '8px', margin: '0 auto' }}>
+                  <Plus size={18} /> Abrir Caja Nueva
                 </button>
               </div>
             )}
@@ -588,7 +603,7 @@ export default function ShiftsPage() {
         }}>
           <div className="card" style={{ width: '100%', maxWidth: '400px', background: 'var(--bg-card)' }}>
             <div className="card-header">
-              <span className="card-title">💵 Contador de Billetes</span>
+              <span className="card-title">Contador de Billetes</span>
               <button className="btn btn-ghost btn-sm" onClick={() => setShowBillCounter(false)}>✕</button>
             </div>
             <div className="card-body" style={{ maxHeight: '60vh', overflowY: 'auto' }}>
@@ -658,12 +673,14 @@ export default function ShiftsPage() {
             {/* Header */}
             <div style={{ textAlign: 'center', marginBottom: '28px' }}>
               <div style={{
-                width: '64px', height: '64px', borderRadius: '50%',
-                background: 'rgba(78,222,163,0.1)',
-                border: '2px solid rgba(78,222,163,0.3)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '2rem', margin: '0 auto 16px'
-              }}>🔓</div>
+                width: '60px', height: '60px', borderRadius: '18px',
+                background: 'rgba(0, 229, 155, 0.1)',
+                border: '1px solid rgba(0, 229, 155, 0.25)',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                color: 'var(--color-primary, #00e59b)', margin: '0 auto 16px'
+              }}>
+                <Banknote size={28} />
+              </div>
               <h2 style={{ fontSize: '1.5rem', fontWeight: 800, fontFamily: 'var(--font-headline)', color: '#fff', marginBottom: '6px' }}>
                 Abrir Nueva Caja
               </h2>
@@ -746,7 +763,7 @@ export default function ShiftsPage() {
               borderRadius: 'var(--radius-md)', padding: '12px 16px', marginBottom: '24px',
               fontSize: '0.8125rem', color: 'var(--text-secondary)', lineHeight: 1.5
             }}>
-              💡 Si empezás sin efectivo, podés dejar en <strong style={{ color: '#fff' }}>$0</strong>. El sistema igual va a registrar todas las ventas.
+              Si empezás sin efectivo, podés ingresar <strong style={{ color: '#fff' }}>$0</strong>. El sistema registrará todas las ventas normalmente.
             </div>
 
             {/* Actions */}
@@ -776,7 +793,7 @@ export default function ShiftsPage() {
                     <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
                     Abriendo...
                   </span>
-                ) : '🔓 Confirmar Apertura'}
+                ) : 'Confirmar Apertura'}
               </button>
             </div>
           </div>

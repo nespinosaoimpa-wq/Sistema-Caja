@@ -4,6 +4,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { formatCurrency, formatDateTime, PAYMENT_METHOD_LABELS, getPaymentMethodLabel } from '@/lib/utils/formatters'
+import { Receipt, Download, Search, Inbox, RefreshCw } from 'lucide-react'
 
 const PAGE_SIZE = 20
 
@@ -159,7 +160,7 @@ export default function SalesPage() {
       const exchangeTotalVal = exchItems.reduce((s, ei) => s + (ei.quantity || ei.qty || 0) * (ei.unit_price || 0), 0)
       exchangePrintHTML = `
         <div style="border-top:1px dashed #000;margin:6px 0;"></div>
-        <div style="font-size:10px;font-weight:bold;margin-bottom:3px;">🔄 CAMBIOS / DEVOLUCIONES:</div>
+        <div style="font-size:10px;font-weight:bold;margin-bottom:3px;">CAMBIOS / DEVOLUCIONES:</div>
         <table style="width:100%;border-collapse:collapse;font-size:10px;">
           <tbody>${exchangeRowsHTML}</tbody>
         </table>
@@ -305,16 +306,16 @@ export default function SalesPage() {
     <div>
       <div className="app-header">
         <div>
-          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.25rem', fontWeight: 700 }}>
-            🧾 Historial de Ventas
+          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.25rem', fontWeight: 700, display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Receipt size={20} style={{ color: 'var(--color-primary)' }} /> Historial de Ventas
           </h1>
           <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>
-            Registro completo de transacciones
+            Registro completo de transacciones por cajero y turno
           </p>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginLeft: 'auto' }}>
-          <button className="btn btn-primary" onClick={exportCSV}>
-            ⬇️ Exportar CSV
+          <button className="btn btn-primary" onClick={exportCSV} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px' }}>
+            <Download size={15} /> Exportar CSV
           </button>
         </div>
       </div>
@@ -324,7 +325,7 @@ export default function SalesPage() {
         <div className="card" style={{ marginBottom: 'var(--space-6)' }}>
           <div className="card-body" style={{ display: 'flex', gap: 'var(--space-4)', flexWrap: 'wrap' }}>
             <div className="form-input-icon" style={{ flex: '1', minWidth: '200px' }}>
-              <span className="input-icon">🔍</span>
+              <span className="input-icon" style={{ display: 'flex', alignItems: 'center' }}><Search size={15} /></span>
               <input 
                 className="form-input" 
                 placeholder="Buscar por nro de ticket..."
@@ -381,7 +382,20 @@ export default function SalesPage() {
             </div>
           ) : filteredSales.length === 0 ? (
             <div style={{ padding: 'var(--space-12)', textAlign: 'center' }}>
-               <div style={{ fontSize: '3rem', marginBottom: 'var(--space-4)' }}>📭</div>
+              <div style={{
+                width: '56px',
+                height: '56px',
+                borderRadius: '16px',
+                background: 'rgba(0, 229, 155, 0.08)',
+                border: '1px solid rgba(0, 229, 155, 0.2)',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'var(--color-primary, #00e59b)',
+                margin: '0 auto var(--space-4) auto'
+              }}>
+                <Inbox size={26} />
+              </div>
               <h3 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.25rem', marginBottom: 'var(--space-2)' }}>No se encontraron ventas</h3>
               <p style={{ color: 'var(--text-muted)' }}>No hay resultados para los filtros seleccionados.</p>
             </div>
@@ -410,14 +424,17 @@ export default function SalesPage() {
                     <div style={{ fontFamily: 'monospace', fontSize: '0.875rem', color: 'var(--color-primary)', display: 'flex', alignItems: 'center', gap: '5px' }}>
                       #{sale.ticket_number}
                       {sale.exchange_items && sale.exchange_items.length > 0 && (
-                        <span title={`${sale.exchange_items.length} cambio(s) registrado(s)`} style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--color-error)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 700, padding: '1px 5px', letterSpacing: '0.02em' }}>🔄 CAMBIO</span>
+                        <span title={`${sale.exchange_items.length} cambio(s) registrado(s)`} style={{ background: 'rgba(239,68,68,0.15)', color: 'var(--color-error)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '4px', fontSize: '0.6rem', fontWeight: 700, padding: '1px 5px', letterSpacing: '0.02em' }}>CAMBIO</span>
                       )}
                     </div>
                     <div style={{ fontSize: '0.75rem', color: sale.online_orders ? 'var(--color-secondary)' : 'var(--text-secondary)', marginTop: '2px', fontWeight: 600, display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
-                      <span>{sale.online_orders ? `🛒 Pedido #${sale.online_orders.order_number}` : '🏪 Caja'}</span>
+                      <span>{sale.online_orders ? `Pedido #${sale.online_orders.order_number}` : 'Caja'}</span>
+                      {sale.profiles?.full_name && (
+                        <span style={{ color: 'var(--text-muted)', fontWeight: 400 }}>• {sale.profiles.full_name}</span>
+                      )}
                       {tenant?.subscription_plan === 'enterprise' && (
                         <span style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-muted)', padding: '1px 4px', borderRadius: '3px', fontSize: '0.65rem' }}>
-                          🏢 {sale.branches?.name || 'Casa Central'}
+                          {sale.branches?.name || 'Casa Central'}
                         </span>
                       )}
                     </div>
@@ -510,7 +527,7 @@ export default function SalesPage() {
             {/* Exchange/Return section in modal */}
             {selectedSale.exchange_items && selectedSale.exchange_items.length > 0 && (
               <div style={{ borderTop: '1px dashed #ccc', paddingTop: 'var(--space-3)', marginBottom: 'var(--space-4)' }}>
-                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#c00', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>🔄 Cambios / Devoluciones:</div>
+                <div style={{ fontSize: '0.7rem', fontWeight: 700, color: '#c00', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>Cambios / Devoluciones:</div>
                 {selectedSale.exchange_items.map((ei, idx) => {
                   const qty = ei.quantity || ei.qty || 0
                   return (
