@@ -432,7 +432,7 @@ export default function POSPage() {
     return product.unit_type === 'weight' || product.unit_type === 'volume'
   }
 
-  const addToCart = (product, variant = null) => {
+  const addToCart = (product, variant = null, explicitQty = null) => {
     if (product.has_variants && !variant) {
       setSelectedProductForVariants(product)
       setShowVariantPicker(true)
@@ -444,16 +444,29 @@ export default function POSPage() {
       const unitPrice = variant ? (Number(product.sale_price) + Number(variant.extra_price || 0)) : Number(product.sale_price)
       
       if (existing) {
-        // If scale is connected and it's a weight product, override qty with scale weight
-        const increment = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : (isDecimalProduct(product) ? 1 : 1)
-        const newQty = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : existing.qty + increment
+        let newQty
+        if (explicitQty !== null && explicitQty > 0) {
+          newQty = explicitQty
+        } else if (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) {
+          newQty = scaleWeight
+        } else {
+          newQty = existing.qty + 1
+        }
         const subtotal = newQty * unitPrice
         return prev.map(item => 
-          (item.id === product.id && (!variant || item.variant_id === variant.id)) ? { ...item, qty: newQty, subtotal, target_amount: subtotal.toFixed(2) } : item
+          (item.id === product.id && (!variant || item.variant_id === variant.id)) 
+            ? { ...item, qty: newQty, rawQty: undefined, subtotal, target_amount: subtotal.toFixed(2) } 
+            : item
         )
       }
 
-      const initialQty = (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) ? scaleWeight : 1
+      let initialQty = 1
+      if (explicitQty !== null && explicitQty > 0) {
+        initialQty = explicitQty
+      } else if (scaleConnected && product.unit_type === 'weight' && scaleWeight > 0) {
+        initialQty = scaleWeight
+      }
+
       const subtotal = initialQty * unitPrice
       return [...prev, { 
         ...product, 
@@ -531,33 +544,72 @@ export default function POSPage() {
   const handleBarcodeSubmit = (e) => {
     e.preventDefault()
     if (!searchTerm) return
-    const exactMatch = products.find(p => p.barcode === searchTerm || p.reference_code === searchTerm)
+    const rawInput = searchTerm.trim()
+
+    // Support multiplier/weight syntax: "01*1.5", "01*1,5", "PAPA*2.5", "01 1.5", "PAPA 2"
+    let codeQuery = rawInput
+    let explicitQty = null
+
+    if (rawInput.includes('*')) {
+      const parts = rawInput.split('*')
+      codeQuery = parts[0].trim()
+      const parsed = parseFloat(parts[1].trim().replace(',', '.'))
+      if (!isNaN(parsed) && parsed > 0) {
+        explicitQty = parsed
+      }
+    } else {
+      const spaceParts = rawInput.split(/\s+/)
+      if (spaceParts.length === 2) {
+        const potentialQty = parseFloat(spaceParts[1].replace(',', '.'))
+        if (!isNaN(potentialQty) && potentialQty > 0) {
+          codeQuery = spaceParts[0].trim()
+          explicitQty = potentialQty
+        }
+      }
+    }
+
+    const codeQueryLower = codeQuery.toLowerCase()
+
+    // 1. Exact match by reference_code (internal code / PLU) or barcode (case-insensitive)
+    const exactMatch = products.find(p => 
+      (p.reference_code && p.reference_code.toLowerCase() === codeQueryLower) ||
+      (p.barcode && p.barcode.toLowerCase() === codeQueryLower)
+    )
     if (exactMatch) {
-      addToCart(exactMatch)
+      addToCart(exactMatch, null, explicitQty)
+      const qtyStr = explicitQty ? `(${explicitQty} ${exactMatch.unit_label || (exactMatch.unit_type === 'weight' ? 'kg' : 'un')})` : ''
+      toast.success(`"${exactMatch.name}" ${qtyStr} agregado al carrito`)
       setSearchTerm('')
       return
     }
 
+    // 2. Exact match by name
+    const exactNameMatch = products.find(p => p.name.toLowerCase() === codeQueryLower)
+    if (exactNameMatch) {
+      addToCart(exactNameMatch, null, explicitQty)
+      const qtyStr = explicitQty ? `(${explicitQty} ${exactNameMatch.unit_label || (exactNameMatch.unit_type === 'weight' ? 'kg' : 'un')})` : ''
+      toast.success(`"${exactNameMatch.name}" ${qtyStr} agregado al carrito`)
+      setSearchTerm('')
+      return
+    }
+
+    // 3. Substring match
     const matches = products.filter(p => 
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.categories?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      (p.barcode && p.barcode.toLowerCase().includes(searchTerm.toLowerCase())) ||
-      (p.reference_code && p.reference_code.toLowerCase().includes(searchTerm.toLowerCase()))
+      p.name.toLowerCase().includes(codeQueryLower) ||
+      p.categories?.name?.toLowerCase().includes(codeQueryLower) ||
+      (p.barcode && p.barcode.toLowerCase().includes(codeQueryLower)) ||
+      (p.reference_code && p.reference_code.toLowerCase().includes(codeQueryLower))
     )
 
     if (matches.length > 0) {
-      addToCart(matches[0])
+      addToCart(matches[0], null, explicitQty)
+      const qtyStr = explicitQty ? `(${explicitQty} ${matches[0].unit_label || (matches[0].unit_type === 'weight' ? 'kg' : 'un')})` : ''
+      toast.success(`"${matches[0].name}" ${qtyStr} agregado al carrito`)
       setSearchTerm('')
     } else {
-      // If it looks like a barcode (mostly digits/alphanumeric, short), offer to create product
-      const looksLikeBarcode = /^[a-zA-Z0-9\-]{4,20}$/.test(searchTerm.trim())
-      if (looksLikeBarcode) {
-        setQuickProductBarcode(searchTerm.trim())
-        setShowQuickProduct(true)
-        setSearchTerm('')
-      } else {
-        toast.warning('Producto no encontrado')
-      }
+      setQuickProductBarcode(codeQuery)
+      setShowQuickProduct(true)
+      setSearchTerm('')
     }
   }
 
@@ -608,26 +660,56 @@ export default function POSPage() {
   }
 
   const updateQtyDirect = (id, value) => {
-    const numVal = parseFloat(value)
-    if (isNaN(numVal) || numVal <= 0) return
+    const cleanStr = String(value).replace(',', '.')
+    const numVal = parseFloat(cleanStr)
     setCart(prev => prev.map(item => {
       if (item.id === id) {
+        if (value === '' || cleanStr.endsWith('.') || isNaN(numVal)) {
+          return { ...item, rawQty: value }
+        }
+        if (numVal <= 0) return { ...item, rawQty: value }
         const subtotal = numVal * item.sale_price
-        return { ...item, qty: numVal, subtotal, target_amount: subtotal.toFixed(2) }
+        return { 
+          ...item, 
+          qty: numVal, 
+          rawQty: value, 
+          subtotal, 
+          target_amount: subtotal.toFixed(2) 
+        }
+      }
+      return item
+    }))
+  }
+
+  const finalizeQty = (id) => {
+    setCart(prev => prev.map(item => {
+      if (item.id === id) {
+        const cleanStr = typeof item.rawQty === 'string' ? item.rawQty.replace(',', '.') : item.qty
+        const numVal = parseFloat(cleanStr)
+        const finalQty = (!isNaN(numVal) && numVal > 0) ? numVal : 1
+        const subtotal = finalQty * item.sale_price
+        return {
+          ...item,
+          qty: finalQty,
+          rawQty: undefined,
+          subtotal,
+          target_amount: subtotal.toFixed(2)
+        }
       }
       return item
     }))
   }
 
   const updateQtyByAmount = (id, amountStr) => {
+    const cleanStr = String(amountStr).replace(',', '.')
+    const amount = parseFloat(cleanStr)
     setCart(prev => prev.map(item => {
       if (item.id === id) {
-        const amount = parseFloat(amountStr)
         if (isNaN(amount) || amount <= 0) {
-          return { ...item, target_amount: amountStr, qty: 0, subtotal: 0 }
+          return { ...item, target_amount: amountStr, qty: 0, rawQty: undefined, subtotal: 0 }
         }
         const newQty = parseFloat((amount / item.sale_price).toFixed(3))
-        return { ...item, target_amount: amountStr, qty: newQty, subtotal: amount }
+        return { ...item, target_amount: amountStr, qty: newQty, rawQty: undefined, subtotal: amount }
       }
       return item
     }))
@@ -1484,7 +1566,7 @@ export default function POSPage() {
                     id="barcode-scanner"
                     ref={barcodeInputRef}
                     className="form-input" 
-                    placeholder="Buscar por nombre, rubro, código o escanear código de barras..."
+                    placeholder="Ingresá código interno (ej: 01, PAPA), multiplicar (ej: 01*1.5), nombre o escaneá..."
                     value={searchTerm}
                     onChange={e => setSearchTerm(e.target.value)}
                     onFocus={() => setShowDropdown(true)}
@@ -1592,31 +1674,37 @@ export default function POSPage() {
                         </div>
                       </td>
                       <td style={{ textAlign: 'right', fontWeight: 500 }}>
-                        {formatCurrency(item.sale_price)}
+                        <div>{formatCurrency(item.sale_price)}</div>
+                        <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)' }}>
+                          {item.unit_type === 'weight' ? `/ ${item.unit_label || 'kg'}` : item.unit_type === 'volume' ? `/ ${item.unit_label || 'l'}` : '/ un'}
+                        </div>
                       </td>
                       <td>
                         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {isDecimalProduct(item) ? (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
                               {/* Input de peso */}
-                              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', borderRadius: '6px', border: '1px solid var(--border-color)', position: 'relative', paddingRight: '24px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', background: 'var(--bg-surface)', borderRadius: '6px', border: '1px solid var(--border-color)', position: 'relative', paddingRight: '26px' }}>
                                 <input
-                                  type="number"
-                                  step="0.001"
-                                  value={item.qty}
+                                  type="text"
+                                  inputMode="decimal"
+                                  value={item.rawQty !== undefined ? item.rawQty : item.qty}
                                   onChange={(e) => updateQtyDirect(item.id, e.target.value)}
+                                  onBlur={() => finalizeQty(item.id)}
                                   onKeyDown={(e) => {
                                     if (e.key === 'Enter') {
-                                      updateQtyDirect(item.id, e.target.value)
+                                      finalizeQty(item.id)
+                                      e.target.blur()
                                     } else if (e.key === 't' && item.unit_type === 'weight' && scaleConnected && scaleWeight > 0) {
                                       e.preventDefault()
                                       updateQtyDirect(item.id, scaleWeight)
+                                      finalizeQty(item.id)
                                     }
                                   }}
                                   style={{
-                                    width: '70px', padding: '6px', textAlign: 'center',
+                                    width: '74px', padding: '6px 4px', textAlign: 'center',
                                     background: 'transparent', border: 'none',
-                                    color: '#fff', fontWeight: 600, fontSize: '0.875rem'
+                                    color: '#fff', fontWeight: 700, fontSize: '0.875rem'
                                   }}
                                 />
                                 <div style={{ position: 'absolute', right: '6px', fontSize: '0.7rem', color: 'var(--text-muted)', pointerEvents: 'none' }}>
@@ -1628,8 +1716,9 @@ export default function POSPage() {
                               <div style={{ display: 'flex', alignItems: 'center', background: 'rgba(78, 222, 163, 0.05)', borderRadius: '6px', border: '1px dashed rgba(78, 222, 163, 0.3)', position: 'relative', paddingLeft: '14px', width: '94px' }}>
                                 <div style={{ position: 'absolute', left: '6px', fontSize: '0.75rem', color: 'var(--color-secondary)', pointerEvents: 'none', fontWeight: 600 }}>$</div>
                                 <input
-                                  type="number"
-                                  placeholder="Monto"
+                                  type="text"
+                                  inputMode="decimal"
+                                  placeholder="Monto $"
                                   value={item.target_amount || ''}
                                   onChange={(e) => updateQtyByAmount(item.id, e.target.value)}
                                   style={{

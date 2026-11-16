@@ -18,69 +18,38 @@ const XIcon = () => (
 
 const PLANS = [
   {
-    name: 'Básico',
-    price: '$20.000',
-    desc: 'Para el comercio que quiere ordenarse y digitalizar su operación diaria.',
-    highlight: false,
-    badge: null,
-    features: [
-      { label: 'Punto de Venta (POS) completo', ok: true },
-      { label: 'Inventario hasta 300 productos', ok: true },
-      { label: 'Scanner de código de barras', ok: true },
-      { label: 'Efectivo, débito, crédito, transferencia, QR', ok: true },
-      { label: 'Estadísticas básicas (día / semana / mes)', ok: true },
-      { label: 'Fiados y Cuentas Corrientes', ok: true },
-      { label: 'Arqueo de caja por turno', ok: true, exclusive: true },
-      { label: 'Conciliación cupones POSnet', ok: true, exclusive: true },
-      { label: 'Soporte por WhatsApp en horario hábil', ok: true },
-      { label: 'Facturación ARCA', ok: false, soon: true },
-      { label: 'Tienda Online + Pedidos WhatsApp (¡GRATIS!)', ok: true },
-      { label: 'Sincronización con Tiendanube (¡GRATIS!)', ok: true },
-      { label: 'Control de Gastos y Desperdicios', ok: false },
-      { label: 'Gestión de Preventistas móviles', ok: false },
-      { label: 'Roles cajero / admin', ok: false },
-      { label: 'Estadísticas avanzadas y rentabilidad', ok: false },
-      { label: 'Cuotas e intereses', ok: false },
-      { label: 'Exportación CSV para contador', ok: false },
-      { label: 'Logo propio en tickets', ok: false },
-      { label: 'Módulo de Compras a Proveedores', ok: false },
-    ],
-    cta: 'Empezar con Básico',
-    ctaStyle: 'ghost',
-  },
-  {
     name: 'Profesional',
-    price: '$35.000',
-    desc: 'Para el comercio que toma decisiones con datos y hace crecer su rentabilidad.',
+    price: '$60.000',
+    desc: 'Todo lo que necesita tu comercio para operar, controlar stock y maximizar ganancias.',
     highlight: true,
-    badge: 'MÁS POPULAR',
+    badge: 'MÁS ELEGIDO',
     features: [
-      { label: 'Todo lo del plan Básico', ok: true },
-      { label: 'Productos ilimitados', ok: true },
-      { label: 'Estadísticas avanzadas (margen %, horas pico)', ok: true },
+      { label: 'Punto de Venta (POS) rápido y venta por peso / kilo / unidad', ok: true },
+      { label: 'Productos ilimitados (códigos de barra y PLU internos)', ok: true },
+      { label: 'Efectivo, débito, crédito, transferencias y QR', ok: true },
+      { label: 'Arqueo de caja por turno y control Dueño vs Cajero', ok: true, exclusive: true },
+      { label: 'Control de Gastos y Desperdicios / Mermas', ok: true, exclusive: true },
+      { label: 'Cuentas Corrientes y Fiados con alertas de deuda', ok: true, exclusive: true },
+      { label: 'Estadísticas avanzadas (Día, Semana, Mes y margen %)', ok: true, exclusive: true },
       { label: 'Rentabilidad real por producto', ok: true, exclusive: true },
       { label: 'Cuotas e intereses configurables', ok: true, exclusive: true },
-      { label: 'Cuentas Corrientes avanzadas + alertas de deuda', ok: true, exclusive: true },
-      { label: 'Control de Gastos y Desperdicios', ok: true },
-      { label: 'Gestión de Preventistas móviles', ok: true },
-      { label: 'Exportación CSV para tu contador', ok: true, exclusive: true },
-      { label: 'Logo propio en tickets de venta', ok: true, exclusive: true },
-      { label: 'Personalización visual (colores + logo en la app)', ok: true, exclusive: true },
-      { label: 'Roles cajero / admin — hasta 5 usuarios', ok: true },
+      { label: 'Roles de cajero y administrador (hasta 5 usuarios)', ok: true },
+      { label: 'Logo propio en tickets y personalización visual', ok: true, exclusive: true },
+      { label: 'Exportación de reportes para contador (Excel / CSV)', ok: true },
+      { label: 'Catálogo Online y pedidos por WhatsApp (¡GRATIS!)', ok: true },
       { label: 'Soporte prioritario WhatsApp ≤ 2hs', ok: true },
-      { label: 'Facturación ARCA', ok: false, soon: true },
-      { label: 'Módulo de Compras a Proveedores', ok: false },
-      { label: 'Multi-sucursal', ok: false },
+      { label: 'Facturación oficial ARCA', ok: false, soon: true },
+      { label: 'Multi-sucursal centralizado', ok: false },
     ],
     cta: 'Empezar con Profesional',
     ctaStyle: 'primary',
   },
   {
     name: 'Empresa',
-    price: '$60.000',
+    price: '$100.000',
     desc: 'Para cadenas, franquicias y negocios con múltiples puntos de venta.',
     highlight: false,
-    badge: null,
+    badge: 'MULTI-SUCURSAL',
     features: [
       { label: 'Todo lo del plan Profesional', ok: true },
       { label: 'Multi-sucursal ilimitado', ok: true, exclusive: true },
@@ -94,9 +63,9 @@ const PLANS = [
       { label: 'API de integración (facturación/ERP)', ok: true },
       { label: 'Onboarding dedicado (presencial o remoto)', ok: true },
       { label: 'Soporte 24/7 canal exclusivo', ok: true },
-      { label: 'Facturación ARCA', ok: false, soon: true },
+      { label: 'Facturación oficial ARCA', ok: false, soon: true },
     ],
-    cta: 'Consultar Empresa',
+    cta: 'Empezar con Empresa',
     ctaStyle: 'ghost',
   }
 ]
@@ -149,7 +118,7 @@ export default function LandingPage() {
   }
 
   const monthlySavings = (monthlySales * (estimatedLoss / 100))
-  const roiMultiplier = ((monthlySavings / 20000) * 100).toFixed(0)
+  const roiMultiplier = ((monthlySavings / 60000) * 100).toFixed(0)
 
   return (
     <div className={styles.landingContainer}>
@@ -506,7 +475,7 @@ export default function LandingPage() {
             </p>
             <div style={{ height: '1px', background: 'var(--border-color)', margin: '12px 0' }} />
             <div style={{ fontSize: '0.8125rem', color: '#10B981', fontWeight: 700 }}>
-              📈 Retorno de Inversión (ROI): {roiMultiplier}% del plan Básico ($20.000/mes)
+              📈 Retorno de Inversión (ROI): {roiMultiplier}% del plan Profesional ($60.000/mes)
             </div>
           </div>
         </div>

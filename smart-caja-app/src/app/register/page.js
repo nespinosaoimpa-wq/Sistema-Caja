@@ -412,38 +412,30 @@ function RegisterContent() {
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
                     {[
                       {
-                        value: 'basic',
-                        name: 'Plan Básico',
-                        price: '$20.000',
-                        desc: 'Ideal si cobrás solo vos en tu local y querés ordenar tu negocio.',
-                        features: [
-                          'Controlar mercadería (saber qué tenés y qué te falta)',
-                          'Caja rápida para cobrar y dar vuelto sin errores',
-                          'Ver historial de ventas y tus ganancias del día'
-                        ]
-                      },
-                      {
                         value: 'professional',
                         name: 'Plan Profesional',
-                        price: '$35.000',
+                        price: '$60.000',
                         badge: 'Recomendado',
-                        desc: 'Para locales con empleados, que quieren vender por WhatsApp y fiar.',
+                        desc: 'Todo lo que necesita tu comercio: POS rápido, control de kilos/unidad, stock ilimitado y mermas.',
                         features: [
-                          'Varios empleados cobrando al mismo tiempo',
-                          'Catálogo web (tus clientes te piden por WhatsApp)',
-                          'Cuentas corrientes para fiar a tus clientes',
-                          'Soporte humano por WhatsApp para ayudarte en todo'
+                          'Punto de venta y caja rápida por peso/unidad con códigos internos y de barra',
+                          'Productos y categorías ilimitadas con control de mermas y desperdicios',
+                          'Arqueo de caja por turno diferenciando Dueño vs Cajeros',
+                          'Cuentas corrientes para fiar a tus clientes con alertas',
+                          'Estadísticas completas de ventas del día, semana y mes con balance neto',
+                          'Soporte prioritario humano por WhatsApp'
                         ]
                       },
                       {
                         value: 'enterprise',
                         name: 'Plan Empresa',
-                        price: '$60.000',
-                        desc: 'Para comercios grandes con varios locales o que facturan con AFIP.',
+                        price: '$100.000',
+                        desc: 'Para comercios grandes con varios locales, franquicias o múltiples puntos de venta.',
                         features: [
-                          'Controlar 2 o más locales desde el mismo lugar',
-                          'Facturación oficial AFIP (ARCA) en 1 clic',
-                          'Inventario compartido y reportes automáticos'
+                          'Controlar 2 o más sucursales desde una Casa Central unificada',
+                          'Transferencia de stock entre locales y compras a proveedores',
+                          'Precios diferenciados por sucursal y reportes comparativos',
+                          'Usuarios y roles ilimitados con soporte dedicado 24/7'
                         ]
                       }
                     ].map(p => {

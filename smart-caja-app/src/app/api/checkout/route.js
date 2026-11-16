@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server'
 
 // Unified checkout route — delegates to /api/billing/subscribe for recurring subscriptions.
-// Supports: basic ($20.000), professional ($35.000), enterprise ($60.000)
+// Supports: professional ($60.000), enterprise ($100.000)
 
 const PLAN_PRICES = {
-  basic: { name: 'Básico', price: 20000 },
-  professional: { name: 'Profesional', price: 35000 },
-  enterprise: { name: 'Empresa', price: 60000 },
+  basic: { name: 'Profesional', price: 60000 },
+  professional: { name: 'Profesional', price: 60000 },
+  enterprise: { name: 'Empresa', price: 100000 },
 }
 
 export async function POST(req) {

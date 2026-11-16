@@ -16,16 +16,24 @@ import { useToast } from '@/lib/hooks/useToast'
  *   onSaved(product) — callback al guardar el producto (recibe el objeto completo)
  *   mode: 'pos' | 'inventory' — en 'pos' aparece botón "Guardar y agregar al carrito"
  */
-export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, mode = 'pos' }) {
+export default function QuickProductModal({ isOpen, barcode, initialReferenceCode = '', onClose, onSaved, mode = 'pos' }) {
   const { tenant } = useAuth()
   const toast = useToast()
   const supabase = createClient()
+
+  const defaultUnitType = (tenant?.business_type === 'verduleria' || tenant?.business_type === 'carniceria')
+    ? 'weight'
+    : (tenant?.business_type === 'lubricentro' ? 'volume' : 'unit')
+  const defaultUnitLabel = defaultUnitType === 'weight' ? 'kg' : (defaultUnitType === 'volume' ? 'l' : 'un')
 
   const [categories, setCategories] = useState([])
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({
     name: '',
     barcode: '',
+    reference_code: '',
+    unit_type: defaultUnitType,
+    unit_label: defaultUnitLabel,
     category_id: '',
     cost_price: '',
     sale_price: '',
@@ -37,7 +45,14 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
   // Load categories and pre-fill barcode on open
   useEffect(() => {
     if (!isOpen || !tenant?.id) return
-    setForm(prev => ({ ...prev, barcode: barcode || '' }))
+    const isShortCode = barcode && barcode.length <= 6 && !/^\d{8,14}$/.test(barcode)
+    setForm(prev => ({ 
+      ...prev, 
+      barcode: isShortCode ? '' : (barcode || ''),
+      reference_code: isShortCode ? barcode : (initialReferenceCode || ''),
+      unit_type: defaultUnitType,
+      unit_label: defaultUnitLabel,
+    }))
     setErrors({})
 
     const loadCats = async () => {
@@ -53,7 +68,7 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
     }
     loadCats()
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isOpen, barcode, tenant?.id])
+  }, [isOpen, barcode, initialReferenceCode, tenant?.id])
 
   const update = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }))
@@ -79,15 +94,16 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
       const payload = {
         tenant_id: tenant.id,
         name: form.name.trim(),
-        barcode: form.barcode || null,
+        barcode: form.barcode.trim() || null,
+        reference_code: form.reference_code.trim() || null,
         category_id: form.category_id || null,
         cost_price: parseFloat(form.cost_price) || 0,
         sale_price: parseFloat(form.sale_price),
         stock_quantity: parseFloat(form.stock_quantity) || 0,
-        min_stock_alert: 5,
+        min_stock_alert: form.unit_type === 'weight' ? 2 : 5,
         is_active: true,
-        unit_type: 'unit',
-        unit_label: 'un',
+        unit_type: form.unit_type,
+        unit_label: form.unit_label,
         control_stock: form.control_stock !== false
       }
 
@@ -99,7 +115,7 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
 
       if (error) {
         if (error.code === '23505') {
-          throw new Error('Ya existe un producto con este código de barras')
+          throw new Error('Ya existe un producto con este código de barras o código interno')
         }
         throw error
       }
@@ -115,7 +131,18 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
       onSaved(data, addToCart)
       
       // Reset form
-      setForm({ name: '', barcode: '', category_id: '', cost_price: '', sale_price: '', stock_quantity: '0', control_stock: true })
+      setForm({ 
+        name: '', 
+        barcode: '', 
+        reference_code: '', 
+        unit_type: defaultUnitType, 
+        unit_label: defaultUnitLabel, 
+        category_id: '', 
+        cost_price: '', 
+        sale_price: '', 
+        stock_quantity: '0', 
+        control_stock: true 
+      })
       setErrors({})
     } catch (err) {
       toast.error(err.message || 'Error al guardar el producto')
@@ -221,13 +248,60 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
             </label>
             <input
               className="form-input"
-              placeholder="Ej: Coca Cola 500ml"
+              placeholder="Ej: Papa Blanca / Manzana Roja / Coca Cola"
               value={form.name}
               onChange={e => update('name', e.target.value)}
               autoFocus
               style={errors.name ? { borderColor: '#ffb4ab' } : {}}
             />
             {errors.name && <span style={{ fontSize: '0.75rem', color: '#ffb4ab', marginTop: '4px', display: 'block' }}>{errors.name}</span>}
+          </div>
+
+          {/* Unit Type & Code Row */}
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#cfc2d6', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                Tipo de Venta (Unidad)
+              </label>
+              <select
+                className="form-select"
+                value={form.unit_type}
+                onChange={e => {
+                  const val = e.target.value
+                  const label = val === 'weight' ? 'kg' : (val === 'volume' ? 'l' : 'un')
+                  setForm(prev => ({ ...prev, unit_type: val, unit_label: label }))
+                }}
+              >
+                <option value="weight">⚖️ Por Peso (kg)</option>
+                <option value="unit">📦 Por Unidad (un)</option>
+                <option value="volume">💧 Por Volumen (l)</option>
+              </select>
+            </div>
+
+            <div>
+              <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#cfc2d6', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+                Código Interno (PLU)
+              </label>
+              <input
+                className="form-input"
+                placeholder="Ej: 01, PAPA, MANZ"
+                value={form.reference_code}
+                onChange={e => update('reference_code', e.target.value.toUpperCase())}
+              />
+            </div>
+          </div>
+
+          {/* Barcode input (if not already set or editable) */}
+          <div>
+            <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#cfc2d6', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
+              Código de Barras (opcional)
+            </label>
+            <input
+              className="form-input"
+              placeholder="Escaneá o ingresá el código de barras"
+              value={form.barcode}
+              onChange={e => update('barcode', e.target.value)}
+            />
           </div>
 
           {/* Category */}
@@ -253,7 +327,7 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#cfc2d6', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-                Costo ($)
+                Costo ({form.unit_type === 'weight' ? 'x kg' : form.unit_type === 'volume' ? 'x litro' : 'unidad'})
               </label>
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#988d9f', pointerEvents: 'none' }}>$</span>
@@ -271,7 +345,7 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
             </div>
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#cfc2d6', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-                Precio Venta ($) *
+                Precio Venta ({form.unit_type === 'weight' ? 'x kg' : form.unit_type === 'volume' ? 'x litro' : 'unidad'}) *
               </label>
               <div style={{ position: 'relative' }}>
                 <span style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#4edea3', pointerEvents: 'none' }}>$</span>
@@ -316,7 +390,7 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
             />
             <div>
               <div style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#fff' }}>Controlar Stock</div>
-              <div style={{ fontSize: '0.6875rem', color: '#988d9f' }}>Permite venta libre sin indicar stock.</div>
+              <div style={{ fontSize: '0.6875rem', color: '#988d9f' }}>Desactivá para vender libremente sin bloquear por stock.</div>
             </div>
           </div>
 
@@ -324,12 +398,12 @@ export default function QuickProductModal({ isOpen, barcode, onClose, onSaved, m
           {form.control_stock !== false && (
             <div>
               <label style={{ display: 'block', fontSize: '0.75rem', fontWeight: 600, color: '#cfc2d6', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '6px' }}>
-                Stock Inicial
+                Stock Inicial ({form.unit_label})
               </label>
               <input
                 type="number"
                 min="0"
-                step="1"
+                step={form.unit_type === 'unit' ? '1' : '0.001'}
                 className="form-input"
                 value={form.stock_quantity}
                 onChange={e => update('stock_quantity', e.target.value)}

@@ -81,6 +81,14 @@ export default function NewProductPage() {
 
   useEffect(() => {
     if (tenant?.id) {
+      const isWeight = tenant.business_type === 'verduleria' || tenant.business_type === 'carniceria'
+      const isVolume = tenant.business_type === 'lubricentro'
+      if (isWeight) {
+        setForm(prev => ({ ...prev, unit_type: 'weight', unit_label: 'kg', min_stock_alert: '2' }))
+      } else if (isVolume) {
+        setForm(prev => ({ ...prev, unit_type: 'volume', unit_label: 'l' }))
+      }
+
       const timer = setTimeout(() => {
         loadCategories()
         loadAvailableProducts()
@@ -88,7 +96,7 @@ export default function NewProductPage() {
       return () => clearTimeout(timer)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tenant?.id])
+  }, [tenant?.id, tenant?.business_type])
 
   const updateForm = (key, value) => {
     setForm(prev => ({ ...prev, [key]: value }))
@@ -906,16 +914,18 @@ export default function NewProductPage() {
                     value={form.barcode}
                     onChange={e => updateForm('barcode', e.target.value)}
                   />
+                  <span className="form-hint">EAN / Código de barra del envase o producto.</span>
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Código Interno (Referencia)</label>
+                  <label className="form-label">Código Interno / PLU (Caja rápida)</label>
                   <input 
                     className="form-input"
-                    placeholder="Ej: BEB-001"
+                    placeholder="Ej: 01, PAPA, MANZ, BEB-01"
                     value={form.reference_code}
-                    onChange={e => updateForm('reference_code', e.target.value)}
+                    onChange={e => updateForm('reference_code', e.target.value.toUpperCase())}
                   />
+                  <span className="form-hint">Para cobrar rápido en caja tecleando este código.</span>
                 </div>
               </div>
             </div>

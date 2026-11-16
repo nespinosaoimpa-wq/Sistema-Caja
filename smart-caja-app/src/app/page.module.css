@@ -297,8 +297,10 @@
 
 .pricingGrid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 24px;
+  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+  max-width: 860px;
+  margin: 0 auto;
+  gap: 28px;
   align-items: stretch;
 }
 
@@ -622,9 +624,9 @@
   }
 
   .pricingCardPro {
-    grid-column: span 2;
-    order: -1; /* Muestra el plan popular arriba */
-    max-width: 500px;
+    grid-column: auto;
+    order: 0;
+    max-width: 100%;
     margin: 0 auto;
     width: 100%;
   }

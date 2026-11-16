@@ -680,6 +680,40 @@ export default function AppLayout({ children }) {
           </div>
         </div>
 
+        {/* User Identity & Role Badge */}
+        <div style={{
+          padding: '10px 12px',
+          background: 'rgba(255,255,255,0.03)',
+          border: '1px solid var(--border-color)',
+          borderRadius: 'var(--radius-md)',
+          margin: '10px 0 6px 0',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: '8px'
+        }}>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            <div style={{ fontSize: '0.8125rem', fontWeight: 700, color: '#fff', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {profile?.full_name || 'Usuario'}
+            </div>
+            <div style={{ fontSize: '0.6875rem', color: 'var(--text-muted)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {profile?.email}
+            </div>
+          </div>
+          <span style={{
+            fontSize: '0.6875rem',
+            fontWeight: 800,
+            padding: '2px 8px',
+            borderRadius: '999px',
+            flexShrink: 0,
+            background: profile?.role === 'owner' ? 'rgba(234, 179, 8, 0.15)' : profile?.role === 'admin' ? 'rgba(168, 85, 247, 0.15)' : 'rgba(59, 130, 246, 0.15)',
+            color: profile?.role === 'owner' ? '#EAB308' : profile?.role === 'admin' ? '#C084FC' : '#60A5FA',
+            border: `1px solid ${profile?.role === 'owner' ? 'rgba(234, 179, 8, 0.3)' : profile?.role === 'admin' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`
+          }}>
+            {profile?.role === 'owner' ? '👑 Dueño' : profile?.role === 'admin' ? '⚡ Admin' : '👤 Empleado'}
+          </span>
+        </div>
+
         <nav className="sidebar-nav" style={{ marginTop: 'var(--space-4)' }}>
           {NAV_ITEMS.map((item) => {
             if (item.featureKey && tenant?.features_config) {

@@ -5,7 +5,7 @@ import { useRouter, useParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useAuth } from '@/lib/hooks/useAuth'
 import { useToast } from '@/lib/hooks/useToast'
-import { Trash2, Save, Camera, Package, Plus, Minus, Check, AlertTriangle, ImagePlus, X } from 'lucide-react'
+import { Trash2, Save, Camera, Package, Plus, Minus, Check, AlertTriangle, ImagePlus, X, Calculator } from 'lucide-react'
 
 const UNIT_LABELS = {
   unit: [{ value: 'un', label: 'Unidad (un)' }],
@@ -1096,13 +1096,14 @@ export default function EditProductPage() {
                 </div>
 
                 <div className="form-group">
-                  <label className="form-label">Código Interno (Referencia)</label>
+                  <label className="form-label">Código Interno / PLU (Caja rápida)</label>
                   <input
                     className="form-input"
-                    placeholder="Ej: BEB-001"
+                    placeholder="Ej: 01, PAPA, MANZ, BEB-01"
                     value={form.reference_code}
-                    onChange={e => updateForm('reference_code', e.target.value)}
+                    onChange={e => updateForm('reference_code', e.target.value.toUpperCase())}
                   />
+                  <span className="form-hint">Para cobrar rápido en caja tecleando este código.</span>
                 </div>
               </div>
             </div>

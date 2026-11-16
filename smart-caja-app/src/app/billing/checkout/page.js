@@ -9,9 +9,9 @@ function CheckoutContent() {
   const router = useRouter()
   const { tenant, profile, loading: authLoading } = useAuth()
   
-  const planId = searchParams.get('planId') || 'basic'
-  const planName = searchParams.get('planName') || 'Básico'
-  const basePrice = Number(searchParams.get('price') || '20000')
+  const planId = searchParams.get('planId') || 'professional'
+  const planName = searchParams.get('planName') || 'Profesional'
+  const basePrice = Number(searchParams.get('price') || '60000')
 
   const [price, setPrice] = useState(basePrice)
   const [couponCode, setCouponCode] = useState(searchParams.get('coupon') || '')

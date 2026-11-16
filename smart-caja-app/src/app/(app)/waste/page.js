@@ -23,13 +23,13 @@ export default function WastePage() {
   const [selectedProductId, setSelectedProductId] = useState('')
   const [selectedVariantId, setSelectedVariantId] = useState('')
   const [quantity, setQuantity] = useState('')
-  const [reason, setReason] = useState('Vencido / Podrido')
+  const [reason, setReason] = useState('🍂 Podrido / Pasado / En mal estado')
   const [notes, setNotes] = useState('')
   const [searchProductQuery, setSearchProductQuery] = useState('')
   const [showDropdown, setShowDropdown] = useState(false)
 
   // Filter states
-  const [filterDate, setFilterDate] = useState('month') // 'all' | 'month' | 'week'
+  const [filterDate, setFilterDate] = useState('month') // 'today' | 'week' | 'month' | 'all'
 
   const loadData = useCallback(async () => {
     if (!tenant?.id) return
@@ -111,9 +111,9 @@ export default function WastePage() {
       toast.warning('Por favor seleccioná un producto')
       return
     }
-    const qty = parseFloat(quantity)
+    const qty = parseFloat(quantity.toString().replace(',', '.'))
     if (isNaN(qty) || qty <= 0) {
-      toast.warning('Ingresá una cantidad válida mayor a 0')
+      toast.warning('Ingresá una cantidad válida mayor a 0 (ej: 1.5 o 1,5)')
       return
     }
 
@@ -183,6 +183,9 @@ export default function WastePage() {
     if (filterDate === 'all') return true
     const itemDate = new Date(item.created_at)
     const now = new Date()
+    if (filterDate === 'today') {
+      return itemDate.toDateString() === now.toDateString()
+    }
     if (filterDate === 'month') {
       return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear()
     }
@@ -198,6 +201,9 @@ export default function WastePage() {
     if (filterDate === 'all') return true
     const itemDate = new Date(sale.created_at)
     const now = new Date()
+    if (filterDate === 'today') {
+      return itemDate.toDateString() === now.toDateString()
+    }
     if (filterDate === 'month') {
       return itemDate.getMonth() === now.getMonth() && itemDate.getFullYear() === now.getFullYear()
     }
@@ -264,10 +270,13 @@ export default function WastePage() {
       return sum + saleSum
     }, 0)
 
-  // Filter products for autocomplete autocomplete
-  const filteredProductsDropdown = products.filter(p =>
-    p.name.toLowerCase().includes(searchProductQuery.toLowerCase())
-  )
+  // Filter products for autocomplete
+  const filteredProductsDropdown = products.filter(p => {
+    const q = searchProductQuery.toLowerCase().trim()
+    return p.name.toLowerCase().includes(q) ||
+      (p.barcode && p.barcode.toLowerCase().includes(q)) ||
+      (p.reference_code && p.reference_code.toLowerCase().includes(q))
+  })
 
   return (
     <div style={{ paddingBottom: 'var(--space-8)' }}>
@@ -463,9 +472,16 @@ export default function WastePage() {
                         className="autocomplete-option"
                         onClick={() => handleSelectProduct(prod)}
                       >
-                        <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#fff' }}>{prod.name}</div>
-                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>
-                          Stock actual: {prod.stock_quantity} {prod.unit_label} · Costo: {formatCurrency(prod.cost_price)}
+                        <div style={{ fontWeight: 600, fontSize: '0.875rem', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                          <span>{prod.name}</span>
+                          {prod.reference_code && (
+                            <span style={{ fontSize: '0.7rem', color: 'var(--color-primary-light, #a78bfa)', background: 'rgba(124, 58, 237, 0.15)', padding: '2px 6px', borderRadius: '4px' }}>
+                              PLU: {prod.reference_code}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>
+                          Stock actual: {prod.stock_quantity} {prod.unit_label || 'un'} · Costo: {formatCurrency(prod.cost_price)}
                         </div>
                       </div>
                     ))}
@@ -533,11 +549,14 @@ export default function WastePage() {
                 value={reason}
                 onChange={e => setReason(e.target.value)}
               >
-                <option value="Vencido / Podrido">Vencido / Podrido / Mal estado</option>
-                <option value="Roto / Dañado">Roto / Dañado / Paquete Abierto</option>
-                <option value="Exceso de stock / Sobrante">Exceso de stock / Sobrante del día</option>
-                <option value="Robo / Pérdida">Robo / Pérdida / Faltante</option>
-                <option value="Otro">Otro Motivo</option>
+                <option value="🍂 Podrido / Pasado / En mal estado">🍂 Podrido / Pasado / En mal estado</option>
+                <option value="💥 Golpeado / Machucado">💥 Golpeado / Machucado</option>
+                <option value="⚖️ Merma natural (deshidratación / peso)">⚖️ Merma natural (deshidratación / pérdida peso)</option>
+                <option value="🗓️ Vencido / Descompuesto">🗓️ Vencido / Descompuesto</option>
+                <option value="📦 Roto / Dañado / Paquete Abierto">📦 Roto / Dañado / Paquete Abierto</option>
+                <option value="Exceso de stock / Sobrante del día">📦 Sobrante del día sin venta</option>
+                <option value="Robo / Pérdida / Faltante">❓ Robo / Pérdida / Faltante</option>
+                <option value="Otro Motivo">Otro Motivo</option>
               </select>
             </div>
 
@@ -606,23 +625,28 @@ export default function WastePage() {
               </button>
             </div>
             <div style={{ display: 'flex', gap: '6px' }}>
-              {['month', 'week', 'all'].map(t => (
+              {[
+                { id: 'today', label: 'Hoy' },
+                { id: 'week', label: '7 días' },
+                { id: 'month', label: 'Este Mes' },
+                { id: 'all', label: 'Todo' }
+              ].map(t => (
                 <button
-                  key={t}
+                  key={t.id}
                   type="button"
-                  onClick={() => setFilterDate(t)}
+                  onClick={() => setFilterDate(t.id)}
                   style={{
                     padding: '4px 10px',
                     borderRadius: '4px',
                     fontSize: '0.75rem',
                     fontWeight: 600,
-                    background: filterDate === t ? 'var(--bg-card-hover)' : 'transparent',
-                    border: `1px solid ${filterDate === t ? 'var(--border-color)' : 'transparent'}`,
-                    color: filterDate === t ? '#fff' : 'var(--text-muted)',
+                    background: filterDate === t.id ? 'var(--bg-card-hover)' : 'transparent',
+                    border: `1px solid ${filterDate === t.id ? 'var(--border-color)' : 'transparent'}`,
+                    color: filterDate === t.id ? '#fff' : 'var(--text-muted)',
                     cursor: 'pointer'
                   }}
                 >
-                  {t === 'month' ? 'Este Mes' : t === 'week' ? '7 días' : 'Todo'}
+                  {t.label}
                 </button>
               ))}
             </div>

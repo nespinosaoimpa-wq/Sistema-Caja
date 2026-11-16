@@ -265,10 +265,11 @@ export default function InventoryPage() {
 
   // Filter products
   const filteredProducts = products.filter(p => {
-    const matchesSearch = !searchTerm || 
-      p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      p.barcode?.includes(searchTerm) ||
-      p.reference_code?.includes(searchTerm)
+    const q = searchTerm.toLowerCase().trim()
+    const matchesSearch = !q || 
+      p.name.toLowerCase().includes(q) ||
+      (p.barcode && p.barcode.toLowerCase().includes(q)) ||
+      (p.reference_code && p.reference_code.toLowerCase().includes(q))
     
     const matchesCategory = selectedCategory === 'all' || p.category_id === selectedCategory
     
@@ -444,7 +445,8 @@ export default function InventoryPage() {
                         <div>
                           <div style={{ fontWeight: 600, color: '#fff', fontSize: '1rem', lineHeight: 1.2 }}>{product.name}</div>
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', fontFamily: 'monospace', marginTop: '4px' }}>
-                            {product.barcode || product.reference_code || 'SIN CÓDIGO'}
+                            {product.reference_code ? <span style={{ color: 'var(--color-primary-light, #a78bfa)', fontWeight: 600, marginRight: '6px' }}>PLU: {product.reference_code}</span> : null}
+                            {product.barcode ? <span>{product.barcode}</span> : (!product.reference_code ? 'SIN CÓDIGO' : '')}
                           </div>
                         </div>
                       </div>
@@ -464,7 +466,7 @@ export default function InventoryPage() {
                         <div style={{ fontWeight: 600, color: 'var(--text-primary)' }}>{formatCurrency(product.cost_price)}</div>
                       </div>
                       <div style={{ background: 'rgba(0,0,0,0.2)', padding: 'var(--space-2) var(--space-3)', borderRadius: 'var(--radius-md)' }}>
-                        <div style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Venta</div>
+                        <div style={{ fontSize: '0.6875rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Venta {product.unit_type === 'weight' ? '(x kg)' : product.unit_type === 'volume' ? '(x L)' : ''}</div>
                         <div style={{ fontWeight: 800, color: 'var(--color-secondary)' }}>{formatCurrency(product.sale_price)}</div>
                       </div>
                     </div>
@@ -475,7 +477,7 @@ export default function InventoryPage() {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '2px', background: 'rgba(0,0,0,0.2)', padding: '2px', borderRadius: '6px', border: '1px solid var(--border-color)' }}>
                           <button 
                             type="button"
-                            onClick={() => handleQuickStockChange(product.id, product.stock_quantity - 1)}
+                            onClick={() => handleQuickStockChange(product.id, Math.max(0, product.stock_quantity - (product.unit_type === 'weight' ? 0.5 : 1)))}
                             style={{
                               width: '24px', height: '24px', borderRadius: '4px',
                               background: 'transparent', border: 'none', color: '#fff',
@@ -488,16 +490,17 @@ export default function InventoryPage() {
                           <input 
                             key={product.stock_quantity}
                             type="number"
+                            step={product.unit_type === 'weight' ? '0.001' : '1'}
                             defaultValue={product.stock_quantity}
                             onBlur={e => {
-                              const val = parseInt(e.target.value)
+                              const val = parseFloat(e.target.value)
                               if (!isNaN(val) && val !== product.stock_quantity) {
                                 handleQuickStockChange(product.id, val)
                               }
                             }}
                             onKeyDown={e => {
                               if (e.key === 'Enter') {
-                                const val = parseInt(e.target.value)
+                                const val = parseFloat(e.target.value)
                                 if (!isNaN(val) && val !== product.stock_quantity) {
                                   handleQuickStockChange(product.id, val)
                                 }
@@ -505,7 +508,7 @@ export default function InventoryPage() {
                               }
                             }}
                             style={{
-                              width: '38px',
+                              width: product.unit_type === 'weight' ? '52px' : '38px',
                               background: 'transparent',
                               border: 'none',
                               color: isLowStock ? 'var(--color-error)' : '#fff',
@@ -516,9 +519,12 @@ export default function InventoryPage() {
                               padding: 0,
                             }}
                           />
+                          <span style={{ fontSize: '0.7rem', color: 'var(--text-muted)', paddingRight: '4px' }}>
+                            {product.unit_label || (product.unit_type === 'weight' ? 'kg' : 'un')}
+                          </span>
                           <button 
                             type="button"
-                            onClick={() => handleQuickStockChange(product.id, product.stock_quantity + 1)}
+                            onClick={() => handleQuickStockChange(product.id, product.stock_quantity + (product.unit_type === 'weight' ? 0.5 : 1))}
                             style={{
                               width: '24px', height: '24px', borderRadius: '4px',
                               background: 'transparent', border: 'none', color: '#fff',

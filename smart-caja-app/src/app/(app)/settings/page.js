@@ -3113,105 +3113,51 @@ export default function SettingsPage() {
               <div style={{ marginTop: '16px' }}>
                 <h3 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#fff', marginBottom: '16px' }}>Planes de Membresía</h3>
                 
-                <div className="pricing-grid">
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '24px', maxWidth: '860px' }}>
                   
-                  {/* Plan Básico */}
-                  <div style={{
-                    background: 'var(--bg-card)',
-                    border: tenant?.subscription_plan === 'basic' ? '2px solid var(--color-primary)' : '1px solid var(--border-color)',
-                    borderRadius: 'var(--radius-xl)',
-                    padding: '24px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    justifyContent: 'space-between',
-                    opacity: tenant?.subscription_plan === 'basic' ? 1 : 0.85,
-                    boxShadow: tenant?.subscription_plan === 'basic' ? '0 8px 24px rgba(221, 183, 255, 0.1)' : 'none',
-                    transition: 'all 0.2s'
-                  }}>
-                    <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>Básico</h4>
-                        {tenant?.subscription_plan === 'basic' && (
-                          <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: '9999px' }}>
-                            Activo
-                          </span>
-                        )}
-                      </div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '20px' }}>
-                        <span style={{ fontSize: '1.75rem', fontWeight: 800, color: '#fff' }}>$20.000</span>
-                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>ARS / mes</span>
-                      </div>
-                      <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.4 }}>
-                        Ideal para pequeños almacenes o kioscos individuales que inician.
-                      </p>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-                        {[
-                          { text: 'Punto de venta y caja rápida', active: true },
-                          { text: 'Gestión de stock básico', active: true },
-                          { text: 'Registro y cierre de turnos', active: true },
-                          { text: 'Reportes iniciales de ventas', active: true },
-                          { text: 'Estadísticas avanzadas', active: false },
-                          { text: 'Soporte multi-sucursal', active: false },
-                        ].map((feat, idx) => (
-                          <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: feat.active ? 'var(--text-primary)' : 'var(--text-muted)', textDecoration: feat.active ? 'none' : 'line-through' }}>
-                            {feat.active ? <Check size={14} style={{ color: 'var(--color-secondary)' }} /> : <span style={{ width: '14px', textAlign: 'center' }}>-</span>}
-                            {feat.text}
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                    <button 
-                      className="btn btn-ghost btn-sm"
-                      style={{ marginTop: '24px', width: '100%', borderColor: 'var(--border-color)' }}
-                      disabled={tenant?.subscription_plan === 'basic' || upgrading === 'basic'}
-                      onClick={() => handleUpgrade('basic')}
-                    >
-                      {upgrading === 'basic' ? 'Procesando...' : tenant?.subscription_plan === 'basic' ? 'Tu Plan Actual' : 'Seleccionar Básico'}
-                    </button>
-                  </div>
-
                   {/* Plan Profesional */}
                   <div style={{
                     background: 'var(--bg-card)',
                     border: '2px solid var(--color-primary)',
                     borderRadius: 'var(--radius-xl)',
-                    padding: '24px',
+                    padding: '28px',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
                     position: 'relative',
                     boxShadow: '0 12px 32px rgba(221, 183, 255, 0.15)',
-                    transform: 'scale(1.02)',
-                    zIndex: 2,
                     transition: 'all 0.2s'
                   }}>
                     <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: 'var(--color-primary)', color: '#000', fontWeight: 800, fontSize: '0.6875rem', textTransform: 'uppercase', padding: '4px 12px', borderRadius: '9999px', letterSpacing: '0.05em' }}>
-                      Popular / Recomendado
+                      Recomendado / Más Elegido
                     </div>
                     <div>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', marginTop: '4px' }}>
-                        <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>Profesional</h4>
-                        {tenant?.subscription_plan === 'professional' && (
+                        <h4 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff' }}>Profesional</h4>
+                        {(tenant?.subscription_plan === 'professional' || tenant?.subscription_plan === 'basic') && (
                           <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', background: 'var(--color-primary-light)', color: 'var(--color-primary)', borderRadius: '9999px' }}>
                             Activo
                           </span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '20px' }}>
-                        <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-primary)' }}>$35.000</span>
-                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>ARS / mes</span>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+                        <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-primary)' }}>$60.000</span>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>ARS / mes</span>
                       </div>
                       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.4 }}>
-                        Para comercios medianos que buscan impulsar sus ventas y gestionar cuentas corrientes.
+                        Todo lo que necesita tu negocio para operar ágilmente, controlar stock, mermas y maximizar ventas.
                       </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
                         {[
-                          { text: 'Todo lo incluido en Básico', active: true },
-                          { text: 'Módulo de estadísticas y analíticas', active: true },
-                          { text: 'Registro de ventas en cuotas / crédito', active: true },
-                          { text: 'Pedidos pendientes de sucursales', active: true },
-                          { text: 'Personalización avanzada de marca', active: true },
-                          { text: 'Soporte multi-sucursal central', active: false },
+                          { text: 'Punto de venta rápido por peso (kg) y unidad', active: true },
+                          { text: 'Productos ilimitados (códigos de barra y PLU)', active: true },
+                          { text: 'Arqueo de caja por turno (Dueño vs Cajeros)', active: true },
+                          { text: 'Control de gastos y mermas / desperdicios', active: true },
+                          { text: 'Cuentas Corrientes y fiados con alertas', active: true },
+                          { text: 'Estadísticas del día, semana, mes y márgenes', active: true },
+                          { text: 'Catálogo online y pedidos por WhatsApp', active: true },
+                          { text: 'Soporte prioritario por WhatsApp', active: true },
+                          { text: 'Multi-sucursal centralizada', active: false },
                         ].map((feat, idx) => (
                           <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: feat.active ? 'var(--text-primary)' : 'var(--text-muted)', textDecoration: feat.active ? 'none' : 'line-through' }}>
                             {feat.active ? <Check size={14} style={{ color: 'var(--color-secondary)' }} /> : <span style={{ width: '14px', textAlign: 'center' }}>-</span>}
@@ -3226,7 +3172,7 @@ export default function SettingsPage() {
                       disabled={tenant?.subscription_plan === 'professional' || upgrading === 'professional'}
                       onClick={() => handleUpgrade('professional')}
                     >
-                      {upgrading === 'professional' ? 'Procesando...' : tenant?.subscription_plan === 'professional' ? 'Tu Plan Actual' : 'Seleccionar Profesional'}
+                      {upgrading === 'professional' ? 'Procesando...' : (tenant?.subscription_plan === 'professional' || tenant?.subscription_plan === 'basic') ? 'Tu Plan Actual' : 'Seleccionar Profesional'}
                     </button>
                   </div>
 
@@ -3235,37 +3181,42 @@ export default function SettingsPage() {
                     background: 'var(--bg-card)',
                     border: tenant?.subscription_plan === 'enterprise' ? '2px solid var(--color-secondary)' : '1px solid var(--border-color)',
                     borderRadius: 'var(--radius-xl)',
-                    padding: '24px',
+                    padding: '28px',
                     display: 'flex',
                     flexDirection: 'column',
                     justifyContent: 'space-between',
-                    opacity: tenant?.subscription_plan === 'enterprise' ? 1 : 0.85,
+                    position: 'relative',
                     boxShadow: tenant?.subscription_plan === 'enterprise' ? '0 8px 24px rgba(78, 222, 163, 0.1)' : 'none',
                     transition: 'all 0.2s'
                   }}>
+                    <div style={{ position: 'absolute', top: '-12px', left: '50%', transform: 'translateX(-50%)', background: 'var(--color-secondary)', color: '#000', fontWeight: 800, fontSize: '0.6875rem', textTransform: 'uppercase', padding: '4px 12px', borderRadius: '9999px', letterSpacing: '0.05em' }}>
+                      Multi-Sucursal
+                    </div>
                     <div>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
-                        <h4 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff' }}>Empresa</h4>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px', marginTop: '4px' }}>
+                        <h4 style={{ fontSize: '1.35rem', fontWeight: 800, color: '#fff' }}>Empresa</h4>
                         {tenant?.subscription_plan === 'enterprise' && (
                           <span style={{ fontSize: '0.75rem', fontWeight: 700, padding: '3px 8px', background: 'var(--color-secondary-light)', color: 'var(--color-secondary)', borderRadius: '9999px' }}>
                             Activo
                           </span>
                         )}
                       </div>
-                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '20px' }}>
-                        <span style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-secondary)' }}>$60.000</span>
-                        <span style={{ fontSize: '0.8125rem', color: 'var(--text-muted)' }}>ARS / mes</span>
+                      <div style={{ display: 'flex', alignItems: 'baseline', gap: '4px', marginBottom: '16px' }}>
+                        <span style={{ fontSize: '2rem', fontWeight: 800, color: 'var(--color-secondary)' }}>$100.000</span>
+                        <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>ARS / mes</span>
                       </div>
                       <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginBottom: '20px', lineHeight: 1.4 }}>
-                        Para cadenas de comercios y negocios a gran escala con múltiples sucursales.
+                        Para cadenas de comercios, franquicias y negocios a gran escala con múltiples puntos de venta.
                       </p>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
                         {[
                           { text: 'Todo lo incluido en Profesional', active: true },
-                          { text: 'Multi-sucursal centralizada', active: true },
-                          { text: 'Inventarios cruzados entre locales', active: true },
-                          { text: 'Integración API personalizada', active: true },
-                          { text: 'Acceso anticipado a funciones', active: true },
+                          { text: 'Multi-sucursal ilimitada', active: true },
+                          { text: 'Panel Casa Central consolidado', active: true },
+                          { text: 'Transferencias de stock entre sucursales', active: true },
+                          { text: 'Módulo de compras a proveedores', active: true },
+                          { text: 'Reportes comparativos por sucursal', active: true },
+                          { text: 'Usuarios y roles ilimitados', active: true },
                           { text: 'Soporte prioritario dedicado 24/7', active: true },
                         ].map((feat, idx) => (
                           <div key={idx} style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.8125rem', color: feat.active ? 'var(--text-primary)' : 'var(--text-muted)' }}>

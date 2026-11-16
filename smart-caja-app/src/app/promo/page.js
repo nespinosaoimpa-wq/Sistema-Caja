@@ -34,7 +34,7 @@ export default function PromoPage() {
   }, [])
 
   const monthlySavings = (monthlySales * (estimatedLoss / 100))
-  const roiMultiplier = ((monthlySavings / 20000) * 100).toFixed(0)
+  const roiMultiplier = ((monthlySavings / 60000) * 100).toFixed(0)
 
   return (
     <div className={styles.landingContainer} style={{ background: '#030816' }}>
@@ -198,7 +198,7 @@ export default function PromoPage() {
               ${monthlySavings.toLocaleString('es-AR')} ARS
             </div>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: 1.5, marginBottom: '16px' }}>
-              El plan Básico cuesta solo $20.000/mes ($10.000 el primer mes). La app se paga sola desde la primera semana.
+              El plan Profesional cuesta solo $60.000/mes ($30.000 el primer mes). La app se paga sola desde la primera semana.
             </p>
             <div style={{ fontSize: '0.8125rem', color: '#10B981', fontWeight: 700 }}>
               📈 Retorno de Inversión (ROI): {roiMultiplier}%
