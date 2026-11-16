@@ -5,6 +5,27 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/lib/hooks/useToast'
+import {
+  Check,
+  ArrowRight,
+  ArrowLeft,
+  Mail,
+  ShieldCheck,
+  HelpCircle,
+  Store,
+  ShoppingCart,
+  Tag,
+  Wrench,
+  Activity,
+  Layers,
+  Scale,
+  Leaf,
+  Coffee,
+  Globe,
+  Lock,
+  User,
+  Phone
+} from 'lucide-react'
 
 function RegisterContent() {
   const router = useRouter()
@@ -52,14 +73,12 @@ function RegisterContent() {
       setResendLoading(false)
     }
   }
+
   const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
-    // Step 1 - Plan selection
     subscription_plan: 'professional',
-    // Step 2 - Business info
     business_name: '',
     business_type: 'general',
-    // Step 3 - Owner info
     full_name: '',
     email: '',
     phone: '',
@@ -81,7 +100,6 @@ function RegisterContent() {
     }
   }, [isStoreMode])
 
-  // Si está invitado, saltamos al paso 2 y precargamos datos
   useEffect(() => {
     if (inviteTenant) {
       const timer = setTimeout(() => {
@@ -97,17 +115,17 @@ function RegisterContent() {
   }, [inviteTenant, inviteEmail, inviteName])
 
   const businessTypes = [
-    { value: 'general', label: 'General / Kiosco', desc: 'Almacén, kiosco, minimarket' },
-    { value: 'supermercado', label: 'Supermercado', desc: 'Cadena o de cercanía' },
-    { value: 'ropa', label: 'Ropa / Indumentaria', desc: 'Tienda de ropa, talle y color' },
-    { value: 'lubricentro', label: 'Lubricentro', desc: 'Aceites sueltos, filtros' },
-    { value: 'farmacia', label: 'Farmacia', desc: 'Medicamentos y perfumería' },
-    { value: 'ferreteria', label: 'Ferretería', desc: 'Tornillos, herramientas' },
-    { value: 'carniceria', label: 'Carnicería / Fiambrería', desc: 'Vacuno, cerdo, pollo, fiambres' },
-    { value: 'verduleria', label: 'Verdulería / Frutería', desc: 'Venta al peso, frutas y verduras' },
-    { value: 'panaderia', label: 'Panadería / Pastelería', desc: 'Panes, facturas, sandwiches' },
-    { value: 'ecommerce', label: 'E-commerce', desc: 'Tienda online con pedidos' },
-    { value: 'otro', label: 'Otro', desc: 'Cualquier otro rubro' },
+    { value: 'general', label: 'General / Kiosco', desc: 'Almacén, minimarket', icon: Store },
+    { value: 'supermercado', label: 'Supermercado', desc: 'Cadena o cercanía', icon: ShoppingCart },
+    { value: 'ropa', label: 'Ropa / Indumentaria', desc: 'Talle, color y moda', icon: Tag },
+    { value: 'lubricentro', label: 'Lubricentro / Autos', desc: 'Aceites, repuestos', icon: Wrench },
+    { value: 'farmacia', label: 'Farmacia / Perfumería', desc: 'Salud y cosmética', icon: Activity },
+    { value: 'ferreteria', label: 'Ferretería / Bazar', desc: 'Materiales, herramientas', icon: Wrench },
+    { value: 'carniceria', label: 'Carnicería / Fiambrería', desc: 'Cortes y balanza', icon: Scale },
+    { value: 'verduleria', label: 'Verdulería / Frutería', desc: 'Venta por peso', icon: Leaf },
+    { value: 'panaderia', label: 'Panadería / Confitería', desc: 'Panes y pastelería', icon: Coffee },
+    { value: 'ecommerce', label: 'E-commerce', desc: 'Ventas y catálogo online', icon: Globe },
+    { value: 'otro', label: 'Otro rubro', desc: 'Cualquier comercio', icon: Layers },
   ]
 
   const updateForm = (key, value) => {
@@ -132,8 +150,7 @@ function RegisterContent() {
     } else if (!emailRegex.test(form.email.trim())) {
       errs.email = 'Email inválido. Ej: usuario@dominio.com'
     }
-    
-    // Solo validar teléfono si es un registro de nuevo negocio
+
     if (!inviteTenant) {
       if (!form.phone.trim()) {
         errs.phone = 'Ingresá tu WhatsApp o Celular'
@@ -141,7 +158,7 @@ function RegisterContent() {
         errs.phone = 'Número no válido. Ej: +54 9 11 1234-5678'
       }
     }
-    
+
     if (form.password.length < 6) errs.password = 'Mínimo 6 caracteres'
     if (form.password !== form.confirmPassword) errs.confirmPassword = 'Las contraseñas no coinciden'
     setErrors(errs)
@@ -156,7 +173,6 @@ function RegisterContent() {
     const supabase = createClient()
 
     try {
-      // Intento 1: Servidor API Route (/api/auth/register)
       let isServerSuccess = false
       let serverErrorMsg = ''
 
@@ -188,9 +204,8 @@ function RegisterContent() {
         console.warn('Server registration endpoint error:', serverFetchErr)
       }
 
-      // Si el servidor tuvo éxito:
       if (isServerSuccess) {
-        toast.success('¡Cuenta creada con éxito! 🎉')
+        toast.success('Cuenta creada con éxito.')
         try {
           const { error: loginErr } = await supabase.auth.signInWithPassword({
             email: emailNormalized,
@@ -207,12 +222,10 @@ function RegisterContent() {
         return
       }
 
-      // Si el correo ya está registrado en el servidor, mostrar error
       if (serverErrorMsg.includes('ya está registrado')) {
         throw new Error(serverErrorMsg)
       }
 
-      // Intento 2 (Fallback): Autenticación cliente Supabase + Onboarding API
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: emailNormalized,
         password: form.password,
@@ -256,9 +269,9 @@ function RegisterContent() {
 
       if (!authData.session) {
         setVerificationEmail(emailNormalized)
-        toast.success('¡Cuenta creada! Por favor, verificá tu correo electrónico.')
+        toast.success('Cuenta creada. Por favor, verificá tu correo electrónico.')
       } else {
-        toast.success('¡Cuenta creada con éxito! 🎉')
+        toast.success('Cuenta creada con éxito.')
         router.replace('/dashboard')
       }
     } catch (err) {
@@ -275,154 +288,297 @@ function RegisterContent() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg-base)',
+      background: '#080E1A',
+      color: '#F8FAFC',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 'var(--space-4)',
+      padding: '40px 20px',
       position: 'relative',
+      fontFamily: 'var(--font-body)'
     }}>
-      {/* Background glow */}
+      {/* Deep petrol ambient lighting */}
       <div style={{
-        position: 'fixed', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse at 30% 30%, rgba(124,58,237,0.12) 0%, transparent 60%)'
+        position: 'fixed',
+        inset: 0,
+        pointerEvents: 'none',
+        background: 'radial-gradient(ellipse at 50% 0%, rgba(20, 184, 166, 0.12) 0%, transparent 65%)'
       }} />
 
-      <div style={{ width: '100%', maxWidth: '520px', position: 'relative', zIndex: 1 }}>
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-8)' }}>
-          <div className="sidebar-logo-icon" style={{ width: '44px', height: '44px', fontSize: '22px' }}>🏪</div>
-          <span className="sidebar-logo-text" style={{ fontSize: '1.5rem' }}>Smart Caja</span>
+      <div style={{ width: '100%', maxWidth: '560px', position: 'relative', zIndex: 1 }}>
+        {/* Executive Logo Mark */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '32px' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #0F766E, #0284C7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 16px rgba(15, 118, 110, 0.35)',
+            color: '#FFFFFF',
+            fontWeight: 900,
+            fontFamily: 'var(--font-headline)',
+            fontSize: '1.125rem',
+            letterSpacing: '-0.5px'
+          }}>
+            SC
+          </div>
+          <span style={{
+            fontFamily: 'var(--font-headline)',
+            fontSize: '1.6rem',
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            color: '#FFFFFF',
+            textTransform: 'uppercase'
+          }}>
+            Smart <span style={{ color: '#2DD4BF' }}>Caja</span>
+          </span>
         </div>
 
-        <div className="card" style={{ padding: 'var(--space-8)' }}>
+        {/* Card */}
+        <div style={{
+          background: '#0E1727',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '20px',
+          padding: '36px 32px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.65)'
+        }}>
           {verificationEmail ? (
             <div style={{ textAlign: 'center' }}>
-              <div style={{ fontSize: '3.5rem', marginBottom: 'var(--space-4)' }}>📧</div>
-              <h2 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.75rem', fontWeight: 800, marginBottom: 'var(--space-3)', color: '#fff' }}>
-                ¡Confirmá tu correo!
-              </h2>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 'var(--space-6)', lineHeight: 1.6 }}>
-                Enviamos un enlace de confirmación a <strong style={{ color: 'var(--color-primary)' }}>{verificationEmail}</strong>.<br />
-                Por favor, hacé clic en el enlace para activar tu cuenta y poder ingresar.
-              </p>
-              
-              <div style={{ 
-                background: 'rgba(124, 58, 237, 0.05)', 
-                border: '1px solid rgba(124, 58, 237, 0.15)', 
-                borderRadius: 'var(--radius-lg)', 
-                padding: 'var(--space-4)', 
-                marginBottom: 'var(--space-6)',
-                fontSize: '0.875rem',
-                color: 'var(--text-secondary)',
-                textAlign: 'left'
+              <div style={{
+                width: '72px',
+                height: '72px',
+                borderRadius: '50%',
+                background: 'rgba(20, 184, 166, 0.12)',
+                border: '1px solid rgba(45, 212, 191, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 20px',
+                color: '#2DD4BF'
               }}>
-                💡 <strong>¿No encontrás el correo?</strong>
-                <ul style={{ marginTop: '8px', paddingLeft: '20px', listStyleType: 'disc', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                  <li>Revisá tu carpeta de <strong>Spam</strong> o Correo no deseado.</li>
-                  <li>Asegurá que ingresaste correctamente el correo.</li>
-                </ul>
+                <Mail size={34} strokeWidth={1.8} />
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
+              <h2 style={{
+                fontFamily: 'var(--font-headline)',
+                fontSize: '1.75rem',
+                fontWeight: 700,
+                marginBottom: '8px',
+                color: '#FFFFFF',
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase'
+              }}>
+                Confirmá tu correo
+              </h2>
+
+              <p style={{
+                color: '#94A3B8',
+                fontSize: '0.9375rem',
+                marginBottom: '24px',
+                lineHeight: 1.6
+              }}>
+                Enviamos un enlace de confirmación a <strong style={{ color: '#2DD4BF' }}>{verificationEmail}</strong>.<br />
+                Hacé clic en el enlace para activar tu cuenta e ingresar al sistema.
+              </p>
+
+              <div style={{
+                background: 'rgba(15, 23, 42, 0.6)',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+                borderRadius: '12px',
+                padding: '16px',
+                marginBottom: '24px',
+                fontSize: '0.85rem',
+                color: '#94A3B8',
+                textAlign: 'left',
+                display: 'flex',
+                gap: '12px'
+              }}>
+                <HelpCircle size={20} style={{ color: '#2DD4BF', flexShrink: 0, marginTop: '2px' }} />
+                <div>
+                  <strong style={{ color: '#F8FAFC', display: 'block', marginBottom: '4px' }}>¿No encontrás el correo?</strong>
+                  <ul style={{ margin: 0, paddingLeft: '16px', lineHeight: 1.5 }}>
+                    <li>Revisá tu carpeta de <strong>Spam</strong> o Correo no deseado.</li>
+                    <li>Verificá que la dirección ingresada no tenga errores tipográficos.</li>
+                  </ul>
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                 <button
-                  className="btn btn-primary btn-lg"
-                  style={{ width: '100%', justifyContent: 'center' }}
+                  type="button"
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '10px',
+                    background: '#0D9488',
+                    color: '#FFFFFF',
+                    fontWeight: 700,
+                    fontSize: '0.95rem',
+                    border: 'none',
+                    cursor: resendLoading || cooldown > 0 ? 'not-allowed' : 'pointer',
+                    opacity: resendLoading || cooldown > 0 ? 0.6 : 1,
+                    transition: 'all 0.2s',
+                    boxShadow: '0 4px 14px rgba(13, 148, 136, 0.3)'
+                  }}
                   onClick={() => handleResendConfirmation(verificationEmail)}
                   disabled={resendLoading || cooldown > 0}
                 >
                   {resendLoading ? 'Reenviando...' : cooldown > 0 ? `Reenviar en ${cooldown}s` : 'Reenviar email de confirmación'}
                 </button>
-                
-                <Link href="/login" className="btn btn-ghost" style={{ width: '100%', justifyContent: 'center' }}>
+
+                <Link
+                  href="/login"
+                  style={{
+                    display: 'block',
+                    textAlign: 'center',
+                    padding: '12px',
+                    borderRadius: '10px',
+                    background: 'transparent',
+                    border: '1px solid rgba(255, 255, 255, 0.1)',
+                    color: '#94A3B8',
+                    fontSize: '0.9rem',
+                    fontWeight: 600,
+                    textDecoration: 'none'
+                  }}
+                >
                   Ir al inicio de sesión
                 </Link>
               </div>
             </div>
           ) : (
             <>
-              {/* Indicador de pasos - Solo si no está invitado */}
+              {/* Stepper */}
               {!inviteTenant && !isStoreMode && (
-                <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-6)' }}>
-                  {[1, 2, 3].map(s => (
-                    <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{
-                        width: '28px', height: '28px', borderRadius: '50%',
-                        background: s <= step ? 'var(--gradient-primary)' : 'var(--bg-input)',
-                        border: s <= step ? 'none' : '1px solid var(--border-color)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.8125rem', fontWeight: 700,
-                        color: s <= step ? 'white' : 'var(--text-muted)',
-                        transition: 'all 0.3s',
-                      }}>
-                        {s < step ? '✓' : s}
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '12px',
+                  marginBottom: '28px'
+                }}>
+                  {[
+                    { num: 1, label: 'Plan' },
+                    { num: 2, label: 'Negocio' },
+                    { num: 3, label: 'Cuenta' }
+                  ].map((s, idx) => {
+                    const isDone = step > s.num
+                    const isCurrent = step === s.num
+                    return (
+                      <div key={s.num} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <div style={{
+                          width: '28px',
+                          height: '28px',
+                          borderRadius: '50%',
+                          background: isDone ? '#0D9488' : isCurrent ? '#0D9488' : '#0B1322',
+                          border: isDone || isCurrent ? '1px solid #2DD4BF' : '1px solid rgba(255, 255, 255, 0.12)',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '0.78rem',
+                          fontWeight: 700,
+                          color: isDone || isCurrent ? '#FFFFFF' : '#64748B',
+                          boxShadow: isCurrent ? '0 0 12px rgba(45, 212, 191, 0.3)' : 'none',
+                          transition: 'all 0.3s'
+                        }}>
+                          {isDone ? <Check size={14} strokeWidth={3} /> : s.num}
+                        </div>
+                        <span style={{
+                          fontSize: '0.8rem',
+                          fontWeight: isCurrent ? 700 : 500,
+                          color: isCurrent ? '#FFFFFF' : isDone ? '#2DD4BF' : '#64748B',
+                          letterSpacing: '0.02em'
+                        }}>
+                          {s.label}
+                        </span>
+                        {idx < 2 && (
+                          <div style={{
+                            width: '28px',
+                            height: '1px',
+                            background: step > s.num ? '#0D9488' : 'rgba(255, 255, 255, 0.1)',
+                            marginLeft: '4px'
+                          }} />
+                        )}
                       </div>
-                      {s < 3 && <div style={{ width: '40px', height: '2px', background: step > s ? 'var(--color-primary)' : 'var(--border-color)', transition: 'all 0.3s', borderRadius: '2px' }} />}
-                    </div>
-                  ))}
+                    )
+                  })}
                 </div>
               )}
 
-              {!inviteTenant && isStoreMode && (
-                <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-6)' }}>
-                  {[2, 3].map(s => (
-                    <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <div style={{
-                        width: '28px', height: '28px', borderRadius: '50%',
-                        background: s <= step ? 'var(--gradient-primary)' : 'var(--bg-input)',
-                        border: s <= step ? 'none' : '1px solid var(--border-color)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: '0.8125rem', fontWeight: 700,
-                        color: s <= step ? 'white' : 'var(--text-muted)',
-                        transition: 'all 0.3s',
-                      }}>
-                        {s < step ? '✓' : s === 2 ? '1' : '2'}
-                      </div>
-                      {s < 3 && <div style={{ width: '40px', height: '2px', background: step > s ? 'var(--color-primary)' : 'var(--border-color)', transition: 'all 0.3s', borderRadius: '2px' }} />}
-                    </div>
-                  ))}
-                </div>
-              )}
-
+              {/* STEP 1: Plan selection */}
               {step === 1 && !inviteTenant ? (
                 <>
-                  <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.4rem', fontWeight: 800, marginBottom: '6px', textAlign: 'center', color: '#fff' }}>
-                    Elegí el plan que querés probar
-                  </h1>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginBottom: 'var(--space-5)', textAlign: 'center' }}>
-                    Comenzarás con <strong>15 días gratis</strong> de prueba. Sin tarjetas ni compromisos.
-                  </p>
+                  <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+                    <h1 style={{
+                      fontFamily: 'var(--font-headline)',
+                      fontSize: '1.6rem',
+                      fontWeight: 700,
+                      marginBottom: '6px',
+                      color: '#FFFFFF',
+                      letterSpacing: '0.02em',
+                      textTransform: 'uppercase'
+                    }}>
+                      Elegí tu plan de prueba
+                    </h1>
+                    <p style={{ color: '#94A3B8', fontSize: '0.875rem', margin: 0 }}>
+                      Comenzarás con <strong style={{ color: '#2DD4BF' }}>15 días gratis</strong> completos. Sin tarjetas ni compromisos.
+                    </p>
+                  </div>
 
+                  {/* Banner Catalogo Online Gratis */}
                   <div style={{
-                    background: 'linear-gradient(135deg, rgba(78, 222, 163, 0.08) 0%, rgba(124, 58, 237, 0.08) 100%)',
-                    border: '1px solid rgba(78, 222, 163, 0.25)',
-                    borderRadius: '16px',
-                    padding: '16px',
-                    marginBottom: '24px',
-                    textAlign: 'center',
-                    fontSize: '0.875rem',
-                    lineHeight: 1.4
+                    background: 'rgba(15, 118, 110, 0.1)',
+                    border: '1px solid rgba(45, 212, 191, 0.25)',
+                    borderRadius: '12px',
+                    padding: '14px 16px',
+                    marginBottom: '20px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    gap: '12px'
                   }}>
-                    ✨ <strong>¿Buscás tu Catálogo Online / Tienda Gratis?</strong><br />
-                    <Link href="/register?mode=store" style={{ color: '#4edea3', fontWeight: 800, textDecoration: 'underline', marginTop: '6px', display: 'inline-block' }}>
-                      Creá tu tienda gratis en 10 segundos sin elegir planes ➔
+                    <div style={{ fontSize: '0.8125rem', color: '#CBD5E1', lineHeight: 1.4 }}>
+                      <span style={{ fontWeight: 700, color: '#FFFFFF', display: 'block' }}>¿Solo necesitás Catálogo Web con Pedidos?</span>
+                      Creá tu tienda online gratis en 10 segundos sin elegir planes.
+                    </div>
+                    <Link
+                      href="/register?mode=store"
+                      style={{
+                        padding: '8px 12px',
+                        background: 'rgba(45, 212, 191, 0.15)',
+                        border: '1px solid rgba(45, 212, 191, 0.4)',
+                        color: '#2DD4BF',
+                        borderRadius: '8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 700,
+                        textDecoration: 'none',
+                        whiteSpace: 'nowrap',
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '6px'
+                      }}
+                    >
+                      Tienda Gratis <ArrowRight size={13} />
                     </Link>
                   </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)', marginBottom: 'var(--space-6)' }}>
+                  {/* Plan Cards */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '24px' }}>
                     {[
                       {
                         value: 'professional',
                         name: 'Plan Profesional',
                         price: '$60.000',
-                        badge: 'Recomendado',
-                        desc: 'Todo lo que necesita tu comercio: POS rápido, control de kilos/unidad, stock ilimitado y mermas.',
+                        badge: 'RECOMENDADO',
+                        desc: 'POS rápido, control de stock por unidad y kilo, fiados y arqueos.',
                         features: [
-                          'Punto de venta y caja rápida por peso/unidad con códigos internos y de barra',
-                          'Productos y categorías ilimitadas con control de mermas y desperdicios',
-                          'Arqueo de caja por turno diferenciando Dueño vs Cajeros',
-                          'Cuentas corrientes para fiar a tus clientes con alertas',
-                          'Estadísticas completas de ventas del día, semana y mes con balance neto',
+                          'Punto de venta y caja rápida por peso/unidad con códigos de barra',
+                          'Control de inventario, stock ilimitado, alertas de reposición y mermas',
+                          'Arqueo de caja ciego por turno con auditoría Dueño vs Cajeros',
+                          'Cuentas corrientes para fiar a clientes con límites y recordatorios',
+                          'Métricas y reportes financieros con balance neto exportable',
                           'Soporte prioritario humano por WhatsApp'
                         ]
                       },
@@ -430,12 +586,14 @@ function RegisterContent() {
                         value: 'enterprise',
                         name: 'Plan Empresa',
                         price: '$100.000',
-                        desc: 'Para comercios grandes con varios locales, franquicias o múltiples puntos de venta.',
+                        badge: 'MULTI-SUCURSAL',
+                        desc: 'Para comercios en expansión, sucursales unificadas o franquicias.',
                         features: [
-                          'Controlar 2 o más sucursales desde una Casa Central unificada',
-                          'Transferencia de stock entre locales y compras a proveedores',
-                          'Precios diferenciados por sucursal y reportes comparativos',
-                          'Usuarios y roles ilimitados con soporte dedicado 24/7'
+                          'Control centralizado de 2 o más sucursales con stock transferible',
+                          'Compras a proveedores y listas de precios por sucursal',
+                          'Usuarios, cajeros y roles ilimitados con permisos granulares',
+                          'Reportes comparativos de rendimiento inter-sucursales',
+                          'Soporte dedicado y prioritario 24/7'
                         ]
                       }
                     ].map(p => {
@@ -445,63 +603,87 @@ function RegisterContent() {
                           key={p.value}
                           onClick={() => updateForm('subscription_plan', p.value)}
                           style={{
-                            padding: 'var(--space-4)',
-                            background: isSelected ? 'rgba(124, 58, 237, 0.05)' : 'var(--bg-card)',
-                            border: `2px solid ${isSelected ? 'var(--color-primary)' : 'var(--border-color)'}`,
-                            borderRadius: 'var(--radius-xl)',
+                            padding: '18px 20px',
+                            background: isSelected ? 'rgba(15, 118, 110, 0.12)' : '#0B1322',
+                            border: `2px solid ${isSelected ? '#2DD4BF' : 'rgba(255, 255, 255, 0.08)'}`,
+                            borderRadius: '14px',
                             cursor: 'pointer',
                             transition: 'all 0.2s',
-                            position: 'relative'
+                            position: 'relative',
+                            boxShadow: isSelected ? '0 0 0 1px #2DD4BF, 0 12px 24px -8px rgba(45, 212, 191, 0.2)' : 'none'
                           }}
                         >
-                          {p.badge && (
-                            <span style={{
-                              position: 'absolute',
-                              top: '-10px',
-                              right: '16px',
-                              background: 'var(--gradient-primary)',
-                              color: '#fff',
-                              fontSize: '0.6875rem',
-                              fontWeight: 700,
-                              padding: '2px 8px',
-                              borderRadius: 'var(--radius-full)',
-                              textTransform: 'uppercase',
-                              letterSpacing: '0.05em'
-                            }}>
-                              {p.badge}
-                            </span>
-                          )}
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '4px' }}>
-                            <span style={{ fontSize: '0.95rem', fontWeight: 800, color: isSelected ? '#fff' : 'var(--text-primary)' }}>{p.name}</span>
-                            <span style={{ fontSize: '0.9375rem', fontWeight: 800, color: 'var(--color-secondary)' }}>{p.price}<span style={{ fontSize: '0.75rem', fontWeight: 500, color: 'var(--text-muted)' }}>/mes</span></span>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                              <span style={{
+                                fontFamily: 'var(--font-headline)',
+                                fontSize: '1.125rem',
+                                fontWeight: 700,
+                                color: isSelected ? '#FFFFFF' : '#CBD5E1',
+                                letterSpacing: '0.02em',
+                                textTransform: 'uppercase'
+                              }}>
+                                {p.name}
+                              </span>
+                              {p.badge && (
+                                <span style={{
+                                  background: isSelected ? 'rgba(45, 212, 191, 0.2)' : 'rgba(255, 255, 255, 0.05)',
+                                  border: `1px solid ${isSelected ? 'rgba(45, 212, 191, 0.4)' : 'rgba(255, 255, 255, 0.1)'}`,
+                                  color: isSelected ? '#2DD4BF' : '#94A3B8',
+                                  fontSize: '0.625rem',
+                                  fontWeight: 800,
+                                  padding: '2px 7px',
+                                  borderRadius: '9999px',
+                                  letterSpacing: '0.06em'
+                                }}>
+                                  {p.badge}
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <span style={{
+                                fontFamily: 'var(--font-headline)',
+                                fontSize: '1.25rem',
+                                fontWeight: 700,
+                                color: '#FFFFFF'
+                              }}>
+                                {p.price}
+                              </span>
+                              <span style={{ fontSize: '0.75rem', color: '#64748B', marginLeft: '3px' }}>/mes</span>
+                            </div>
                           </div>
-                          <p style={{ fontSize: '0.8125rem', color: 'var(--text-secondary)', marginBottom: '8px', lineHeight: 1.4 }}>
+
+                          <p style={{ fontSize: '0.8125rem', color: '#94A3B8', marginBottom: '12px', lineHeight: 1.4 }}>
                             {p.desc}
                           </p>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginTop: '10px' }}>
+
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', marginBottom: '12px' }}>
                             {p.features.map((f, fi) => (
                               <div key={fi} style={{
-                                fontSize: '0.8125rem',
+                                fontSize: '0.8rem',
                                 display: 'flex',
                                 alignItems: 'center',
                                 gap: '8px',
-                                color: isSelected ? '#fff' : 'var(--text-secondary)'
+                                color: isSelected ? '#E2E8F0' : '#94A3B8'
                               }}>
-                                <span style={{ color: 'var(--color-secondary)', fontWeight: 'bold' }}>✓</span>
+                                <Check size={14} style={{ color: '#2DD4BF', flexShrink: 0 }} />
                                 <span>{f}</span>
                               </div>
                             ))}
                           </div>
+
                           <div style={{
-                            marginTop: '10px',
+                            paddingTop: '10px',
+                            borderTop: '1px solid rgba(255, 255, 255, 0.06)',
                             fontSize: '0.75rem',
                             fontWeight: 700,
-                            color: 'var(--color-secondary)',
+                            color: '#2DD4BF',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px'
+                            gap: '6px'
                           }}>
-                            ✨ Probás este plan 15 días gratis
+                            <ShieldCheck size={14} />
+                            Probás este plan 15 días gratis · Sin tarjeta
                           </div>
                         </div>
                       )
@@ -509,183 +691,475 @@ function RegisterContent() {
                   </div>
 
                   <button
-                    className="btn btn-primary btn-lg"
-                    style={{ width: '100%', justifyContent: 'center' }}
+                    type="button"
+                    style={{
+                      width: '100%',
+                      padding: '15px',
+                      borderRadius: '10px',
+                      background: '#0D9488',
+                      color: '#FFFFFF',
+                      fontFamily: 'var(--font-headline)',
+                      fontSize: '1rem',
+                      fontWeight: 700,
+                      letterSpacing: '0.04em',
+                      textTransform: 'uppercase',
+                      border: 'none',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      gap: '8px',
+                      boxShadow: '0 4px 16px rgba(13, 148, 136, 0.35)',
+                      transition: 'background 0.2s'
+                    }}
                     onClick={() => setStep(2)}
                   >
-                    Probar gratis por 15 días →
+                    Probar gratis por 15 días <ArrowRight size={16} />
                   </button>
                 </>
               ) : step === 2 && !inviteTenant ? (
                 <>
-                  <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '6px', color: '#fff' }}>
-                    {isStoreMode ? 'Creá tu Tienda Online Gratis' : '¿Qué tipo de negocio tenés?'}
-                  </h1>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 'var(--space-6)' }}>
-                    {isStoreMode ? 'Configurá los datos básicos para activar tu catálogo web.' : 'Esto nos ayuda a personalizar Smart Caja para vos.'}
-                  </p>
+                  {/* STEP 2: Business info */}
+                  <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                    <h1 style={{
+                      fontFamily: 'var(--font-headline)',
+                      fontSize: '1.6rem',
+                      fontWeight: 700,
+                      marginBottom: '6px',
+                      color: '#FFFFFF',
+                      letterSpacing: '0.02em',
+                      textTransform: 'uppercase'
+                    }}>
+                      {isStoreMode ? 'Configurá tu Tienda Online' : 'Datos de tu negocio'}
+                    </h1>
+                    <p style={{ color: '#94A3B8', fontSize: '0.875rem', margin: 0 }}>
+                      {isStoreMode
+                        ? 'Activá tu catálogo web para comenzar a recibir pedidos por WhatsApp.'
+                        : 'Personalizaremos tu caja, comprobantes y catálogo según tu actividad.'}
+                    </p>
+                  </div>
 
-                  <div className="form-group" style={{ marginBottom: 'var(--space-5)' }}>
-                    <label className="form-label required">Nombre del negocio</label>
+                  <div style={{ marginBottom: '20px' }}>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '6px' }}>
+                      Nombre del negocio <span style={{ color: '#F87171' }}>*</span>
+                    </label>
                     <input
-                      className={`form-input ${errors.business_name ? 'error' : ''}`}
-                      placeholder="Ej: Almacén La Esperanza"
+                      type="text"
+                      placeholder="Ej: Kiosco Belgrano o Ferretería Central"
                       value={form.business_name}
                       onChange={e => updateForm('business_name', e.target.value)}
                       autoFocus
+                      style={{
+                        width: '100%',
+                        padding: '12px 14px',
+                        background: '#080E1A',
+                        border: `1px solid ${errors.business_name ? '#F87171' : 'rgba(255, 255, 255, 0.12)'}`,
+                        borderRadius: '10px',
+                        color: '#FFFFFF',
+                        fontSize: '0.9375rem',
+                        outline: 'none',
+                        transition: 'border-color 0.2s'
+                      }}
                     />
-                    {errors.business_name && <span className="form-error">{errors.business_name}</span>}
+                    {errors.business_name && (
+                      <span style={{ color: '#F87171', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                        {errors.business_name}
+                      </span>
+                    )}
                   </div>
 
-                  <div className="form-group" style={{ marginBottom: 'var(--space-6)' }}>
-                    <label className="form-label required">Rubro</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 'var(--space-2)' }}>
-                      {businessTypes.map(bt => (
-                        <button
-                          key={bt.value}
-                          onClick={() => updateForm('business_type', bt.value)}
-                          style={{
-                            padding: 'var(--space-3)',
-                            background: form.business_type === bt.value ? 'var(--color-primary-light)' : 'var(--bg-input)',
-                            border: `1px solid ${form.business_type === bt.value ? 'var(--color-primary)' : 'var(--border-color)'}`,
-                            borderRadius: 'var(--radius-lg)',
-                            cursor: 'pointer', transition: 'all 0.2s',
-                            textAlign: 'left',
-                          }}
-                        >
-                          <div style={{ fontSize: '0.875rem', fontWeight: 600, color: 'var(--text-primary)' }}>{bt.label}</div>
-                          <div style={{ fontSize: '0.75rem', color: 'var(--text-muted)', marginTop: '2px' }}>{bt.desc}</div>
-                        </button>
-                      ))}
+                  <div style={{ marginBottom: '24px' }}>
+                    <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '8px' }}>
+                      Rubro principal <span style={{ color: '#F87171' }}>*</span>
+                    </label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '8px' }}>
+                      {businessTypes.map(bt => {
+                        const Icon = bt.icon
+                        const isSelected = form.business_type === bt.value
+                        return (
+                          <button
+                            key={bt.value}
+                            type="button"
+                            onClick={() => updateForm('business_type', bt.value)}
+                            style={{
+                              padding: '10px 12px',
+                              background: isSelected ? 'rgba(15, 118, 110, 0.14)' : '#0B1322',
+                              border: `1px solid ${isSelected ? '#2DD4BF' : 'rgba(255, 255, 255, 0.08)'}`,
+                              borderRadius: '10px',
+                              cursor: 'pointer',
+                              textAlign: 'left',
+                              display: 'flex',
+                              alignItems: 'flex-start',
+                              gap: '10px',
+                              transition: 'all 0.15s'
+                            }}
+                          >
+                            <div style={{
+                              width: '28px',
+                              height: '28px',
+                              borderRadius: '6px',
+                              background: isSelected ? 'rgba(45, 212, 191, 0.2)' : 'rgba(255, 255, 255, 0.04)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: isSelected ? '#2DD4BF' : '#94A3B8',
+                              flexShrink: 0
+                            }}>
+                              <Icon size={15} />
+                            </div>
+                            <div style={{ minWidth: 0 }}>
+                              <div style={{
+                                fontSize: '0.8125rem',
+                                fontWeight: 700,
+                                color: isSelected ? '#FFFFFF' : '#CBD5E1',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                {bt.label}
+                              </div>
+                              <div style={{
+                                fontSize: '0.7rem',
+                                color: '#64748B',
+                                whiteSpace: 'nowrap',
+                                overflow: 'hidden',
+                                textOverflow: 'ellipsis'
+                              }}>
+                                {bt.desc}
+                              </div>
+                            </div>
+                          </button>
+                        )
+                      })}
                     </div>
                   </div>
 
-                  <div style={{ display: 'flex', gap: 'var(--space-3)' }}>
+                  <div style={{ display: 'flex', gap: '10px' }}>
                     {isStoreMode ? (
-                      <Link href="/catalogo-gratis" className="btn btn-ghost" style={{ flex: '0 0 auto', textDecoration: 'none', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                        ← Atrás
+                      <Link
+                        href="/catalogo-gratis"
+                        style={{
+                          padding: '12px 18px',
+                          background: 'transparent',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '10px',
+                          color: '#94A3B8',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          textDecoration: 'none',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
+                      >
+                        <ArrowLeft size={15} /> Volver
                       </Link>
                     ) : (
                       <button
-                        className="btn btn-ghost"
-                        style={{ flex: '0 0 auto' }}
+                        type="button"
                         onClick={() => setStep(1)}
+                        style={{
+                          padding: '12px 18px',
+                          background: 'transparent',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '10px',
+                          color: '#94A3B8',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
                       >
-                        ← Atrás
+                        <ArrowLeft size={15} /> Atrás
                       </button>
                     )}
                     <button
-                      className="btn btn-primary btn-lg"
-                      style={{ flex: 1, justifyContent: 'center' }}
+                      type="button"
+                      style={{
+                        flex: 1,
+                        padding: '14px',
+                        borderRadius: '10px',
+                        background: '#0D9488',
+                        color: '#FFFFFF',
+                        fontFamily: 'var(--font-headline)',
+                        fontSize: '0.95rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.03em',
+                        textTransform: 'uppercase',
+                        border: 'none',
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        boxShadow: '0 4px 14px rgba(13, 148, 136, 0.3)'
+                      }}
                       onClick={() => validateStep1() && setStep(3)}
                     >
-                      Continuar →
+                      Continuar <ArrowRight size={16} />
                     </button>
                   </div>
                 </>
               ) : (
                 <>
-                  <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '6px', color: '#fff' }}>
-                    {inviteTenant ? 'Registro de Colaborador' : 'Creá tu cuenta'}
-                  </h1>
-                  <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 'var(--space-6)' }}>
-                    {inviteTenant ? 'Unite al equipo de tu comercio en Smart Caja' : `Para ${form.business_name}`}
-                  </p>
+                  {/* STEP 3: Owner info */}
+                  <div style={{ textAlign: 'center', marginBottom: '24px' }}>
+                    <h1 style={{
+                      fontFamily: 'var(--font-headline)',
+                      fontSize: '1.6rem',
+                      fontWeight: 700,
+                      marginBottom: '6px',
+                      color: '#FFFFFF',
+                      letterSpacing: '0.02em',
+                      textTransform: 'uppercase'
+                    }}>
+                      {inviteTenant ? 'Registro de Colaborador' : 'Creá tu cuenta de acceso'}
+                    </h1>
+                    <p style={{ color: '#94A3B8', fontSize: '0.875rem', margin: 0 }}>
+                      {inviteTenant
+                        ? 'Unite al equipo de tu comercio en Smart Caja'
+                        : `Administrador para ${form.business_name || 'tu negocio'}`}
+                    </p>
+                  </div>
 
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                    <div className="form-group">
-                      <label className="form-label required">Tu nombre completo</label>
-                      <input
-                        className={`form-input ${errors.full_name ? 'error' : ''}`}
-                        placeholder="Juan García"
-                        value={form.full_name}
-                        onChange={e => updateForm('full_name', e.target.value)}
-                        autoFocus
-                      />
-                      {errors.full_name && <span className="form-error">{errors.full_name}</span>}
-                    </div>
-
-                    <div className="form-group">
-                      <label className="form-label required">Email</label>
-                      <input
-                        className={`form-input ${errors.email ? 'error' : ''}`}
-                        type="email"
-                        placeholder="juan@comercio.com"
-                        value={form.email}
-                        onChange={e => updateForm('email', e.target.value)}
-                        disabled={!!inviteTenant && !!inviteEmail}
-                      />
-                      {errors.email && <span className="form-error">{errors.email}</span>}
-                    </div>
-
-                    {/* Ocultar campo de teléfono si es un colaborador invitado */}
-                    {!inviteTenant && (
-                      <div className="form-group">
-                        <label className="form-label required">WhatsApp / Celular (soporte y contacto)</label>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '14px' }}>
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '6px' }}>
+                        Nombre y Apellido <span style={{ color: '#F87171' }}>*</span>
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <User size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
                         <input
-                          className={`form-input ${errors.phone ? 'error' : ''}`}
-                          type="tel"
-                          placeholder="Ej: +54 9 11 1234-5678"
-                          value={form.phone}
-                          onChange={e => updateForm('phone', e.target.value)}
+                          type="text"
+                          placeholder="Ej: Marcelo Fernández"
+                          value={form.full_name}
+                          onChange={e => updateForm('full_name', e.target.value)}
+                          autoFocus
+                          style={{
+                            width: '100%',
+                            padding: '12px 14px 12px 38px',
+                            background: '#080E1A',
+                            border: `1px solid ${errors.full_name ? '#F87171' : 'rgba(255, 255, 255, 0.12)'}`,
+                            borderRadius: '10px',
+                            color: '#FFFFFF',
+                            fontSize: '0.9375rem',
+                            outline: 'none'
+                          }}
                         />
-                        {errors.phone && <span className="form-error">{errors.phone}</span>}
+                      </div>
+                      {errors.full_name && (
+                        <span style={{ color: '#F87171', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                          {errors.full_name}
+                        </span>
+                      )}
+                    </div>
+
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '6px' }}>
+                        Correo Electrónico <span style={{ color: '#F87171' }}>*</span>
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
+                        <input
+                          type="email"
+                          placeholder="tu@comercio.com"
+                          value={form.email}
+                          onChange={e => updateForm('email', e.target.value)}
+                          disabled={!!inviteTenant && !!inviteEmail}
+                          style={{
+                            width: '100%',
+                            padding: '12px 14px 12px 38px',
+                            background: '#080E1A',
+                            border: `1px solid ${errors.email ? '#F87171' : 'rgba(255, 255, 255, 0.12)'}`,
+                            borderRadius: '10px',
+                            color: '#FFFFFF',
+                            fontSize: '0.9375rem',
+                            outline: 'none'
+                          }}
+                        />
+                      </div>
+                      {errors.email && (
+                        <span style={{ color: '#F87171', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                          {errors.email}
+                        </span>
+                      )}
+                    </div>
+
+                    {!inviteTenant && (
+                      <div>
+                        <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '6px' }}>
+                          WhatsApp / Celular (contacto y soporte) <span style={{ color: '#F87171' }}>*</span>
+                        </label>
+                        <div style={{ position: 'relative' }}>
+                          <Phone size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
+                          <input
+                            type="tel"
+                            placeholder="+54 9 11 1234-5678"
+                            value={form.phone}
+                            onChange={e => updateForm('phone', e.target.value)}
+                            style={{
+                              width: '100%',
+                              padding: '12px 14px 12px 38px',
+                              background: '#080E1A',
+                              border: `1px solid ${errors.phone ? '#F87171' : 'rgba(255, 255, 255, 0.12)'}`,
+                              borderRadius: '10px',
+                              color: '#FFFFFF',
+                              fontSize: '0.9375rem',
+                              outline: 'none'
+                            }}
+                          />
+                        </div>
+                        {errors.phone && (
+                          <span style={{ color: '#F87171', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                            {errors.phone}
+                          </span>
+                        )}
                       </div>
                     )}
 
-                    <div className="form-group">
-                      <label className="form-label required">Contraseña</label>
-                      <input
-                        className={`form-input ${errors.password ? 'error' : ''}`}
-                        type="password"
-                        placeholder="Mínimo 6 caracteres"
-                        value={form.password}
-                        onChange={e => updateForm('password', e.target.value)}
-                      />
-                      {errors.password && <span className="form-error">{errors.password}</span>}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '6px' }}>
+                        Contraseña <span style={{ color: '#F87171' }}>*</span>
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
+                        <input
+                          type="password"
+                          placeholder="Mínimo 6 caracteres"
+                          value={form.password}
+                          onChange={e => updateForm('password', e.target.value)}
+                          style={{
+                            width: '100%',
+                            padding: '12px 14px 12px 38px',
+                            background: '#080E1A',
+                            border: `1px solid ${errors.password ? '#F87171' : 'rgba(255, 255, 255, 0.12)'}`,
+                            borderRadius: '10px',
+                            color: '#FFFFFF',
+                            fontSize: '0.9375rem',
+                            outline: 'none'
+                          }}
+                        />
+                      </div>
+                      {errors.password && (
+                        <span style={{ color: '#F87171', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                          {errors.password}
+                        </span>
+                      )}
                     </div>
 
-                    <div className="form-group">
-                      <label className="form-label required">Confirmar contraseña</label>
-                      <input
-                        className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
-                        type="password"
-                        placeholder="Repetí la contraseña"
-                        value={form.confirmPassword}
-                        onChange={e => updateForm('confirmPassword', e.target.value)}
-                        onKeyDown={e => e.key === 'Enter' && !loading && handleRegister()}
-                      />
-                      {errors.confirmPassword && <span className="form-error">{errors.confirmPassword}</span>}
+                    <div>
+                      <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '6px' }}>
+                        Confirmar Contraseña <span style={{ color: '#F87171' }}>*</span>
+                      </label>
+                      <div style={{ position: 'relative' }}>
+                        <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
+                        <input
+                          type="password"
+                          placeholder="Repetí la contraseña"
+                          value={form.confirmPassword}
+                          onChange={e => updateForm('confirmPassword', e.target.value)}
+                          onKeyDown={e => e.key === 'Enter' && !loading && handleRegister()}
+                          style={{
+                            width: '100%',
+                            padding: '12px 14px 12px 38px',
+                            background: '#080E1A',
+                            border: `1px solid ${errors.confirmPassword ? '#F87171' : 'rgba(255, 255, 255, 0.12)'}`,
+                            borderRadius: '10px',
+                            color: '#FFFFFF',
+                            fontSize: '0.9375rem',
+                            outline: 'none'
+                          }}
+                        />
+                      </div>
+                      {errors.confirmPassword && (
+                        <span style={{ color: '#F87171', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                          {errors.confirmPassword}
+                        </span>
+                      )}
                     </div>
                   </div>
 
-                  <div style={{ marginTop: 'var(--space-6)', display: 'flex', gap: 'var(--space-3)' }}>
+                  <div style={{ marginTop: '24px', display: 'flex', gap: '10px' }}>
                     {!inviteTenant && (
                       <button
-                        className="btn btn-ghost"
-                        style={{ flex: '0 0 auto' }}
+                        type="button"
                         onClick={() => setStep(2)}
+                        style={{
+                          padding: '12px 18px',
+                          background: 'transparent',
+                          border: '1px solid rgba(255, 255, 255, 0.12)',
+                          borderRadius: '10px',
+                          color: '#94A3B8',
+                          fontSize: '0.875rem',
+                          fontWeight: 600,
+                          cursor: 'pointer',
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '6px'
+                        }}
                       >
-                        ← Atrás
+                        <ArrowLeft size={15} /> Atrás
                       </button>
                     )}
                     <button
-                      className="btn btn-primary btn-lg"
-                      style={{ flex: 1, justifyContent: 'center' }}
+                      type="button"
                       onClick={handleRegister}
                       disabled={loading}
+                      style={{
+                        flex: 1,
+                        padding: '14px',
+                        borderRadius: '10px',
+                        background: '#0D9488',
+                        color: '#FFFFFF',
+                        fontFamily: 'var(--font-headline)',
+                        fontSize: '0.95rem',
+                        fontWeight: 700,
+                        letterSpacing: '0.03em',
+                        textTransform: 'uppercase',
+                        border: 'none',
+                        cursor: loading ? 'not-allowed' : 'pointer',
+                        opacity: loading ? 0.7 : 1,
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '8px',
+                        boxShadow: '0 4px 14px rgba(13, 148, 136, 0.3)'
+                      }}
                     >
                       {loading ? (
                         <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                          <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                          Procesando...
+                          <span style={{
+                            width: '16px',
+                            height: '16px',
+                            border: '2px solid rgba(255,255,255,0.3)',
+                            borderTopColor: '#FFFFFF',
+                            borderRadius: '50%',
+                            animation: 'spin 0.8s linear infinite'
+                          }} />
+                          Creando cuenta...
                         </span>
-                      ) : inviteTenant ? 'Unirse al Equipo 🚀' : 'Crear cuenta gratis 🎉'}
+                      ) : inviteTenant ? (
+                        'Unirse al Comercio'
+                      ) : (
+                        'Comenzar 15 Días Gratis'
+                      )}
                     </button>
                   </div>
 
-                  <p style={{ fontSize: '0.75rem', color: 'var(--text-muted)', textAlign: 'center', marginTop: 'var(--space-4)' }}>
-                    {inviteTenant ? 'Al registrarte te unís al comercio respectivo.' : isStoreMode ? 'Al registrarte aceptás nuestros términos de uso. Tienda virtual 100% gratis, sin tarjeta.' : 'Al registrarte aceptás nuestros términos de uso. 15 días de prueba completa gratis, sin tarjeta.'}
+                  <p style={{
+                    fontSize: '0.75rem',
+                    color: '#64748B',
+                    textAlign: 'center',
+                    marginTop: '16px',
+                    lineHeight: 1.4
+                  }}>
+                    {inviteTenant
+                      ? 'Al registrarte te unís como colaborador del comercio invitado.'
+                      : isStoreMode
+                      ? 'Al registrarte aceptás nuestros términos de uso. Tienda virtual 100% gratis sin costos ocultos.'
+                      : 'Al registrarte aceptás nuestros términos de uso. 15 días de prueba completa gratis, sin tarjeta.'}
                   </p>
                 </>
               )}
@@ -693,10 +1167,11 @@ function RegisterContent() {
           )}
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: 'var(--space-5)', color: 'var(--text-secondary)', fontSize: '0.9375rem' }}>
-          ¿Ya tenés cuenta?{' '}
-          <Link href="/login" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
-            Iniciá sesión
+        {/* Bottom Link */}
+        <p style={{ textAlign: 'center', marginTop: '20px', color: '#94A3B8', fontSize: '0.875rem' }}>
+          ¿Ya tenés una cuenta?{' '}
+          <Link href="/login" style={{ color: '#2DD4BF', fontWeight: 600, textDecoration: 'none' }}>
+            Iniciá sesión aquí
           </Link>
         </p>
       </div>
@@ -713,11 +1188,11 @@ export default function RegisterPage() {
     <Suspense fallback={
       <div style={{
         minHeight: '100vh',
-        background: 'var(--bg-base)',
+        background: '#080E1A',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'var(--text-secondary)'
+        color: '#94A3B8'
       }}>
         Cargando registro...
       </div>

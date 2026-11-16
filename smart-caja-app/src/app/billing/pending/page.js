@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import { Clock, RefreshCw, ArrowRight } from 'lucide-react'
 
 export default function PendingPage() {
   const router = useRouter()
@@ -20,7 +21,7 @@ export default function PendingPage() {
     }}>
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(circle at center, rgba(168, 85, 247, 0.1) 0%, transparent 60%)'
+        background: 'radial-gradient(ellipse at 50% 0%, rgba(20, 184, 166, 0.12) 0%, transparent 65%)'
       }} />
 
       <div style={{
@@ -35,15 +36,33 @@ export default function PendingPage() {
         zIndex: 1,
         boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)',
       }}>
-        <div className="pending-icon-container">
-          <div className="pending-icon">⏳</div>
+        <div style={{
+          width: '72px',
+          height: '72px',
+          margin: '0 auto var(--space-6)',
+          borderRadius: '50%',
+          background: 'rgba(245, 158, 11, 0.12)',
+          border: '1px solid rgba(245, 158, 11, 0.3)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: '#F59E0B'
+        }}>
+          <Clock size={36} strokeWidth={2} />
         </div>
 
-        <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '2rem', marginBottom: 'var(--space-2)', color: 'white' }}>
+        <h1 style={{
+          fontFamily: 'var(--font-headline)',
+          fontSize: '1.75rem',
+          marginBottom: 'var(--space-2)',
+          color: '#FFFFFF',
+          textTransform: 'uppercase',
+          letterSpacing: '0.02em'
+        }}>
           Pago en Proceso
         </h1>
-        <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-8)', fontSize: '1rem', lineHeight: 1.5 }}>
-          Mercado Pago está procesando tu suscripción. Te notificaremos automáticamente en cuanto se acredite. Esto suele demorar unos minutos.
+        <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-8)', fontSize: '0.95rem', lineHeight: 1.5 }}>
+          Mercado Pago está procesando tu suscripción. Tu cuenta se activará automáticamente ni bien se confirme la acreditación.
         </p>
 
         <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-3)' }}>
@@ -52,37 +71,18 @@ export default function PendingPage() {
             style={{ width: '100%', justifyContent: 'center' }}
             onClick={() => router.push('/dashboard')}
           >
-            Ir al Dashboard
+            Ir al Dashboard <ArrowRight size={16} />
           </button>
           
           <button 
             className="btn btn-ghost" 
-            style={{ width: '100%', justifyContent: 'center' }}
+            style={{ width: '100%', justifyContent: 'center', display: 'flex', alignItems: 'center', gap: '8px' }}
             onClick={() => window.location.reload()}
           >
-            ↻ Verificar estado actual
+            <RefreshCw size={15} /> Verificar estado actual
           </button>
         </div>
       </div>
-
-      <style>{`
-        .pending-icon-container {
-          width: 80px; height: 80px;
-          margin: 0 auto var(--space-6);
-          border-radius: 50%;
-          background: var(--color-primary-light);
-          display: flex; align-items: center; justify-content: center;
-        }
-        .pending-icon {
-          font-size: 2.5rem;
-          animation: pulseIcon 2s ease-in-out infinite;
-        }
-        @keyframes pulseIcon { 
-          0% { transform: scale(0.9); opacity: 0.8; } 
-          50% { transform: scale(1.1); opacity: 1; } 
-          100% { transform: scale(0.9); opacity: 0.8; } 
-        }
-      `}</style>
     </div>
   )
 }

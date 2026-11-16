@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/lib/hooks/useToast'
+import { Mail, Lock, AlertTriangle, ArrowRight } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -36,7 +37,7 @@ export default function LoginPage() {
         }
       })
       if (error) throw error
-      toast.success('Correo de confirmación reenviado. ¡Revisá tu bandeja!')
+      toast.success('Correo de confirmación reenviado. Revisá tu bandeja.')
       setCooldown(60)
     } catch (err) {
       toast.error(err.message || 'Error al reenviar el correo')
@@ -62,13 +63,13 @@ export default function LoginPage() {
 
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: form.email,
+        email: form.email.trim().toLowerCase(),
         password: form.password,
       })
 
       if (error) throw error
 
-      toast.success('¡Bienvenido de vuelta! 👋')
+      toast.success('Sesión iniciada con éxito.')
       router.push('/dashboard')
     } catch (err) {
       let msg = err.message || 'Error al iniciar sesión'
@@ -84,7 +85,7 @@ export default function LoginPage() {
           const checkRes = await fetch('/api/auth/check-email', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ email: form.email })
+            body: JSON.stringify({ email: form.email.trim().toLowerCase() })
           })
           if (checkRes.ok) {
             const { registered } = await checkRes.json()
@@ -110,61 +111,111 @@ export default function LoginPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg-base)',
+      background: '#080E1A',
+      color: '#F8FAFC',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 'var(--space-4)',
+      padding: '40px 20px',
       position: 'relative',
+      fontFamily: 'var(--font-body)'
     }}>
+      {/* Petrol ambient lighting */}
       <div style={{
-        position: 'fixed', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse at 70% 50%, rgba(124,58,237,0.12) 0%, transparent 60%)'
+        position: 'fixed',
+        inset: 0,
+        pointerEvents: 'none',
+        background: 'radial-gradient(ellipse at 50% 0%, rgba(20, 184, 166, 0.12) 0%, transparent 65%)'
       }} />
 
-      <div style={{ width: '100%', maxWidth: '420px', position: 'relative', zIndex: 1 }}>
-        <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-8)' }}>
-          <div className="sidebar-logo-icon" style={{ width: '44px', height: '44px', fontSize: '22px' }}>🏪</div>
-          <span className="sidebar-logo-text" style={{ fontSize: '1.5rem' }}>Smart Caja</span>
+      <div style={{ width: '100%', maxWidth: '440px', position: 'relative', zIndex: 1 }}>
+        {/* Executive Logo Mark */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '32px' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #0F766E, #0284C7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 16px rgba(15, 118, 110, 0.35)',
+            color: '#FFFFFF',
+            fontWeight: 900,
+            fontFamily: 'var(--font-headline)',
+            fontSize: '1.125rem',
+            letterSpacing: '-0.5px'
+          }}>
+            SC
+          </div>
+          <span style={{
+            fontFamily: 'var(--font-headline)',
+            fontSize: '1.6rem',
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            color: '#FFFFFF',
+            textTransform: 'uppercase'
+          }}>
+            Smart <span style={{ color: '#2DD4BF' }}>Caja</span>
+          </span>
         </div>
 
-        <div className="card" style={{ padding: 'var(--space-8)' }}>
-          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.75rem', fontWeight: 800, marginBottom: '6px' }}>
-            Bienvenido 👋
+        {/* Card */}
+        <div style={{
+          background: '#0E1727',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '20px',
+          padding: '36px 32px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.65)'
+        }}>
+          <h1 style={{
+            fontFamily: 'var(--font-headline)',
+            fontSize: '1.6rem',
+            fontWeight: 700,
+            marginBottom: '6px',
+            color: '#FFFFFF',
+            letterSpacing: '0.02em',
+            textTransform: 'uppercase'
+          }}>
+            Iniciar Sesión
           </h1>
-          <p style={{ color: 'var(--text-secondary)', marginBottom: 'var(--space-6)' }}>
-            Iniciá sesión en tu Smart Caja
+          <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginBottom: '24px' }}>
+            Ingresá a tu punto de venta y administración
           </p>
 
           {unconfirmedEmail && (
             <div style={{
               background: 'rgba(245, 158, 11, 0.08)',
-              border: '1px solid rgba(245, 158, 11, 0.2)',
-              borderRadius: 'var(--radius-lg)',
-              padding: 'var(--space-4)',
-              color: 'var(--text-secondary)',
-              fontSize: '0.875rem',
-              marginBottom: 'var(--space-5)',
+              border: '1px solid rgba(245, 158, 11, 0.25)',
+              borderRadius: '12px',
+              padding: '16px',
+              color: '#CBD5E1',
+              fontSize: '0.85rem',
+              marginBottom: '20px',
               display: 'flex',
               flexDirection: 'column',
-              gap: 'var(--space-3)'
+              gap: '10px'
             }}>
-              <div style={{ display: 'flex', gap: '8px', color: 'var(--color-warning)', fontWeight: 600 }}>
-                <span>⚠️</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', color: '#F59E0B', fontWeight: 700 }}>
+                <AlertTriangle size={18} />
                 <span>Correo no verificado</span>
               </div>
-              <div>
-                Enviamos un enlace de confirmación a tu correo. Por favor, hacé clic en el enlace para activar tu cuenta.
-              </div>
+              <p style={{ margin: 0, lineHeight: 1.5 }}>
+                Enviamos un enlace de activación a tu correo. Hacé clic en el enlace para activar tu cuenta.
+              </p>
               <button
                 type="button"
-                className="btn btn-warning btn-sm"
-                style={{ 
+                style={{
                   alignSelf: 'flex-start',
-                  background: 'var(--color-warning)',
-                  color: '#000',
+                  padding: '6px 12px',
+                  borderRadius: '6px',
+                  background: '#F59E0B',
+                  color: '#080E1A',
                   border: 'none',
-                  fontWeight: 600
+                  fontSize: '0.78rem',
+                  fontWeight: 700,
+                  cursor: resendLoading || cooldown > 0 ? 'not-allowed' : 'pointer',
+                  opacity: resendLoading || cooldown > 0 ? 0.6 : 1
                 }}
                 onClick={() => handleResendConfirmation(unconfirmedEmail)}
                 disabled={resendLoading || cooldown > 0}
@@ -174,58 +225,130 @@ export default function LoginPage() {
             </div>
           )}
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-            <div className="form-group">
-              <label className="form-label">Email</label>
-              <input
-                className={`form-input ${errors.email ? 'error' : ''}`}
-                type="email"
-                placeholder="tu@email.com"
-                value={form.email}
-                onChange={e => updateForm('email', e.target.value)}
-                autoFocus
-              />
-              {errors.email && <span className="form-error">{errors.email}</span>}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+            <div>
+              <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '6px' }}>
+                Correo Electrónico
+              </label>
+              <div style={{ position: 'relative' }}>
+                <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
+                <input
+                  type="email"
+                  placeholder="tu@email.com"
+                  value={form.email}
+                  onChange={e => updateForm('email', e.target.value)}
+                  autoFocus
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px 12px 38px',
+                    background: '#080E1A',
+                    border: `1px solid ${errors.email ? '#F87171' : 'rgba(255, 255, 255, 0.12)'}`,
+                    borderRadius: '10px',
+                    color: '#FFFFFF',
+                    fontSize: '0.9375rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              {errors.email && (
+                <span style={{ color: '#F87171', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                  {errors.email}
+                </span>
+              )}
             </div>
 
-            <div className="form-group">
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 'var(--space-2)' }}>
-                <label className="form-label" style={{ marginBottom: 0 }}>Contraseña</label>
-                <Link href="/forgot-password" style={{ fontSize: '0.8125rem', color: 'var(--color-primary)', fontWeight: 600 }}>
+            <div>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#CBD5E1' }}>
+                  Contraseña
+                </label>
+                <Link
+                  href="/forgot-password"
+                  style={{ fontSize: '0.78rem', color: '#2DD4BF', textDecoration: 'none', fontWeight: 600 }}
+                >
                   ¿Olvidaste tu contraseña?
                 </Link>
               </div>
-              <input
-                className={`form-input ${errors.password ? 'error' : ''}`}
-                type="password"
-                placeholder="Tu contraseña"
-                value={form.password}
-                onChange={e => updateForm('password', e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && !loading && handleLogin()}
-              />
-              {errors.password && <span className="form-error">{errors.password}</span>}
+              <div style={{ position: 'relative' }}>
+                <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
+                <input
+                  type="password"
+                  placeholder="Tu contraseña"
+                  value={form.password}
+                  onChange={e => updateForm('password', e.target.value)}
+                  onKeyDown={e => e.key === 'Enter' && !loading && handleLogin()}
+                  style={{
+                    width: '100%',
+                    padding: '12px 14px 12px 38px',
+                    background: '#080E1A',
+                    border: `1px solid ${errors.password ? '#F87171' : 'rgba(255, 255, 255, 0.12)'}`,
+                    borderRadius: '10px',
+                    color: '#FFFFFF',
+                    fontSize: '0.9375rem',
+                    outline: 'none'
+                  }}
+                />
+              </div>
+              {errors.password && (
+                <span style={{ color: '#F87171', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                  {errors.password}
+                </span>
+              )}
             </div>
           </div>
 
           <button
-            className="btn btn-primary btn-lg"
-            style={{ width: '100%', justifyContent: 'center', marginTop: 'var(--space-6)' }}
+            type="button"
             onClick={handleLogin}
             disabled={loading}
+            style={{
+              width: '100%',
+              padding: '14px',
+              marginTop: '24px',
+              borderRadius: '10px',
+              background: '#0D9488',
+              color: '#FFFFFF',
+              fontFamily: 'var(--font-headline)',
+              fontSize: '0.95rem',
+              fontWeight: 700,
+              letterSpacing: '0.04em',
+              textTransform: 'uppercase',
+              border: 'none',
+              cursor: loading ? 'not-allowed' : 'pointer',
+              opacity: loading ? 0.7 : 1,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              boxShadow: '0 4px 14px rgba(13, 148, 136, 0.35)',
+              transition: 'background 0.2s'
+            }}
           >
             {loading ? (
-              <span className="flex items-center gap-2">
-                <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite', display: 'inline-block' }} />
+              <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                <span style={{
+                  width: '16px',
+                  height: '16px',
+                  border: '2px solid rgba(255,255,255,0.3)',
+                  borderTopColor: '#FFFFFF',
+                  borderRadius: '50%',
+                  animation: 'spin 0.8s linear infinite'
+                }} />
                 Ingresando...
               </span>
-            ) : 'Iniciar sesión'}
+            ) : (
+              <>
+                Ingresar al sistema <ArrowRight size={16} />
+              </>
+            )}
           </button>
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: 'var(--space-5)', color: 'var(--text-secondary)' }}>
-          ¿No tenés cuenta?{' '}
-          <Link href="/register" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
-            Registrate gratis
+        {/* Bottom Link */}
+        <p style={{ textAlign: 'center', marginTop: '20px', color: '#94A3B8', fontSize: '0.875rem' }}>
+          ¿No tenés una cuenta?{' '}
+          <Link href="/register" style={{ color: '#2DD4BF', fontWeight: 600, textDecoration: 'none' }}>
+            Registrate gratis (15 días de prueba)
           </Link>
         </p>
       </div>

@@ -5,15 +5,16 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/lib/hooks/useToast'
+import { Lock, ArrowRight, ArrowLeft, AlertCircle } from 'lucide-react'
 
 export default function ResetPasswordPage() {
   const router = useRouter()
   const toast = useToast()
-  
+
   const [checking, setChecking] = useState(true)
   const [isValidSession, setIsValidSession] = useState(false)
   const [loading, setLoading] = useState(false)
-  
+
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [errors, setErrors] = useState({})
@@ -23,8 +24,6 @@ export default function ResetPasswordPage() {
   useEffect(() => {
     const verifySession = async () => {
       try {
-        // Supabase Auth automatically parses the recovery token from the URL hash
-        // and establishes a session on the client. Let's check if we have a user.
         const { data: { user } } = await supabase.auth.getUser()
         if (user) {
           setIsValidSession(true)
@@ -67,9 +66,8 @@ export default function ResetPasswordPage() {
 
       if (error) throw error
 
-      toast.success('¡Contraseña actualizada con éxito! Redirigiendo...')
-      
-      // Small delay for UX and session propagation
+      toast.success('Contraseña actualizada con éxito.')
+
       setTimeout(() => {
         router.push('/dashboard')
       }, 1500)
@@ -86,20 +84,22 @@ export default function ResetPasswordPage() {
     return (
       <div style={{
         minHeight: '100vh',
-        background: 'var(--bg-base)',
+        background: '#080E1A',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        color: 'var(--text-secondary)'
+        color: '#94A3B8'
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '16px' }}>
           <div style={{
-            width: '40px', height: '40px',
-            border: '3px solid var(--border-color)',
-            borderTopColor: 'var(--color-primary)',
-            borderRadius: '50%', animation: 'spin 1s linear infinite'
+            width: '36px',
+            height: '36px',
+            border: '3px solid rgba(255,255,255,0.1)',
+            borderTopColor: '#2DD4BF',
+            borderRadius: '50%',
+            animation: 'spin 1s linear infinite'
           }} />
-          <span>Validando enlace de recuperación...</span>
+          <span style={{ fontSize: '0.875rem' }}>Validando enlace de recuperación...</span>
         </div>
         <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
       </div>
@@ -109,122 +109,279 @@ export default function ResetPasswordPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg-base)',
+      background: '#080E1A',
+      color: '#F8FAFC',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 'var(--space-4)',
+      padding: '40px 20px',
       position: 'relative',
+      fontFamily: 'var(--font-body)'
     }}>
-      {/* Background glow */}
+      {/* Petrol ambient lighting */}
       <div style={{
-        position: 'fixed', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse at 50% 50%, rgba(124,58,237,0.12) 0%, transparent 60%)'
+        position: 'fixed',
+        inset: 0,
+        pointerEvents: 'none',
+        background: 'radial-gradient(ellipse at 50% 0%, rgba(20, 184, 166, 0.12) 0%, transparent 65%)'
       }} />
 
       <div style={{ width: '100%', maxWidth: '440px', position: 'relative', zIndex: 1 }}>
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-8)' }}>
-          <div className="sidebar-logo-icon" style={{ width: '44px', height: '44px', fontSize: '22px' }}>🏪</div>
-          <span className="sidebar-logo-text" style={{ fontSize: '1.5rem' }}>Smart Caja</span>
+        {/* Executive Logo Mark */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '32px' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #0F766E, #0284C7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 16px rgba(15, 118, 110, 0.35)',
+            color: '#FFFFFF',
+            fontWeight: 900,
+            fontFamily: 'var(--font-headline)',
+            fontSize: '1.125rem',
+            letterSpacing: '-0.5px'
+          }}>
+            SC
+          </div>
+          <span style={{
+            fontFamily: 'var(--font-headline)',
+            fontSize: '1.6rem',
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            color: '#FFFFFF',
+            textTransform: 'uppercase'
+          }}>
+            Smart <span style={{ color: '#2DD4BF' }}>Caja</span>
+          </span>
         </div>
 
-        <div className="card" style={{ padding: 'var(--space-8)' }}>
+        {/* Card */}
+        <div style={{
+          background: '#0E1727',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '20px',
+          padding: '36px 32px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.65)'
+        }}>
           {isValidSession ? (
             <>
-              <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '8px', color: '#fff' }}>
-                Establecer nueva contraseña 🔒
+              <h1 style={{
+                fontFamily: 'var(--font-headline)',
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                marginBottom: '6px',
+                color: '#FFFFFF',
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase'
+              }}>
+                Nueva Contraseña
               </h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 'var(--space-6)', lineHeight: 1.5 }}>
-                Escribí tu nueva contraseña de acceso. Asegurate de que sea segura y tenga al menos 6 caracteres.
+              <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginBottom: '24px', lineHeight: 1.5 }}>
+                Ingresá tu nueva clave de acceso de al menos 6 caracteres.
               </p>
 
-              <form onSubmit={handlePasswordUpdate} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
+              <form onSubmit={handlePasswordUpdate} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                 {errors.global && (
                   <div style={{
                     background: 'rgba(239, 68, 68, 0.1)',
-                    border: '1px solid var(--color-error)',
-                    borderRadius: 'var(--radius-md)',
+                    border: '1px solid rgba(239, 68, 68, 0.3)',
+                    borderRadius: '10px',
                     padding: '12px',
-                    color: 'var(--color-error)',
+                    color: '#F87171',
                     fontSize: '0.8125rem'
                   }}>
                     {errors.global}
                   </div>
                 )}
 
-                <div className="form-group">
-                  <label className="form-label">Nueva Contraseña</label>
-                  <input
-                    className={`form-input ${errors.password ? 'error' : ''}`}
-                    type="password"
-                    placeholder="Mínimo 6 caracteres"
-                    value={password}
-                    onChange={e => {
-                      setPassword(e.target.value)
-                      setErrors(prev => ({ ...prev, password: '', global: '' }))
-                    }}
-                    disabled={loading}
-                    autoFocus
-                    required
-                  />
-                  {errors.password && <span className="form-error">{errors.password}</span>}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '6px' }}>
+                    Nueva Contraseña
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
+                    <input
+                      type="password"
+                      placeholder="Mínimo 6 caracteres"
+                      value={password}
+                      onChange={e => {
+                        setPassword(e.target.value)
+                        setErrors(prev => ({ ...prev, password: '' }))
+                      }}
+                      autoFocus
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '12px 14px 12px 38px',
+                        background: '#080E1A',
+                        border: `1px solid ${errors.password ? '#F87171' : 'rgba(255, 255, 255, 0.12)'}`,
+                        borderRadius: '10px',
+                        color: '#FFFFFF',
+                        fontSize: '0.9375rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                  {errors.password && (
+                    <span style={{ color: '#F87171', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                      {errors.password}
+                    </span>
+                  )}
                 </div>
 
-                <div className="form-group">
-                  <label className="form-label">Confirmar Contraseña</label>
-                  <input
-                    className={`form-input ${errors.confirmPassword ? 'error' : ''}`}
-                    type="password"
-                    placeholder="Repetí la contraseña"
-                    value={confirmPassword}
-                    onChange={e => {
-                      setConfirmPassword(e.target.value)
-                      setErrors(prev => ({ ...prev, confirmPassword: '', global: '' }))
-                    }}
-                    disabled={loading}
-                    required
-                  />
-                  {errors.confirmPassword && <span className="form-error">{errors.confirmPassword}</span>}
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '6px' }}>
+                    Confirmar Nueva Contraseña
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Lock size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
+                    <input
+                      type="password"
+                      placeholder="Repetí la contraseña"
+                      value={confirmPassword}
+                      onChange={e => {
+                        setConfirmPassword(e.target.value)
+                        setErrors(prev => ({ ...prev, confirmPassword: '' }))
+                      }}
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '12px 14px 12px 38px',
+                        background: '#080E1A',
+                        border: `1px solid ${errors.confirmPassword ? '#F87171' : 'rgba(255, 255, 255, 0.12)'}`,
+                        borderRadius: '10px',
+                        color: '#FFFFFF',
+                        fontSize: '0.9375rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                  {errors.confirmPassword && (
+                    <span style={{ color: '#F87171', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                      {errors.confirmPassword}
+                    </span>
+                  )}
                 </div>
 
                 <button
                   type="submit"
-                  className="btn btn-primary btn-lg"
-                  style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }}
                   disabled={loading}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '10px',
+                    background: '#0D9488',
+                    color: '#FFFFFF',
+                    fontFamily: 'var(--font-headline)',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    border: 'none',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    opacity: loading ? 0.7 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(13, 148, 136, 0.35)',
+                    transition: 'background 0.2s',
+                    marginTop: '8px'
+                  }}
                 >
                   {loading ? (
                     <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-                      Guardando...
+                      <span style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderTopColor: '#FFFFFF',
+                        borderRadius: '50%',
+                        animation: 'spin 0.8s linear infinite'
+                      }} />
+                      Actualizando...
                     </span>
-                  ) : 'Actualizar contraseña'}
+                  ) : (
+                    <>
+                      Guardar Contraseña <ArrowRight size={16} />
+                    </>
+                  )}
                 </button>
               </form>
             </>
           ) : (
-            <div style={{ textAlign: 'center', padding: '12px 0' }}>
-              <div style={{ fontSize: '3.5rem', marginBottom: '16px' }}>⚠️</div>
-              <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '12px', color: 'var(--color-error)' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: 'rgba(239, 68, 68, 0.12)',
+                border: '1px solid rgba(239, 68, 68, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 20px',
+                color: '#F87171'
+              }}>
+                <AlertCircle size={32} strokeWidth={2} />
+              </div>
+
+              <h2 style={{
+                fontFamily: 'var(--font-headline)',
+                fontSize: '1.4rem',
+                fontWeight: 700,
+                marginBottom: '8px',
+                color: '#FFFFFF',
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase'
+              }}>
                 Enlace Expirado o Inválido
-              </h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, marginBottom: '24px' }}>
-                El enlace de recuperación que utilizaste es inválido, ha expirado o ya fue utilizado anteriormente. Por favor, solicitá un nuevo enlace.
+              </h2>
+
+              <p style={{ color: '#94A3B8', fontSize: '0.875rem', lineHeight: 1.6, marginBottom: '24px' }}>
+                El enlace de recuperación ya fue utilizado o ha expirado. Por favor, solicitá uno nuevo.
               </p>
-              <Link href="/forgot-password" style={{ width: '100%' }}>
-                <button className="btn btn-primary" style={{ width: '100%', justifyContent: 'center' }}>
-                  Solicitar nuevo enlace
-                </button>
+
+              <Link
+                href="/forgot-password"
+                style={{
+                  display: 'block',
+                  textAlign: 'center',
+                  padding: '14px',
+                  borderRadius: '10px',
+                  background: '#0D9488',
+                  color: '#FFFFFF',
+                  fontFamily: 'var(--font-headline)',
+                  fontSize: '0.95rem',
+                  fontWeight: 700,
+                  textDecoration: 'none',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.04em'
+                }}
+              >
+                Solicitar nuevo enlace
               </Link>
             </div>
           )}
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: 'var(--space-5)', color: 'var(--text-secondary)' }}>
-          ¿Querés volver?{' '}
-          <Link href="/login" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
-            Iniciar sesión
+        {/* Bottom Link */}
+        <p style={{ textAlign: 'center', marginTop: '20px', color: '#94A3B8', fontSize: '0.875rem' }}>
+          <Link
+            href="/login"
+            style={{
+              color: '#2DD4BF',
+              fontWeight: 600,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <ArrowLeft size={14} /> Volver a iniciar sesión
           </Link>
         </p>
       </div>

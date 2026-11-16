@@ -4,6 +4,7 @@ import { useState } from 'react'
 import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/lib/hooks/useToast'
+import { Mail, ArrowLeft, ArrowRight, CheckCircle2 } from 'lucide-react'
 
 export default function ForgotPasswordPage() {
   const toast = useToast()
@@ -29,13 +30,12 @@ export default function ForgotPasswordPage() {
     const supabase = createClient()
 
     try {
-      // 1. Verificar si el correo está registrado en la base de datos para no enviar correos a cuentas inexistentes
       const checkRes = await fetch('/api/auth/check-email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: email.trim() })
+        body: JSON.stringify({ email: email.trim().toLowerCase() })
       })
-      
+
       if (checkRes.ok) {
         const { registered } = await checkRes.json()
         if (!registered) {
@@ -43,16 +43,15 @@ export default function ForgotPasswordPage() {
         }
       }
 
-      // 2. Enviar el email de recuperación
       const appUrl = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:3000'
-      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
         redirectTo: `${appUrl}/reset-password`,
       })
 
       if (resetError) throw resetError
 
       setSubmitted(true)
-      toast.success('¡Enlace de recuperación enviado con éxito!')
+      toast.success('Enlace de recuperación enviado.')
     } catch (err) {
       console.error('[Forgot Password] Error requesting reset:', err)
       let msg = err.message || 'Ocurrió un error al enviar el correo de recuperación.'
@@ -69,94 +68,231 @@ export default function ForgotPasswordPage() {
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg-base)',
+      background: '#080E1A',
+      color: '#F8FAFC',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      padding: 'var(--space-4)',
+      padding: '40px 20px',
       position: 'relative',
+      fontFamily: 'var(--font-body)'
     }}>
-      {/* Background glow */}
+      {/* Petrol ambient lighting */}
       <div style={{
-        position: 'fixed', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse at 30% 50%, rgba(124,58,237,0.12) 0%, transparent 60%)'
+        position: 'fixed',
+        inset: 0,
+        pointerEvents: 'none',
+        background: 'radial-gradient(ellipse at 50% 0%, rgba(20, 184, 166, 0.12) 0%, transparent 65%)'
       }} />
 
       <div style={{ width: '100%', maxWidth: '440px', position: 'relative', zIndex: 1 }}>
-        {/* Logo */}
-        <div className="flex items-center justify-center gap-3" style={{ marginBottom: 'var(--space-8)' }}>
-          <div className="sidebar-logo-icon" style={{ width: '44px', height: '44px', fontSize: '22px' }}>🏪</div>
-          <span className="sidebar-logo-text" style={{ fontSize: '1.5rem' }}>Smart Caja</span>
+        {/* Executive Logo Mark */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '32px' }}>
+          <div style={{
+            width: '42px',
+            height: '42px',
+            borderRadius: '10px',
+            background: 'linear-gradient(135deg, #0F766E, #0284C7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 16px rgba(15, 118, 110, 0.35)',
+            color: '#FFFFFF',
+            fontWeight: 900,
+            fontFamily: 'var(--font-headline)',
+            fontSize: '1.125rem',
+            letterSpacing: '-0.5px'
+          }}>
+            SC
+          </div>
+          <span style={{
+            fontFamily: 'var(--font-headline)',
+            fontSize: '1.6rem',
+            fontWeight: 700,
+            letterSpacing: '0.04em',
+            color: '#FFFFFF',
+            textTransform: 'uppercase'
+          }}>
+            Smart <span style={{ color: '#2DD4BF' }}>Caja</span>
+          </span>
         </div>
 
-        <div className="card" style={{ padding: 'var(--space-8)' }}>
+        {/* Card */}
+        <div style={{
+          background: '#0E1727',
+          border: '1px solid rgba(255, 255, 255, 0.08)',
+          borderRadius: '20px',
+          padding: '36px 32px',
+          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.65)'
+        }}>
           {!submitted ? (
             <>
-              <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '8px', color: '#fff' }}>
-                ¿Olvidaste tu contraseña? 🤔
+              <h1 style={{
+                fontFamily: 'var(--font-headline)',
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                marginBottom: '6px',
+                color: '#FFFFFF',
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase'
+              }}>
+                Recuperar Contraseña
               </h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', marginBottom: 'var(--space-6)', lineHeight: 1.5 }}>
-                Ingresá tu correo electrónico registrado y te enviaremos las instrucciones para restablecer tu contraseña.
+              <p style={{ color: '#94A3B8', fontSize: '0.875rem', marginBottom: '24px', lineHeight: 1.5 }}>
+                Ingresá tu correo registrado y te enviaremos el enlace para restablecer tu clave.
               </p>
 
-              <form onSubmit={handleResetRequest} style={{ display: 'flex', flexDirection: 'column', gap: 'var(--space-4)' }}>
-                <div className="form-group">
-                  <label className="form-label">Correo Electrónico</label>
-                  <input
-                    className={`form-input ${error ? 'error' : ''}`}
-                    type="email"
-                    placeholder="ejemplo@comercio.com"
-                    value={email}
-                    onChange={e => {
-                      setEmail(e.target.value)
-                      setError('')
-                    }}
-                    disabled={loading}
-                    autoFocus
-                    required
-                  />
-                  {error && <span className="form-error">{error}</span>}
+              <form onSubmit={handleResetRequest} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div>
+                  <label style={{ display: 'block', fontSize: '0.8125rem', fontWeight: 600, color: '#CBD5E1', marginBottom: '6px' }}>
+                    Correo Electrónico
+                  </label>
+                  <div style={{ position: 'relative' }}>
+                    <Mail size={16} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: '#64748B' }} />
+                    <input
+                      type="email"
+                      placeholder="ejemplo@comercio.com"
+                      value={email}
+                      onChange={e => {
+                        setEmail(e.target.value)
+                        setError('')
+                      }}
+                      disabled={loading}
+                      autoFocus
+                      required
+                      style={{
+                        width: '100%',
+                        padding: '12px 14px 12px 38px',
+                        background: '#080E1A',
+                        border: `1px solid ${error ? '#F87171' : 'rgba(255, 255, 255, 0.12)'}`,
+                        borderRadius: '10px',
+                        color: '#FFFFFF',
+                        fontSize: '0.9375rem',
+                        outline: 'none'
+                      }}
+                    />
+                  </div>
+                  {error && (
+                    <span style={{ color: '#F87171', fontSize: '0.75rem', marginTop: '4px', display: 'block' }}>
+                      {error}
+                    </span>
+                  )}
                 </div>
 
                 <button
                   type="submit"
-                  className="btn btn-primary btn-lg"
-                  style={{ width: '100%', justifyContent: 'center', marginTop: '8px' }}
                   disabled={loading}
+                  style={{
+                    width: '100%',
+                    padding: '14px',
+                    borderRadius: '10px',
+                    background: '#0D9488',
+                    color: '#FFFFFF',
+                    fontFamily: 'var(--font-headline)',
+                    fontSize: '0.95rem',
+                    fontWeight: 700,
+                    letterSpacing: '0.04em',
+                    textTransform: 'uppercase',
+                    border: 'none',
+                    cursor: loading ? 'not-allowed' : 'pointer',
+                    opacity: loading ? 0.7 : 1,
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 4px 14px rgba(13, 148, 136, 0.35)',
+                    transition: 'background 0.2s',
+                    marginTop: '8px'
+                  }}
                 >
                   {loading ? (
                     <span style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span style={{ width: '16px', height: '16px', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: 'white', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+                      <span style={{
+                        width: '16px',
+                        height: '16px',
+                        border: '2px solid rgba(255,255,255,0.3)',
+                        borderTopColor: '#FFFFFF',
+                        borderRadius: '50%',
+                        animation: 'spin 0.8s linear infinite'
+                      }} />
                       Enviando...
                     </span>
-                  ) : 'Enviar enlace de recuperación'}
+                  ) : (
+                    <>
+                      Enviar Enlace <ArrowRight size={16} />
+                    </>
+                  )}
                 </button>
               </form>
             </>
           ) : (
-            <div style={{ textAlign: 'center', padding: '12px 0' }}>
-              <div style={{ fontSize: '3.5rem', marginBottom: '16px' }}>✉️</div>
-              <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginBottom: '12px', color: '#fff' }}>
-                ¡Correo Enviado!
-              </h1>
-              <p style={{ color: 'var(--text-secondary)', fontSize: '0.9375rem', lineHeight: 1.6, marginBottom: '24px' }}>
-                Enviamos un enlace de recuperación a <strong style={{ color: '#fff' }}>{email}</strong>. Por favor, revisá tu bandeja de entrada y tu carpeta de correo no deseado (spam).
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                width: '64px',
+                height: '64px',
+                borderRadius: '50%',
+                background: 'rgba(20, 184, 166, 0.12)',
+                border: '1px solid rgba(45, 212, 191, 0.3)',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                margin: '0 auto 20px',
+                color: '#2DD4BF'
+              }}>
+                <CheckCircle2 size={32} strokeWidth={2} />
+              </div>
+
+              <h2 style={{
+                fontFamily: 'var(--font-headline)',
+                fontSize: '1.5rem',
+                fontWeight: 700,
+                marginBottom: '8px',
+                color: '#FFFFFF',
+                letterSpacing: '0.02em',
+                textTransform: 'uppercase'
+              }}>
+                Correo Enviado
+              </h2>
+
+              <p style={{ color: '#94A3B8', fontSize: '0.9375rem', lineHeight: 1.6, marginBottom: '24px' }}>
+                Enviamos un enlace de recuperación a <strong style={{ color: '#2DD4BF' }}>{email}</strong>. Por favor, revisá tu bandeja de entrada o spam.
               </p>
-              <button 
+
+              <button
+                type="button"
                 onClick={() => setSubmitted(false)}
-                className="btn btn-ghost"
-                style={{ width: '100%', justifyContent: 'center' }}
+                style={{
+                  width: '100%',
+                  padding: '12px',
+                  borderRadius: '10px',
+                  background: 'transparent',
+                  border: '1px solid rgba(255, 255, 255, 0.12)',
+                  color: '#CBD5E1',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  cursor: 'pointer'
+                }}
               >
-                Volver a intentar con otro email
+                Volver a intentar con otro correo
               </button>
             </div>
           )}
         </div>
 
-        <p style={{ textAlign: 'center', marginTop: 'var(--space-5)', color: 'var(--text-secondary)' }}>
-          ¿Recordaste tu contraseña?{' '}
-          <Link href="/login" style={{ color: 'var(--color-primary)', fontWeight: 600 }}>
-            Iniciá sesión
+        {/* Bottom Link */}
+        <p style={{ textAlign: 'center', marginTop: '20px', color: '#94A3B8', fontSize: '0.875rem' }}>
+          <Link
+            href="/login"
+            style={{
+              color: '#2DD4BF',
+              fontWeight: 600,
+              textDecoration: 'none',
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+          >
+            <ArrowLeft size={14} /> Volver a iniciar sesión
           </Link>
         </p>
       </div>

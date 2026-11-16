@@ -3,6 +3,7 @@
 import { useSearchParams, useRouter } from 'next/navigation'
 import { useEffect, useState, Suspense } from 'react'
 import { useAuth } from '@/lib/hooks/useAuth'
+import { AlertCircle, HelpCircle, ArrowRight } from 'lucide-react'
 
 function CheckoutContent() {
   const searchParams = useSearchParams()
@@ -135,7 +136,7 @@ function CheckoutContent() {
       {/* Background glow */}
       <div style={{
         position: 'fixed', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse at center, rgba(124,58,237,0.08) 0%, transparent 70%)'
+        background: 'radial-gradient(ellipse at 50% 0%, rgba(20, 184, 166, 0.12) 0%, transparent 70%)'
       }} />
 
       <div style={{
@@ -152,7 +153,19 @@ function CheckoutContent() {
       }}>
         {error ? (
           <>
-            <div style={{ fontSize: '3rem', marginBottom: 'var(--space-4)' }}>⚠️</div>
+            <div style={{
+              width: '64px',
+              height: '64px',
+              borderRadius: '50%',
+              background: 'rgba(239, 68, 68, 0.12)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              margin: '0 auto var(--space-4)',
+              color: '#F87171'
+            }}>
+              <AlertCircle size={32} />
+            </div>
             <h2 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', marginBottom: 'var(--space-4)' }}>Algo salió mal</h2>
             <div style={{
               background: 'rgba(239, 68, 68, 0.1)',
@@ -280,8 +293,8 @@ function CheckoutContent() {
                 </div>
               )}
               {couponError && (
-                <div style={{ color: 'var(--color-error)', fontSize: '0.8125rem', marginTop: '6px' }}>
-                  ❌ {couponError}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--color-error)', fontSize: '0.8125rem', marginTop: '6px' }}>
+                  <AlertCircle size={14} /> {couponError}
                 </div>
               )}
             </div>
@@ -298,7 +311,7 @@ function CheckoutContent() {
                   Redirigiendo...
                 </span>
               ) : (
-                'Pagar con Mercado Pago 🚀'
+                'Pagar con Mercado Pago'
               )}
             </button>
 
@@ -323,7 +336,8 @@ function CheckoutContent() {
               textAlign: 'left'
             }}>
               <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                💡 ¿Inconvenientes para pagar? Podés realizar transferencia directa al alias <strong style={{ color: '#fff', fontFamily: 'monospace' }}>smart05</strong> (Titular: Nicolas Espinosa - Naranja X) y enviar el comprobante a nuestro WhatsApp de soporte para habilitar tu membresía.
+                <HelpCircle size={14} style={{ display: 'inline', verticalAlign: '-2px', marginRight: '6px', color: 'var(--color-secondary)' }} />
+                ¿Inconvenientes para pagar? Podés realizar transferencia directa al alias <strong style={{ color: '#fff', fontFamily: 'monospace' }}>smart05</strong> (Titular: Nicolas Espinosa - Naranja X) y enviar el comprobante a nuestro WhatsApp de soporte para habilitar tu membresía.
               </p>
             </div>
           </>

@@ -46,7 +46,7 @@ export const generateViewport = () => ({
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: '#7C3AED',
+  themeColor: '#080E1A',
 })
 
 export default function RootLayout({ children }) {
