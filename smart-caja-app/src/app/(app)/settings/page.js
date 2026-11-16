@@ -98,7 +98,8 @@ export default function SettingsPage() {
   // Team & Branch states
   const [teamMembers, setTeamMembers] = useState([])
   const [loadingTeam, setLoadingTeam] = useState(false)
-  const [inviteForm, setInviteForm] = useState({ full_name: '', email: '', role: 'cashier', branch_id: '' })
+  const [inviteForm, setInviteForm] = useState({ full_name: '', email: '', role: 'cashier', branch_id: '', password: '' })
+  const [newMemberCredentials, setNewMemberCredentials] = useState(null)
   const [inviting, setInviting] = useState(false)
 
   const [branches, setBranches] = useState([])
@@ -279,7 +280,7 @@ export default function SettingsPage() {
     }
   }
 
-  // Invite Colaborador
+  // Invite / Crear Colaborador
   const handleInviteUser = async (e) => {
     e.preventDefault()
     if (!inviteForm.email || !inviteForm.full_name) {
@@ -295,30 +296,31 @@ export default function SettingsPage() {
           email: inviteForm.email,
           full_name: inviteForm.full_name,
           role: inviteForm.role,
-          branch_id: inviteForm.branch_id || null
+          branch_id: inviteForm.branch_id || null,
+          password: inviteForm.password || null
         })
       })
 
       const data = await res.json()
       if (!res.ok) {
-        throw new Error(data.error || 'Error al enviar invitación')
+        throw new Error(data.error || 'Error al procesar la solicitud')
       }
 
-      if (data.method === 'admin_invite') {
-        toast.success(`¡Invitación enviada por email a ${inviteForm.full_name}!`)
-      } else if (data.method === 'fallback_link') {
-        // Copiar el enlace al portapapeles
-        await navigator.clipboard.writeText(data.inviteLink)
-        toast.success(`¡Invitación generada! Enlace copiado al portapapeles para enviar manualmente.`)
-      } else {
-        toast.success(data.message || 'Colaborador agregado con éxito')
+      if (data.password) {
+        setNewMemberCredentials({
+          name: inviteForm.full_name,
+          email: data.email || inviteForm.email,
+          password: data.password,
+          role: inviteForm.role
+        })
       }
 
-      setInviteForm({ full_name: '', email: '', role: 'cashier', branch_id: '' })
+      toast.success(data.message || `¡Colaborador ${inviteForm.full_name} guardado con éxito!`)
+      setInviteForm({ full_name: '', email: '', role: 'cashier', branch_id: '', password: '' })
       fetchTeamMembers()
     } catch (err) {
       console.error(err)
-      toast.error('No se pudo invitar al colaborador: ' + err.message)
+      toast.error('No se pudo crear al colaborador: ' + err.message)
     } finally {
       setInviting(false)
     }
@@ -2690,8 +2692,8 @@ export default function SettingsPage() {
                       </div>
                     </div>
                     
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: '16px', flexWrap: 'wrap' }}>
-                      <div className="form-group" style={{ minWidth: '200px', flex: 1 }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px', alignItems: 'flex-end' }}>
+                      <div className="form-group">
                         <label className="form-label required" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Rol Asignado</label>
                         <select
                           className="form-select form-input"
@@ -2704,9 +2706,23 @@ export default function SettingsPage() {
                           <option value="owner">Dueño (Acceso y control total del comercio)</option>
                         </select>
                       </div>
+
+                      <div className="form-group">
+                        <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
+                          Contraseña Inicial (Opcional)
+                        </label>
+                        <input
+                          className="form-input"
+                          type="text"
+                          placeholder="Ej: 123456 (o se genera sola)"
+                          value={inviteForm.password || ''}
+                          onChange={e => setInviteForm(prev => ({ ...prev, password: e.target.value }))}
+                          style={{ marginTop: '6px' }}
+                        />
+                      </div>
                       
                       {tenant?.subscription_plan === 'enterprise' && inviteForm.role !== 'owner' && (
-                        <div className="form-group" style={{ minWidth: '200px', flex: 1 }}>
+                        <div className="form-group">
                           <label className="form-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Sucursal Asignada</label>
                           <select
                             className="form-select form-input"
@@ -2726,9 +2742,9 @@ export default function SettingsPage() {
                         type="submit"
                         className="btn btn-secondary"
                         disabled={inviting}
-                        style={{ alignSelf: 'flex-end', height: '46px', padding: '0 24px', fontWeight: 700 }}
+                        style={{ height: '46px', padding: '0 24px', fontWeight: 700 }}
                       >
-                        {inviting ? 'Procesando...' : '📨 Enviar Invitación'}
+                        {inviting ? 'Guardando...' : 'Crear Colaborador'}
                       </button>
                     </div>
                   </form>
@@ -3414,6 +3430,91 @@ export default function SettingsPage() {
           }}
           onClose={() => setPreviewScreensaver(false)}
         />
+      )}
+
+      {/* Modal Credenciales Colaborador */}
+      {newMemberCredentials && (
+        <div style={{
+          position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+          background: 'rgba(0,0,0,0.8)', backdropFilter: 'blur(8px)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 99999, padding: '16px'
+        }}>
+          <div style={{
+            background: 'var(--bg-card)',
+            border: '1px solid var(--border-color)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '28px',
+            maxWidth: '460px',
+            width: '100%',
+            boxShadow: '0 25px 50px rgba(0,0,0,0.6)'
+          }}>
+            <div style={{ textAlign: 'center', marginBottom: '20px' }}>
+              <div style={{
+                width: '56px', height: '56px', borderRadius: '16px',
+                background: 'rgba(0, 229, 155, 0.1)',
+                border: '1px solid rgba(0, 229, 155, 0.25)',
+                display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+                color: 'var(--color-primary, #00e59b)', marginBottom: '12px'
+              }}>
+                <Check size={28} />
+              </div>
+              <h3 style={{ fontSize: '1.25rem', fontWeight: 800, color: '#fff', margin: 0 }}>
+                ¡Colaborador Listo para Operar!
+              </h3>
+              <p style={{ fontSize: '0.8125rem', color: 'var(--text-muted)', marginTop: '4px' }}>
+                Entrégale estos datos a {newMemberCredentials.name} para que ingrese a la caja.
+              </p>
+            </div>
+
+            <div style={{
+              background: 'rgba(255,255,255,0.03)',
+              border: '1px solid var(--border-color)',
+              borderRadius: 'var(--radius-md)',
+              padding: '16px',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '12px',
+              fontSize: '0.875rem',
+              marginBottom: '20px'
+            }}>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem', marginBottom: '2px' }}>ENLACE DE ACCESO:</span>
+                <strong style={{ color: 'var(--color-primary)', wordBreak: 'break-all' }}>https://sistema-caja-delta.vercel.app/login</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem', marginBottom: '2px' }}>USUARIO / EMAIL:</span>
+                <strong style={{ color: '#fff' }}>{newMemberCredentials.email}</strong>
+              </div>
+              <div>
+                <span style={{ color: 'var(--text-muted)', display: 'block', fontSize: '0.75rem', marginBottom: '2px' }}>CONTRASEÑA ASIGNADA:</span>
+                <strong style={{ color: 'var(--color-secondary, #4edea3)', fontSize: '1.15rem', fontFamily: 'monospace' }}>{newMemberCredentials.password}</strong>
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <button
+                className="btn btn-primary"
+                style={{ width: '100%', padding: '12px', fontWeight: 700 }}
+                onClick={() => {
+                  const text = `*Acceso a Caja - ${tenant?.name || 'Smart Caja'}*\n\nHola ${newMemberCredentials.name}, ya tenés tu acceso habilitado para operar la caja registradora:\n\n🔗 *Enlace:* https://sistema-caja-delta.vercel.app/login\n👤 *Usuario:* ${newMemberCredentials.email}\n🔑 *Contraseña:* ${newMemberCredentials.password}\n\nIngresá al enlace para comenzar a vender.`
+                  navigator.clipboard.writeText(text)
+                  toast.success('¡Datos copiados para WhatsApp!')
+                  window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank')
+                }}
+              >
+                Enviar por WhatsApp
+              </button>
+              <button
+                className="btn btn-ghost"
+                style={{ width: '100%', padding: '10px' }}
+                onClick={() => setNewMemberCredentials(null)}
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   )

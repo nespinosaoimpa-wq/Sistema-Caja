@@ -3,7 +3,7 @@ import { createAdminClient } from '@/lib/supabase/admin'
 
 export async function POST(request) {
   try {
-    const { email, full_name, role, branch_id } = await request.json()
+    const { email, full_name, role, branch_id, password } = await request.json()
     if (!email || !full_name || !role) {
       return Response.json({ error: 'Faltan campos requeridos' }, { status: 400 })
     }
@@ -17,29 +17,13 @@ export async function POST(request) {
     }
 
     const supabaseAdmin = createAdminClient()
-    const hasAdminKey = true
 
     // 2. Obtener el perfil del usuario que invita
-    let inviterProfile = null
-    let profileError = null
-
-    if (hasAdminKey) {
-      const { data, error } = await supabaseAdmin
-        .from('profiles')
-        .select('tenant_id, role')
-        .eq('id', user.id)
-        .single()
-      inviterProfile = data
-      profileError = error
-    } else {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('tenant_id, role')
-        .eq('id', user.id)
-        .single()
-      inviterProfile = data
-      profileError = error
-    }
+    const { data: inviterProfile, error: profileError } = await supabaseAdmin
+      .from('profiles')
+      .select('tenant_id, role')
+      .eq('id', user.id)
+      .single()
 
     if (profileError || !inviterProfile) {
       return Response.json({ error: 'No se encontró el perfil del invitador' }, { status: 403 })
@@ -51,23 +35,15 @@ export async function POST(request) {
     }
 
     const tenantId = inviterProfile.tenant_id
-
-    if (!hasAdminKey) {
-      // Retornar enlace manual en modo de fallback
-      const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'
-      const inviteLink = `${appUrl}/register?invite_tenant=${tenantId}&invite_role=${role}&invite_email=${encodeURIComponent(email)}&invite_name=${encodeURIComponent(full_name)}`
-      return Response.json({
-        success: true,
-        method: 'fallback_link',
-        inviteLink
-      })
-    }
-
-    // 3. Invitar usando cliente admin de Supabase (esquivando RLS)
     const emailNormalized = email.trim().toLowerCase()
 
-    // A. Check if the user already exists in the profiles table
-    const { data: existingProfile, error: profileFindError } = await supabaseAdmin
+    // Contraseña asignada: la que ingresó el dueño o una automática fácil
+    const assignedPassword = password && password.trim().length >= 6 
+      ? password.trim() 
+      : `caja${Math.floor(1000 + Math.random() * 9000)}`
+
+    // A. Verificar si el usuario ya existe en la tabla profiles
+    const { data: existingProfile } = await supabaseAdmin
       .from('profiles')
       .select('id, tenant_id, full_name, email, role')
       .eq('email', emailNormalized)
@@ -75,8 +51,8 @@ export async function POST(request) {
 
     if (existingProfile) {
       if (existingProfile.tenant_id === tenantId) {
-        // Already in the same tenant, update their details
-        const { error: updateError } = await supabaseAdmin
+        // Mismo comercio: actualizar datos y credenciales
+        await supabaseAdmin
           .from('profiles')
           .update({
             full_name,
@@ -86,31 +62,29 @@ export async function POST(request) {
           })
           .eq('id', existingProfile.id)
 
-        if (updateError) {
-          return Response.json({ error: 'Error al actualizar el colaborador existente: ' + updateError.message }, { status: 500 })
-        }
-
-        await supabaseAdmin.auth.admin.updateUserById(
-          existingProfile.id,
-          {
-            user_metadata: { full_name, tenant_id: tenantId, role }
-          }
-        )
+        await supabaseAdmin.auth.admin.updateUserById(existingProfile.id, {
+          password: assignedPassword,
+          email_confirm: true,
+          user_metadata: { full_name, tenant_id: tenantId, role }
+        })
 
         return Response.json({
           success: true,
           method: 'existing_member_updated',
-          message: 'El colaborador ya es parte del equipo. Se actualizó su rol y nombre.'
+          email: emailNormalized,
+          password: assignedPassword,
+          message: 'Colaborador actualizado con éxito. Ya puede iniciar sesión con la nueva contraseña.'
         })
       } else {
-        // In another tenant, check if they are the owner
+        // En otro comercio: si es owner, no permitir degradación
         if (existingProfile.role === 'owner') {
           return Response.json({
             error: 'El correo electrónico ya está registrado como dueño de otro comercio y no puede ser invitado como colaborador.'
           }, { status: 400 })
         }
 
-        const { error: updateError } = await supabaseAdmin
+        // Si es cajero o empleado en otro comercio, transferir
+        await supabaseAdmin
           .from('profiles')
           .update({
             tenant_id: tenantId,
@@ -121,113 +95,85 @@ export async function POST(request) {
           })
           .eq('id', existingProfile.id)
 
-        if (updateError) {
-          return Response.json({ error: 'Error al transferir colaborador: ' + updateError.message }, { status: 500 })
-        }
-
-        await supabaseAdmin.auth.admin.updateUserById(
-          existingProfile.id,
-          {
-            user_metadata: { full_name, tenant_id: tenantId, role }
-          }
-        )
+        await supabaseAdmin.auth.admin.updateUserById(existingProfile.id, {
+          password: assignedPassword,
+          email_confirm: true,
+          user_metadata: { full_name, tenant_id: tenantId, role }
+        })
 
         return Response.json({
           success: true,
           method: 'existing_member_transferred',
-          message: `El colaborador con email ${email} ha sido transferido a tu comercio.`
+          email: emailNormalized,
+          password: assignedPassword,
+          message: `El colaborador con email ${emailNormalized} ha sido transferido a tu comercio.`
         })
       }
     }
 
-    // B. Attempt standard invite by email
-    const { data: inviteData, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(
-      emailNormalized,
-      {
-        redirectTo: `${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/login`,
-        data: { full_name, tenant_id: tenantId, role }
-      }
-    )
+    // B. Crear el usuario directamente con contraseña activa y confirmada
+    const { data: createdAuthUser, error: createAuthError } = await supabaseAdmin.auth.admin.createUser({
+      email: emailNormalized,
+      password: assignedPassword,
+      email_confirm: true,
+      user_metadata: { full_name, tenant_id: tenantId, role }
+    })
 
-    if (inviteError) {
-      // C. Handle case where user is already registered in Auth but lacks a profile
-      if (inviteError.message?.toLowerCase().includes('already been registered') || inviteError.message?.toLowerCase().includes('already registered')) {
-        let existingAuthUser = null
+    let userId = createdAuthUser?.user?.id
+
+    if (createAuthError) {
+      // Si ya existía en auth.users pero no en profiles:
+      if (createAuthError.message?.toLowerCase().includes('already') || createAuthError.message?.toLowerCase().includes('registered')) {
         let page = 1
-        const perPage = 100
-        
+        let foundUser = null
         while (true) {
-          const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers({
-            page,
-            perPage
-          })
-          if (listError || !users || users.length === 0) break
-          
-          const found = users.find(u => u.email?.toLowerCase() === emailNormalized)
-          if (found) {
-            existingAuthUser = found
-            break
-          }
-          if (users.length < perPage) break
+          const { data: { users } } = await supabaseAdmin.auth.admin.listUsers({ page, perPage: 100 })
+          if (!users || users.length === 0) break
+          foundUser = users.find(u => u.email?.toLowerCase() === emailNormalized)
+          if (foundUser) break
+          if (users.length < 100) break
           page++
         }
 
-        if (existingAuthUser) {
-          // Double check profile creation
-          const { error: insertProfileError } = await supabaseAdmin
-            .from('profiles')
-            .insert({
-              id: existingAuthUser.id,
-              tenant_id: tenantId,
-              full_name,
-              email: emailNormalized,
-              role,
-              is_active: true,
-              branch_id: branchId
-            })
-          
-          if (insertProfileError) {
-            return Response.json({ error: 'Usuario registrado en Auth pero falló creación de perfil: ' + insertProfileError.message }, { status: 500 })
-          }
-
-          await supabaseAdmin.auth.admin.updateUserById(
-            existingAuthUser.id,
-            {
-              user_metadata: { full_name, tenant_id: tenantId, role }
-            }
-          )
-
-          return Response.json({
-            success: true,
-            method: 'existing_auth_profile_created',
-            message: `El colaborador ya tenía cuenta de usuario. Se le asoció a tu comercio con éxito.`
+        if (foundUser) {
+          userId = foundUser.id
+          await supabaseAdmin.auth.admin.updateUserById(userId, {
+            password: assignedPassword,
+            email_confirm: true,
+            user_metadata: { full_name, tenant_id: tenantId, role }
           })
+        } else {
+          return Response.json({ error: createAuthError.message }, { status: 400 })
         }
+      } else {
+        return Response.json({ error: createAuthError.message }, { status: 400 })
       }
-
-      return Response.json({ error: inviteError.message }, { status: 400 })
     }
 
-    // D. Invite succeeded, create their profile
-    const { error: insertProfileError } = await supabaseAdmin
+    // C. Asegurar que el perfil exista en la tabla profiles
+    const { error: profileInsertError } = await supabaseAdmin
       .from('profiles')
-      .insert({
-        id: inviteData.user.id,
+      .upsert({
+        id: userId,
         tenant_id: tenantId,
         full_name,
         email: emailNormalized,
         role,
-        branch_id: branchId
+        branch_id: branchId,
+        is_active: true
       })
 
-    if (insertProfileError) {
-      console.error('Error al insertar perfil del colaborador invitado:', insertProfileError)
-      return Response.json({ error: 'Usuario creado en Auth pero falló creación de perfil: ' + insertProfileError.message }, { status: 500 })
+    if (profileInsertError) {
+      console.error('Error al insertar perfil del colaborador:', profileInsertError)
+      return Response.json({ error: 'Usuario creado pero falló creación de perfil: ' + profileInsertError.message }, { status: 500 })
     }
 
     return Response.json({
       success: true,
-      method: 'admin_invite'
+      method: 'direct_created',
+      email: emailNormalized,
+      password: assignedPassword,
+      message: `¡Colaborador ${full_name} creado con éxito!`
     })
 
   } catch (err) {
