@@ -1,11 +1,11 @@
 {
   "name": "Smart Caja — Sistema POS Inteligente",
-  "short_name": "SmartCaja",
+  "short_name": "Smart Caja",
   "description": "Sistema de gestión de caja, stock, ventas y turnos para comercios.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#0d0b14",
-  "theme_color": "#7C3AED",
+  "background_color": "#060C17",
+  "theme_color": "#00E59B",
   "orientation": "any",
   "icons": [
     {
@@ -19,6 +19,16 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
     }
   ]
 }

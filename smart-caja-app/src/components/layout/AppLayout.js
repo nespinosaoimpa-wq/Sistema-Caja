@@ -948,14 +948,11 @@ export default function AppLayout({ children }) {
           >
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div style={{
-                  width: '40px', height: '40px', borderRadius: '10px',
-                  background: 'rgba(0, 229, 155, 0.1)',
-                  border: '1px solid rgba(0, 229, 155, 0.25)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary, #00e59b)'
-                }}>
-                  <Smartphone size={20} />
-                </div>
+                <img 
+                  src="/icon-192.png" 
+                  alt="Smart Caja Logo" 
+                  style={{ width: '42px', height: '42px', borderRadius: '10px', boxShadow: '0 4px 14px rgba(0, 229, 155, 0.25)' }} 
+                />
                 <div>
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', margin: 0 }}>Instalar Smart Caja</h3>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>App rápida para Android, iPhone y PC</span>

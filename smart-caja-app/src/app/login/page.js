@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { createClient } from '@/lib/supabase/client'
 import { useToast } from '@/lib/hooks/useToast'
 import { Mail, Lock, AlertTriangle, ArrowRight } from 'lucide-react'
+import BrandLogo from '@/components/ui/BrandLogo'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -130,34 +131,8 @@ export default function LoginPage() {
 
       <div style={{ width: '100%', maxWidth: '440px', position: 'relative', zIndex: 1 }}>
         {/* Executive Logo Mark */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', marginBottom: '32px' }}>
-          <div style={{
-            width: '42px',
-            height: '42px',
-            borderRadius: '10px',
-            background: 'linear-gradient(135deg, #0F766E, #0284C7)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            boxShadow: '0 4px 16px rgba(15, 118, 110, 0.35)',
-            color: '#FFFFFF',
-            fontWeight: 900,
-            fontFamily: 'var(--font-headline)',
-            fontSize: '1.125rem',
-            letterSpacing: '-0.5px'
-          }}>
-            SC
-          </div>
-          <span style={{
-            fontFamily: 'var(--font-headline)',
-            fontSize: '1.6rem',
-            fontWeight: 700,
-            letterSpacing: '0.04em',
-            color: '#FFFFFF',
-            textTransform: 'uppercase'
-          }}>
-            Smart <span style={{ color: '#2DD4BF' }}>Caja</span>
-          </span>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '32px' }}>
+          <BrandLogo size={46} textSize="1.75rem" />
         </div>
 
         {/* Card */}

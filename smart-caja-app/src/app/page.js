@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import styles from './page.module.css'
+import BrandLogo from '@/components/ui/BrandLogo'
 
 // ── Minimalist Clean SVG Icons (Zero Childish Emojis) ──
 const CheckIcon = ({ color = '#2DD4BF', size = 16 }) => (
@@ -295,8 +296,7 @@ export default function LandingPage() {
       {/* ── Navbar ── */}
       <nav className={styles.navbar}>
         <Link href="/" className={styles.brand}>
-          <div className={styles.brandIcon}>SC</div>
-          <span className={styles.brandName}>Smart<span>Caja</span></span>
+          <BrandLogo size={36} textSize="1.35rem" />
         </Link>
 
         <button
@@ -1169,7 +1169,9 @@ export default function LandingPage() {
 
       {/* ── Footer ── */}
       <footer className={styles.footer}>
-        <div className={styles.footerBrand}>SmartCaja</div>
+        <div className={styles.footerBrand}>
+          <BrandLogo size={28} textSize="1.15rem" />
+        </div>
         <div className={styles.footerLinks}>
           <Link href="/privacy" className={styles.footerLink}>Privacidad</Link>
           <Link href="/terms" className={styles.footerLink}>Términos del Servicio</Link>
