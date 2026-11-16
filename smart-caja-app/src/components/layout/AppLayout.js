@@ -37,6 +37,10 @@ import {
   Zap,
   Car,
   Download,
+  WifiOff,
+  Store,
+  AlertTriangle,
+  Monitor,
 } from 'lucide-react'
 
 
@@ -54,7 +58,7 @@ const NAV_ITEMS = [
   { href: '/analytics', label: 'Estadísticas', icon: TrendingUp, minPlan: 'professional' },
   { href: '/installments', label: 'Cuotas', icon: CreditCard, minPlan: 'professional', featureKey: 'installments' },
   { href: '/purchases', label: 'Compras', icon: ShoppingBag, minPlan: 'enterprise' },
-  { href: '/referrals', label: 'Referidos 🤝', icon: Gift, minPlan: 'basic' },
+  { href: '/referrals', label: 'Referidos', icon: Gift, minPlan: 'basic' },
   { href: '/work-orders', label: 'Órdenes', icon: Wrench, minPlan: 'basic', featureKey: 'work_orders', onlyForRubros: ['lubricentro', 'mecanica', 'gomeria', 'lavadero', 'otro'] },
   { href: '/express', label: 'Express', icon: Zap, minPlan: 'basic', featureKey: 'express', onlyForRubros: ['lubricentro', 'mecanica', 'gomeria', 'lavadero', 'otro'] },
   { href: '/vehicles', label: 'Vehículos', icon: Car, minPlan: 'basic', featureKey: 'vehicles', onlyForRubros: ['lubricentro', 'mecanica', 'gomeria', 'lavadero', 'otro'] },
@@ -406,8 +410,21 @@ export default function AppLayout({ children }) {
         padding: 'var(--space-4)',
       }}>
         <div className="card" style={{ maxWidth: '500px', width: '100%', padding: 'var(--space-8)', textAlign: 'center' }}>
-          <span style={{ fontSize: '3rem' }}>🔌</span>
-          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginTop: '12px', color: '#fff' }}>
+          <div style={{
+            width: '56px',
+            height: '56px',
+            borderRadius: '16px',
+            background: 'rgba(0, 229, 155, 0.08)',
+            border: '1px solid rgba(0, 229, 155, 0.2)',
+            display: 'inline-flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'var(--color-primary, #00e59b)',
+            margin: '0 auto 16px auto'
+          }}>
+            <WifiOff size={26} />
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginTop: '8px', color: '#fff' }}>
             Error de Conexión
           </h1>
           <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '6px', marginBottom: '24px', lineHeight: 1.5 }}>
@@ -504,8 +521,21 @@ export default function AppLayout({ children }) {
       }}>
         <div className="card" style={{ maxWidth: '500px', width: '100%', padding: 'var(--space-8)' }}>
           <div style={{ textAlign: 'center', marginBottom: 'var(--space-6)' }}>
-            <span style={{ fontSize: '3rem' }}>🏪</span>
-            <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginTop: '12px' }}>
+            <div style={{
+              width: '56px',
+              height: '56px',
+              borderRadius: '16px',
+              background: 'rgba(0, 229, 155, 0.08)',
+              border: '1px solid rgba(0, 229, 155, 0.2)',
+              display: 'inline-flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              color: 'var(--color-primary, #00e59b)',
+              margin: '0 auto 16px auto'
+            }}>
+              <Store size={26} />
+            </div>
+            <h1 style={{ fontFamily: 'var(--font-headline)', fontSize: '1.5rem', fontWeight: 800, marginTop: '8px' }}>
               Completar Configuración del Comercio
             </h1>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.875rem', marginTop: '6px' }}>
@@ -605,10 +635,10 @@ export default function AppLayout({ children }) {
 
   // Quick-access bottom tab items for mobile
   const BOTTOM_TABS = [
-    { href: '/pos', label: 'Caja', icon: '🛒' },
-    { href: '/inventory', label: 'Inventario', icon: '📦' },
-    { href: '/sales', label: 'Ventas', icon: '🧾' },
-    { href: '/dashboard', label: 'Dashboard', icon: '📊' },
+    { href: '/pos', label: 'Caja', icon: ShoppingCart },
+    { href: '/inventory', label: 'Inventario', icon: Package },
+    { href: '/sales', label: 'Ventas', icon: Receipt },
+    { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   ]
 
   return (
@@ -710,7 +740,7 @@ export default function AppLayout({ children }) {
             color: profile?.role === 'owner' ? '#EAB308' : profile?.role === 'admin' ? '#C084FC' : '#60A5FA',
             border: `1px solid ${profile?.role === 'owner' ? 'rgba(234, 179, 8, 0.3)' : profile?.role === 'admin' ? 'rgba(168, 85, 247, 0.3)' : 'rgba(59, 130, 246, 0.3)'}`
           }}>
-            {profile?.role === 'owner' ? '👑 Dueño' : profile?.role === 'admin' ? '⚡ Admin' : '👤 Empleado'}
+            {profile?.role === 'owner' ? 'Dueño' : profile?.role === 'admin' ? 'Admin' : 'Empleado'}
           </span>
         </div>
 
@@ -809,7 +839,7 @@ export default function AppLayout({ children }) {
               href={isSuspended ? '/settings' : tab.href}
               className={`bottom-tab-item ${isActive ? 'active' : ''}`}
             >
-              <span style={{ fontSize: '1.25rem', lineHeight: 1 }}>{tab.icon}</span>
+              <tab.icon size={18} style={{ marginBottom: '2px' }} />
               {tab.label}
             </Link>
           )
@@ -830,7 +860,20 @@ export default function AppLayout({ children }) {
                 borderRadius: 'var(--radius-xl)', padding: 'var(--space-10)', maxWidth: '550px',
                 boxShadow: '0 25px 50px rgba(255,180,171,0.1)'
               }}>
-                <div style={{ fontSize: '4rem', marginBottom: 'var(--space-4)' }}>⚠️</div>
+                <div style={{
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '20px',
+                  background: 'rgba(255, 180, 171, 0.1)',
+                  border: '1px solid rgba(255, 180, 171, 0.2)',
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  color: 'var(--color-error)',
+                  margin: '0 auto var(--space-4) auto'
+                }}>
+                  <AlertTriangle size={32} />
+                </div>
                 <h2 style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-error)', marginBottom: '12px', fontFamily: 'var(--font-headline)' }}>
                   Acceso Restringido
                 </h2>
@@ -907,9 +950,12 @@ export default function AppLayout({ children }) {
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <div style={{
                   width: '40px', height: '40px', borderRadius: '10px',
-                  background: 'linear-gradient(135deg, var(--color-primary), var(--color-primary-hover))',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.25rem', color: '#fff'
-                }}>📱</div>
+                  background: 'rgba(0, 229, 155, 0.1)',
+                  border: '1px solid rgba(0, 229, 155, 0.25)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'var(--color-primary, #00e59b)'
+                }}>
+                  <Smartphone size={20} />
+                </div>
                 <div>
                   <h3 style={{ fontSize: '1.1rem', fontWeight: 800, color: '#fff', margin: 0 }}>Instalar Smart Caja</h3>
                   <span style={{ fontSize: '0.75rem', color: 'var(--text-muted)' }}>App rápida para Android, iPhone y PC</span>
@@ -923,18 +969,18 @@ export default function AppLayout({ children }) {
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
               <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>📲 En Android / Chrome / Edge:</strong>
-                Toca el menú de tres puntos <strong style={{ color: '#fff' }}>⋮</strong> en tu navegador y selecciona <strong style={{ color: 'var(--color-primary)' }}>"Instalar aplicación"</strong> o <strong style={{ color: 'var(--color-primary)' }}>"Agregar a la pantalla principal"</strong>.
+                <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>En Android / Chrome / Edge:</strong>
+                Toca el menú de opciones <strong style={{ color: '#fff' }}>⋮</strong> en tu navegador y selecciona <strong style={{ color: 'var(--color-primary)' }}>"Instalar aplicación"</strong> o <strong style={{ color: 'var(--color-primary)' }}>"Agregar a la pantalla principal"</strong>.
               </div>
 
               <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>🍏 En iPhone / iPad (Safari):</strong>
-                Toca el botón <strong style={{ color: '#fff' }}>Compartir ⎋</strong> en la parte inferior de Safari y presiona <strong style={{ color: 'var(--color-primary)' }}>"Agregar al inicio ➕"</strong>.
+                <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>En iPhone / iPad (Safari):</strong>
+                Toca el botón <strong style={{ color: '#fff' }}>Compartir</strong> en la parte inferior de Safari y presiona <strong style={{ color: 'var(--color-primary)' }}>"Agregar al inicio"</strong>.
               </div>
 
               <div style={{ background: 'rgba(255,255,255,0.03)', padding: '12px', borderRadius: 'var(--radius-md)', border: '1px solid var(--border-color)' }}>
-                <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>💻 En Computadora (Windows / Mac):</strong>
-                En la barra de direcciones de tu navegador, haz clic en el ícono de pantalla <strong style={{ color: 'var(--color-primary)' }}>⊕ Instalar</strong>.
+                <strong style={{ color: '#fff', display: 'block', marginBottom: '4px' }}>En Computadora (Windows / Mac):</strong>
+                En la barra de direcciones de tu navegador, haz clic en el botón <strong style={{ color: 'var(--color-primary)' }}>Instalar aplicación</strong>.
               </div>
             </div>
 
